@@ -3,22 +3,15 @@ package cmd
 import (
 	"fmt"
 	"os"
-	"os/signal"
 	"time"
 
-	"sync"
-	"syscall"
-
-	"github.com/devopsext/sre/provider"
+	"github.com/devopsext/tools/common"
 	"github.com/spf13/cobra"
 )
 
 var VERSION = "unknown"
 
-var stdout *provider.Stdout
-var mainWG sync.WaitGroup
-
-var stdoutOptions = provider.StdoutOptions{
+var stdoutOptions = common.StdoutOptions{
 
 	Format:          "text",
 	Level:           "info",
@@ -28,16 +21,7 @@ var stdoutOptions = provider.StdoutOptions{
 	Debug:           false,
 }
 
-func interceptSyscall() {
-
-	c := make(chan os.Signal)
-	signal.Notify(c, os.Interrupt, syscall.SIGTERM, syscall.SIGQUIT)
-	go func() {
-		<-c
-		stdout.Info("Exiting...")
-		os.Exit(1)
-	}()
-}
+var stdout *common.Stdout
 
 func Execute() {
 
@@ -47,15 +31,14 @@ func Execute() {
 		PersistentPreRun: func(cmd *cobra.Command, args []string) {
 
 			stdoutOptions.Version = VERSION
-			stdout = provider.NewStdout(stdoutOptions)
+			stdout = common.NewStdout(stdoutOptions)
 			stdout.SetCallerOffset(1)
 			stdout.Info("Booting...")
 		},
 		Run: func(cmd *cobra.Command, args []string) {
 
-			stdout.Info("Log message to every log provider...")
+			stdout.Info("Log message...")
 
-			mainWG.Wait()
 		},
 	}
 
@@ -67,8 +50,6 @@ func Execute() {
 	flags.StringVar(&stdoutOptions.TimestampFormat, "stdout-timestamp-format", stdoutOptions.TimestampFormat, "Stdout timestamp format")
 	flags.BoolVar(&stdoutOptions.TextColors, "stdout-text-colors", stdoutOptions.TextColors, "Stdout text colors")
 	flags.BoolVar(&stdoutOptions.Debug, "stdout-debug", stdoutOptions.Debug, "Stdout debug")
-
-	interceptSyscall()
 
 	rootCmd.AddCommand(&cobra.Command{
 		Use:   "version",
