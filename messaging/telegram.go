@@ -85,7 +85,7 @@ func (t *Telegram) post(URL, contentType string, body bytes.Buffer, message stri
 	return nil, b
 }
 
-func (t *Telegram) SendMessage(URL, message string) (error, []byte) {
+func (t *Telegram) SendMessage(URL, message, title, content string) (error, []byte) {
 
 	var body bytes.Buffer
 	w := multipart.NewWriter(&body)
@@ -116,7 +116,7 @@ func (t *Telegram) SendMessage(URL, message string) (error, []byte) {
 	return t.post(URL, w.FormDataContentType(), body, message)
 }
 
-func (t *Telegram) SendPhoto(URL, message, fileName string, photo []byte) (error, []byte) {
+func (t *Telegram) SendPhoto(URL, message, fileName, title string, photo []byte) (error, []byte) {
 
 	var body bytes.Buffer
 	w := multipart.NewWriter(&body)
