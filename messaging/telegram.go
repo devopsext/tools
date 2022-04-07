@@ -2,10 +2,13 @@ package messaging
 
 import (
 	"bytes"
+	"errors"
 	"io/ioutil"
 	"mime/multipart"
 	"net/http"
 	"net/url"
+	"os"
+	"path/filepath"
 	"strings"
 
 	"github.com/devopsext/utils"
@@ -14,7 +17,13 @@ import (
 type TelegramOptions struct {
 	URL                 string
 	Timeout             int
+	Insecure            bool
 	DisableNotification string
+	Message             string
+	Title               string
+	FileName            string
+	Content             string // content or path to file
+	Output              string // path to output if empty to stdout
 }
 
 type Telegram struct {
@@ -60,32 +69,32 @@ func (t *Telegram) getSendPhotoURL(URL string) string {
 	return strings.Replace(URL, "sendMessage", "sendPhoto", -1)
 }
 
-func (t *Telegram) post(URL, contentType string, body bytes.Buffer, message string) (error, []byte) {
+func (t *Telegram) post(URL, contentType string, body bytes.Buffer, message string) ([]byte, error) {
 
 	reader := bytes.NewReader(body.Bytes())
 
 	req, err := http.NewRequest("POST", URL, reader)
 	if err != nil {
-		return err, nil
+		return nil, err
 	}
 
 	req.Header.Set("Content-Type", contentType)
 
 	resp, err := t.client.Do(req)
 	if err != nil {
-		return err, nil
+		return nil, err
 	}
 
 	defer resp.Body.Close()
 
 	b, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		return err, nil
+		return nil, err
 	}
-	return nil, b
+	return b, nil
 }
 
-func (t *Telegram) SendMessage(URL, message, title, content string) (error, []byte) {
+func (t *Telegram) SendCustom(URL, message, title, content string) ([]byte, error) {
 
 	var body bytes.Buffer
 	w := multipart.NewWriter(&body)
@@ -94,29 +103,29 @@ func (t *Telegram) SendMessage(URL, message, title, content string) (error, []by
 	}()
 
 	if err := w.WriteField("text", message); err != nil {
-		return err, nil
+		return nil, err
 	}
 
 	if err := w.WriteField("parse_mode", "HTML"); err != nil {
-		return err, nil
+		return nil, err
 	}
 
 	if err := w.WriteField("disable_web_page_preview", "true"); err != nil {
-		return err, nil
+		return nil, err
 	}
 
 	if err := w.WriteField("disable_notification", t.options.DisableNotification); err != nil {
-		return err, nil
+		return nil, err
 	}
 
 	if err := w.Close(); err != nil {
-		return err, nil
+		return nil, err
 	}
 
 	return t.post(URL, w.FormDataContentType(), body, message)
 }
 
-func (t *Telegram) SendPhoto(URL, message, fileName, title string, photo []byte) (error, []byte) {
+func (t *Telegram) SendCustomFile(URL, message, fileName, title string, file []byte) ([]byte, error) {
 
 	var body bytes.Buffer
 	w := multipart.NewWriter(&body)
@@ -125,41 +134,70 @@ func (t *Telegram) SendPhoto(URL, message, fileName, title string, photo []byte)
 	}()
 
 	if err := w.WriteField("caption", message); err != nil {
-		return err, nil
+		return nil, err
 	}
 
 	if err := w.WriteField("parse_mode", "HTML"); err != nil {
-		return err, nil
+		return nil, err
 	}
 
 	if err := w.WriteField("disable_web_page_preview", "true"); err != nil {
-		return err, nil
+		return nil, err
 	}
 
 	if err := w.WriteField("disable_notification", t.options.DisableNotification); err != nil {
-		return err, nil
+		return nil, err
 	}
 
 	fw, err := w.CreateFormFile("photo", fileName)
 	if err != nil {
-		return err, nil
+		return nil, err
 	}
 
-	if _, err := fw.Write(photo); err != nil {
-		return err, nil
+	if _, err := fw.Write(file); err != nil {
+		return nil, err
 	}
 
 	if err := w.Close(); err != nil {
-		return err, nil
+		return nil, err
+	}
+	return t.post(URL, w.FormDataContentType(), body, message)
+}
+
+func (t *Telegram) Send() ([]byte, error) {
+	return t.SendCustom(t.options.URL, t.options.Message, t.options.Title, t.options.Content)
+}
+
+func (t *Telegram) SendFile() ([]byte, error) {
+
+	var bytes []byte
+	fileName := t.options.FileName
+
+	_, err := os.Stat(t.options.Content)
+	if err == nil {
+
+		bytes, err = ioutil.ReadFile(t.options.Content)
+		if err != nil {
+			return nil, err
+		}
+
+		if utils.IsEmpty(fileName) {
+			fileName = strings.TrimSuffix(t.options.Content, filepath.Ext(t.options.Content))
+		}
+	} else {
+		bytes = []byte(t.options.Content)
 	}
 
-	return t.post(URL, w.FormDataContentType(), body, message)
+	if len(bytes) == 0 {
+		return nil, errors.New("SendFile content is not defined")
+	}
+	return t.SendCustomFile(t.options.URL, t.options.Message, fileName, t.options.Title, bytes)
 }
 
 func NewTelegram(options TelegramOptions) *Telegram {
 
 	return &Telegram{
-		client:  utils.NewHttpInsecureClient(options.Timeout),
+		client:  utils.NewHttpClient(options.Timeout, options.Insecure),
 		options: options,
 	}
 }
