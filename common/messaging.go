@@ -1,6 +1,8 @@
 package common
 
 type Messenger interface {
-	SendMessage(URL, message, title, content string) (error, []byte)
-	SendPhoto(URL, message, fileName, title string, photo []byte) (error, []byte)
+	Send() ([]byte, error)
+	SendFile() ([]byte, error)
+	SendCustom(URL, message, title, content string) ([]byte, error)
+	SendCustomFile(URL, message, fileName, title string, file []byte) ([]byte, error)
 }

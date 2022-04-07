@@ -15,4 +15,3 @@ require (
 	golang.org/x/sys v0.0.0-20210603081109-ebe580a85c40 // indirect
 )
 
-//replace /Users/stomilov/github.com/devopsext/utils => github.com/devopsext/utils v0.1.4

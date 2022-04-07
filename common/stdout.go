@@ -15,9 +15,7 @@ type StdoutOptions struct {
 	Level           string
 	Template        string
 	TimestampFormat string
-	Version         string
 	TextColors      bool
-	Debug           bool
 }
 
 type Stdout struct {
