@@ -12,7 +12,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var VERSION = "unknown"
+var version = "unknown"
 var APPNAME = "TOOLS"
 var appName = strings.ToLower(APPNAME)
 
@@ -48,11 +48,9 @@ func Execute() {
 		Use:   "tools",
 		Short: "Tools",
 		PersistentPreRun: func(cmd *cobra.Command, args []string) {
-
-			stdoutOptions.Version = VERSION
+			stdoutOptions.Version = version
 			stdout = common.NewStdout(stdoutOptions)
 			stdout.SetCallerOffset(1)
-			stdout.Info("Booting...")
 		},
 		Run: func(cmd *cobra.Command, args []string) {
 
@@ -84,7 +82,7 @@ func Execute() {
 		Use:   "version",
 		Short: "Print the version number",
 		Run: func(cmd *cobra.Command, args []string) {
-			fmt.Println(VERSION)
+			fmt.Println(version)
 		},
 	})
 
