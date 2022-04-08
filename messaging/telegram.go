@@ -9,6 +9,7 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 
 	"github.com/devopsext/utils"
@@ -18,9 +19,8 @@ type TelegramOptions struct {
 	URL                 string
 	Timeout             int
 	Insecure            bool
-	DisableNotification string
+	DisableNotification bool
 	Message             string
-	Title               string
 	FileName            string
 	Content             string // content or path to file
 	Output              string // path to output if empty to stdout
@@ -114,7 +114,7 @@ func (t *Telegram) SendCustom(URL, message, title, content string) ([]byte, erro
 		return nil, err
 	}
 
-	if err := w.WriteField("disable_notification", t.options.DisableNotification); err != nil {
+	if err := w.WriteField("disable_notification", strconv.FormatBool(t.options.DisableNotification)); err != nil {
 		return nil, err
 	}
 
@@ -145,7 +145,7 @@ func (t *Telegram) SendCustomFile(URL, message, fileName, title string, file []b
 		return nil, err
 	}
 
-	if err := w.WriteField("disable_notification", t.options.DisableNotification); err != nil {
+	if err := w.WriteField("disable_notification", strconv.FormatBool(t.options.DisableNotification)); err != nil {
 		return nil, err
 	}
 
@@ -161,11 +161,11 @@ func (t *Telegram) SendCustomFile(URL, message, fileName, title string, file []b
 	if err := w.Close(); err != nil {
 		return nil, err
 	}
-	return t.post(URL, w.FormDataContentType(), body, message)
+	return t.post(t.getSendPhotoURL(URL), w.FormDataContentType(), body, message)
 }
 
 func (t *Telegram) Send() ([]byte, error) {
-	return t.SendCustom(t.options.URL, t.options.Message, t.options.Title, t.options.Content)
+	return t.SendCustom(t.options.URL, t.options.Message, "", t.options.Content)
 }
 
 func (t *Telegram) SendFile() ([]byte, error) {
@@ -191,7 +191,7 @@ func (t *Telegram) SendFile() ([]byte, error) {
 	if len(bytes) == 0 {
 		return nil, errors.New("SendFile content is not defined")
 	}
-	return t.SendCustomFile(t.options.URL, t.options.Message, fileName, t.options.Title, bytes)
+	return t.SendCustomFile(t.options.URL, t.options.Message, fileName, "", bytes)
 }
 
 func NewTelegram(options TelegramOptions) *Telegram {
