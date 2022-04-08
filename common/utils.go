@@ -30,7 +30,12 @@ func Output(query, to string, bytes []byte, stdout *Stdout) {
 		if err != nil {
 			stdout.Panic(err)
 		}
-		output = fmt.Sprintf("%v", v)
+		b, err = json.Marshal(v)
+		if err != nil {
+			output = fmt.Sprintf("%v", v)
+		} else {
+			output = string(b)
+		}
 	}
 
 	if utils.IsEmpty(to) {

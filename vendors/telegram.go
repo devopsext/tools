@@ -21,7 +21,7 @@ type TelegramOptions struct {
 	FileName            string
 	Content             string // content or path to file
 	Output              string // path to output if empty to stdout
-	Query               string
+	OutputQuery         string
 }
 
 type Telegram struct {

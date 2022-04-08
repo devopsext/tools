@@ -18,7 +18,7 @@ var telegramOptions = vendors.TelegramOptions{
 	FileName:            envGet("TELEGRAM_FILENAME", "").(string),
 	Content:             envGet("TELEGRAM_CONTENT", "").(string),
 	Output:              envGet("TELEGRAM_OUTPUT", "").(string),
-	Query:               envGet("TELEGRAM_QUERY", "").(string),
+	OutputQuery:         envGet("TELEGRAM_OUTPUT_QUERY", "").(string),
 }
 
 func telegramNew(stdout *common.Stdout) common.Messenger {
@@ -62,7 +62,7 @@ func NewTelegramCommand() *cobra.Command {
 	flags.StringVar(&telegramOptions.FileName, "telegram-filename", telegramOptions.FileName, "Telegram file name")
 	flags.StringVar(&telegramOptions.Content, "telegram-content", telegramOptions.Content, "Telegram content")
 	flags.StringVar(&telegramOptions.Output, "telegram-output", telegramOptions.Output, "Telegram output")
-	flags.StringVar(&telegramOptions.Query, "telegram-query", telegramOptions.Query, "Telegram query")
+	flags.StringVar(&telegramOptions.OutputQuery, "telegram-output-query", telegramOptions.OutputQuery, "Telegram output query")
 
 	telegramCmd.AddCommand(&cobra.Command{
 		Use:   "send",
@@ -75,7 +75,7 @@ func NewTelegramCommand() *cobra.Command {
 				stdout.Error(err)
 				return
 			}
-			common.Output(telegramOptions.Query, telegramOptions.Output, bytes, stdout)
+			common.Output(telegramOptions.OutputQuery, telegramOptions.Output, bytes, stdout)
 		},
 	})
 
@@ -90,7 +90,7 @@ func NewTelegramCommand() *cobra.Command {
 				stdout.Error(err)
 				return
 			}
-			common.Output(telegramOptions.Query, telegramOptions.Output, bytes, stdout)
+			common.Output(telegramOptions.OutputQuery, telegramOptions.Output, bytes, stdout)
 		},
 	})
 	return &telegramCmd

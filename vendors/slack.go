@@ -11,15 +11,15 @@ import (
 )
 
 type SlackOptions struct {
-	URL      string
-	Timeout  int
-	Insecure bool
-	Message  string
-	Title    string
-	FileName string
-	Content  string // content or path to file
-	Output   string // path to output if empty to stdout
-	Query    string
+	URL         string
+	Timeout     int
+	Insecure    bool
+	Message     string
+	Title       string
+	FileName    string
+	Content     string // content or path to file
+	Output      string // path to output if empty to stdout
+	OutputQuery string
 }
 
 type Slack struct {
