@@ -1,15 +1,16 @@
 package cmd
 
 import (
-	"io/ioutil"
+	"path/filepath"
+	"strings"
 
 	"github.com/devopsext/tools/common"
-	"github.com/devopsext/tools/messaging"
+	"github.com/devopsext/tools/vendors"
 	"github.com/devopsext/utils"
 	"github.com/spf13/cobra"
 )
 
-var slackOptions = messaging.SlackOptions{
+var slackOptions = vendors.SlackOptions{
 	URL:      envGet("SLACK_URL", "").(string),
 	Timeout:  envGet("SLACK_TIMEOUT", 30).(int),
 	Insecure: envGet("SLACK_INSECURE", false).(bool),
@@ -18,27 +19,32 @@ var slackOptions = messaging.SlackOptions{
 	Title:    envGet("SLACK_TITLE", "").(string),
 	Content:  envGet("SLACK_CONTENT", "").(string),
 	Output:   envGet("SLACK_OUTPUT", "").(string),
+	Query:    envGet("SLACK_QUERY", "").(string),
 }
 
 func slackNew(stdout *common.Stdout) common.Messenger {
-	slack := messaging.NewSlack(slackOptions)
+
+	messageBytes, err := utils.Content(slackOptions.Message)
+	if err != nil {
+		stdout.Panic(err)
+	}
+	slackOptions.Message = string(messageBytes)
+
+	contentBytes, err := utils.Content(slackOptions.Content)
+	if err != nil {
+		stdout.Panic(err)
+	}
+	slackOptions.Content = string(contentBytes)
+
+	if utils.IsEmpty(slackOptions.FileName) && utils.FileExists(slackOptions.Content) {
+		slackOptions.FileName = strings.TrimSuffix(slackOptions.Content, filepath.Ext(slackOptions.Content))
+	}
+
+	slack := vendors.NewSlack(slackOptions)
 	if slack == nil {
 		stdout.Panic("No slack")
 	}
 	return slack
-}
-
-func slackOutput(stdout *common.Stdout, bytes []byte) {
-
-	if utils.IsEmpty(slackOptions.Output) {
-		stdout.Info(string(bytes))
-	} else {
-		stdout.Debug("Slack writing output to %s...", slackOptions.Output)
-		err := ioutil.WriteFile(slackOptions.Output, bytes, 0644)
-		if err != nil {
-			stdout.Error(err)
-		}
-	}
 }
 
 func NewSlackCommand() *cobra.Command {
@@ -57,6 +63,7 @@ func NewSlackCommand() *cobra.Command {
 	flags.StringVar(&slackOptions.Title, "slack-title", slackOptions.Title, "Slack title")
 	flags.StringVar(&slackOptions.Content, "slack-content", slackOptions.Content, "Slack content")
 	flags.StringVar(&slackOptions.Output, "slack-output", slackOptions.Output, "Slack output")
+	flags.StringVar(&slackOptions.Query, "slack-query", slackOptions.Query, "Slack query")
 
 	slackCmd.AddCommand(&cobra.Command{
 		Use:   "send",
@@ -69,7 +76,7 @@ func NewSlackCommand() *cobra.Command {
 				stdout.Error(err)
 				return
 			}
-			slackOutput(stdout, bytes)
+			common.Output(slackOptions.Query, slackOptions.Output, bytes, stdout)
 		},
 	})
 
@@ -84,7 +91,7 @@ func NewSlackCommand() *cobra.Command {
 				stdout.Error(err)
 				return
 			}
-			slackOutput(stdout, bytes)
+			common.Output(slackOptions.Query, slackOptions.Output, bytes, stdout)
 		},
 	})
 	return slackCmd

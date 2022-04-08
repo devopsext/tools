@@ -1,15 +1,16 @@
 package cmd
 
 import (
-	"io/ioutil"
+	"path/filepath"
+	"strings"
 
 	"github.com/devopsext/tools/common"
-	"github.com/devopsext/tools/messaging"
+	"github.com/devopsext/tools/vendors"
 	"github.com/devopsext/utils"
 	"github.com/spf13/cobra"
 )
 
-var telegramOptions = messaging.TelegramOptions{
+var telegramOptions = vendors.TelegramOptions{
 	URL:                 envGet("TELEGRAM_URL", "").(string),
 	Timeout:             envGet("TELEGRAM_TIMEOUT", 30).(int),
 	DisableNotification: envGet("TELEGRAM_DISABLE_NOTIFICATION", false).(bool),
@@ -17,27 +18,32 @@ var telegramOptions = messaging.TelegramOptions{
 	FileName:            envGet("TELEGRAM_FILENAME", "").(string),
 	Content:             envGet("TELEGRAM_CONTENT", "").(string),
 	Output:              envGet("TELEGRAM_OUTPUT", "").(string),
+	Query:               envGet("TELEGRAM_QUERY", "").(string),
 }
 
 func telegramNew(stdout *common.Stdout) common.Messenger {
-	telegram := messaging.NewTelegram(telegramOptions)
+
+	messageBytes, err := utils.Content(telegramOptions.Message)
+	if err != nil {
+		stdout.Panic(err)
+	}
+	telegramOptions.Message = string(messageBytes)
+
+	contentBytes, err := utils.Content(telegramOptions.Content)
+	if err != nil {
+		stdout.Panic(err)
+	}
+	telegramOptions.Content = string(contentBytes)
+
+	if utils.IsEmpty(telegramOptions.FileName) && utils.FileExists(telegramOptions.Content) {
+		telegramOptions.FileName = strings.TrimSuffix(telegramOptions.Content, filepath.Ext(telegramOptions.Content))
+	}
+
+	telegram := vendors.NewTelegram(telegramOptions)
 	if telegram == nil {
 		stdout.Panic("No telegram")
 	}
 	return telegram
-}
-
-func telegramOutput(stdout *common.Stdout, bytes []byte) {
-
-	if utils.IsEmpty(telegramOptions.Output) {
-		stdout.Info(string(bytes))
-	} else {
-		stdout.Debug("Telegram writing output to %s...", telegramOptions.Output)
-		err := ioutil.WriteFile(telegramOptions.Output, bytes, 0644)
-		if err != nil {
-			stdout.Error(err)
-		}
-	}
 }
 
 func NewTelegramCommand() *cobra.Command {
@@ -56,6 +62,7 @@ func NewTelegramCommand() *cobra.Command {
 	flags.StringVar(&telegramOptions.FileName, "telegram-filename", telegramOptions.FileName, "Telegram file name")
 	flags.StringVar(&telegramOptions.Content, "telegram-content", telegramOptions.Content, "Telegram content")
 	flags.StringVar(&telegramOptions.Output, "telegram-output", telegramOptions.Output, "Telegram output")
+	flags.StringVar(&telegramOptions.Query, "telegram-query", telegramOptions.Query, "Telegram query")
 
 	telegramCmd.AddCommand(&cobra.Command{
 		Use:   "send",
@@ -68,7 +75,7 @@ func NewTelegramCommand() *cobra.Command {
 				stdout.Error(err)
 				return
 			}
-			telegramOutput(stdout, bytes)
+			common.Output(telegramOptions.Query, telegramOptions.Output, bytes, stdout)
 		},
 	})
 
@@ -83,7 +90,7 @@ func NewTelegramCommand() *cobra.Command {
 				stdout.Error(err)
 				return
 			}
-			telegramOutput(stdout, bytes)
+			common.Output(telegramOptions.Query, telegramOptions.Output, bytes, stdout)
 		},
 	})
 	return &telegramCmd

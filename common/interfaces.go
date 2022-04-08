@@ -6,3 +6,7 @@ type Messenger interface {
 	SendCustom(URL, message, title, content string) ([]byte, error)
 	SendCustomFile(URL, message, fileName, title string, file []byte) ([]byte, error)
 }
+
+type LogManagement interface {
+	Logs() ([]byte, error)
+}

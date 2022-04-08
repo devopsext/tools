@@ -1,15 +1,11 @@
-package messaging
+package vendors
 
 import (
 	"bytes"
-	"errors"
 	"io/ioutil"
 	"mime/multipart"
 	"net/http"
 	"net/url"
-	"os"
-	"path/filepath"
-	"strings"
 
 	"github.com/devopsext/utils"
 )
@@ -23,6 +19,7 @@ type SlackOptions struct {
 	FileName string
 	Content  string // content or path to file
 	Output   string // path to output if empty to stdout
+	Query    string
 }
 
 type Slack struct {
@@ -135,29 +132,7 @@ func (s *Slack) Send() ([]byte, error) {
 }
 
 func (s *Slack) SendFile() ([]byte, error) {
-
-	var bytes []byte
-	fileName := s.options.FileName
-
-	_, err := os.Stat(s.options.Content)
-	if err == nil {
-
-		bytes, err = ioutil.ReadFile(s.options.Content)
-		if err != nil {
-			return nil, err
-		}
-
-		if utils.IsEmpty(fileName) {
-			fileName = strings.TrimSuffix(s.options.Content, filepath.Ext(s.options.Content))
-		}
-	} else {
-		bytes = []byte(s.options.Content)
-	}
-
-	if len(bytes) == 0 {
-		return nil, errors.New("SendFile content is not defined")
-	}
-	return s.SendCustomFile(s.options.URL, s.options.Message, fileName, s.options.Title, bytes)
+	return s.SendCustomFile(s.options.URL, s.options.Message, s.options.FileName, s.options.Title, []byte(s.options.Content))
 }
 
 func NewSlack(options SlackOptions) *Slack {

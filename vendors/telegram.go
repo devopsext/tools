@@ -1,14 +1,11 @@
-package messaging
+package vendors
 
 import (
 	"bytes"
-	"errors"
 	"io/ioutil"
 	"mime/multipart"
 	"net/http"
 	"net/url"
-	"os"
-	"path/filepath"
 	"strconv"
 	"strings"
 
@@ -24,6 +21,7 @@ type TelegramOptions struct {
 	FileName            string
 	Content             string // content or path to file
 	Output              string // path to output if empty to stdout
+	Query               string
 }
 
 type Telegram struct {
@@ -169,29 +167,7 @@ func (t *Telegram) Send() ([]byte, error) {
 }
 
 func (t *Telegram) SendFile() ([]byte, error) {
-
-	var bytes []byte
-	fileName := t.options.FileName
-
-	_, err := os.Stat(t.options.Content)
-	if err == nil {
-
-		bytes, err = ioutil.ReadFile(t.options.Content)
-		if err != nil {
-			return nil, err
-		}
-
-		if utils.IsEmpty(fileName) {
-			fileName = strings.TrimSuffix(t.options.Content, filepath.Ext(t.options.Content))
-		}
-	} else {
-		bytes = []byte(t.options.Content)
-	}
-
-	if len(bytes) == 0 {
-		return nil, errors.New("SendFile content is not defined")
-	}
-	return t.SendCustomFile(t.options.URL, t.options.Message, fileName, "", bytes)
+	return t.SendCustomFile(t.options.URL, t.options.Message, t.options.FileName, "", []byte(t.options.Content))
 }
 
 func NewTelegram(options TelegramOptions) *Telegram {
