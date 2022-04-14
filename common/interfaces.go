@@ -10,3 +10,7 @@ type Messenger interface {
 type LogManagement interface {
 	Logs() ([]byte, error)
 }
+
+type TaskTracker interface {
+	CreateTask() ([]byte, error)
+}
