@@ -75,7 +75,7 @@ func NewTelegramCommand() *cobra.Command {
 				stdout.Error(err)
 				return
 			}
-			common.Output(telegramOptions.OutputQuery, telegramOptions.Output, bytes, stdout)
+			common.Output(telegramOptions.OutputQuery, telegramOptions.Output, "Telegram", telegramOptions, bytes, stdout)
 		},
 	})
 
@@ -90,7 +90,7 @@ func NewTelegramCommand() *cobra.Command {
 				stdout.Error(err)
 				return
 			}
-			common.Output(telegramOptions.OutputQuery, telegramOptions.Output, bytes, stdout)
+			common.Output(telegramOptions.OutputQuery, telegramOptions.Output, "Telegram", telegramOptions, bytes, stdout)
 		},
 	})
 	return &telegramCmd

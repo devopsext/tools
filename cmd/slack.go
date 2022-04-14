@@ -76,7 +76,7 @@ func NewSlackCommand() *cobra.Command {
 				stdout.Error(err)
 				return
 			}
-			common.Output(slackOptions.OutputQuery, slackOptions.Output, bytes, stdout)
+			common.Output(slackOptions.OutputQuery, slackOptions.Output, "Slack", slackOptions, bytes, stdout)
 		},
 	})
 
@@ -91,7 +91,7 @@ func NewSlackCommand() *cobra.Command {
 				stdout.Error(err)
 				return
 			}
-			common.Output(slackOptions.OutputQuery, slackOptions.Output, bytes, stdout)
+			common.Output(slackOptions.OutputQuery, slackOptions.Output, "Slack", slackOptions, bytes, stdout)
 		},
 	})
 	return slackCmd

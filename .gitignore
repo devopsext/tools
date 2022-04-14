@@ -10,7 +10,9 @@ tools
 slack.output
 slack.query
 telegram.output
+telegram.query
 graylog.output
+graylog.query
 test.png
 
 

@@ -74,7 +74,7 @@ func NewGraylogCommand() *cobra.Command {
 				stdout.Error(err)
 				return
 			}
-			common.Output(graylogOptions.OutputQuery, graylogOptions.Output, bytes, stdout)
+			common.Output(graylogOptions.OutputQuery, graylogOptions.Output, "Graylog", graylogOptions, bytes, stdout)
 		},
 	})
 
