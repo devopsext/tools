@@ -22,7 +22,7 @@ var graylogOptions = vendors.GraylogOptions{
 	Limit:       envGet("GRAYLOG_LIMIT", 100).(int),
 	Range:       envGet("GRAYLOG_RANGE", "").(string),
 	Output:      envGet("GRAYLOG_OUTPUT", "").(string),
-	OutputQuery: envGet("GRAYLOG_OOUTPUT_QUERY", "").(string),
+	OutputQuery: envGet("GRAYLOG_OUTPUT_QUERY", "").(string),
 }
 
 func graylogNew(stdout *common.Stdout) common.LogManagement {

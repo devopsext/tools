@@ -13,7 +13,7 @@ var jiraOptions = vendors.JiraOptions{
 	User:        envGet("JIRA_USER", "").(string),
 	Password:    envGet("JIRA_PASSWORD", "").(string),
 	Output:      envGet("JIRA_OUTPUT", "").(string),
-	OutputQuery: envGet("JIRA_OOUTPUT_QUERY", "").(string),
+	OutputQuery: envGet("JIRA_OUTPUT_QUERY", "").(string),
 }
 
 func jiraNew(stdout *common.Stdout) common.TaskTracker {
@@ -38,6 +38,8 @@ func NewJiraCommand() *cobra.Command {
 	flags.BoolVar(&jiraOptions.Insecure, "jira-insecure", jiraOptions.Insecure, "Jira insecure")
 	flags.StringVar(&jiraOptions.User, "jira-user", jiraOptions.User, "Jira user")
 	flags.StringVar(&jiraOptions.Password, "jira-password", jiraOptions.Password, "Jira password")
+	flags.StringVar(&jiraOptions.Output, "jira-output", jiraOptions.Output, "Jira output")
+	flags.StringVar(&jiraOptions.OutputQuery, "jira-output-query", jiraOptions.OutputQuery, "Jira output query")
 
 	jiraCmd.AddCommand(&cobra.Command{
 		Use:   "create-task",

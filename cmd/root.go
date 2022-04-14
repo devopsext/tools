@@ -59,6 +59,7 @@ func Execute() {
 	rootCmd.AddCommand(NewSlackCommand())
 	rootCmd.AddCommand(NewTelegramCommand())
 	rootCmd.AddCommand(NewGraylogCommand())
+	rootCmd.AddCommand(NewJiraCommand())
 
 	if err := rootCmd.Execute(); err != nil {
 		stdout.Error(err)
