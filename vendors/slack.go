@@ -11,13 +11,16 @@ import (
 )
 
 type SlackOptions struct {
-	URL         string
-	Timeout     int
-	Insecure    bool
-	Message     string
-	Title       string
-	FileName    string
-	Content     string // content or path to file
+	URL      string
+	Timeout  int
+	Insecure bool
+	Message  string
+	Title    string
+	FileName string
+	Content  string // content or path to file
+}
+
+type SlackOutputOptions struct {
 	Output      string // path to output if empty to stdout
 	OutputQuery string
 }
@@ -70,6 +73,7 @@ func (s *Slack) post(URL, contentType string, body bytes.Buffer, message string)
 	return b, nil
 }
 
+//func (s *Slack) SendCustom(opts SlackOptions) ([]byte, error) {
 func (s *Slack) SendCustom(URL, message, title, content string) ([]byte, error) {
 
 	var body bytes.Buffer

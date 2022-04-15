@@ -4,8 +4,10 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
-
-	"encoding/base64"
+	"net/url"
+	"path"
+	"strconv"
+	"time"
 
 	"github.com/devopsext/utils"
 )
@@ -14,10 +16,15 @@ type GrafanaOptions struct {
 	URL         string
 	Timeout     int
 	Insecure    bool
-	User        string
-	Password    string
-	Output      string
-	OutputQuery string
+	ApiKey      string
+	OrgID       string
+	UID         string
+	Slug        string
+	PanelID     string
+	From        string
+	To          string
+	ImageWidth  int
+	ImageHeight int
 }
 
 type Grafana struct {
@@ -32,10 +39,8 @@ func (g *Grafana) get(URL string) ([]byte, error) {
 		return nil, err
 	}
 
-	req.Header.Set("Content-Type", "application/json")
-	if !utils.IsEmpty(g.options.User) {
-		basic := base64.StdEncoding.EncodeToString([]byte(fmt.Sprintf("%s:%s", g.options.User, g.options.Password)))
-		req.Header.Set("Authorization", fmt.Sprintf("Basic %s", basic))
+	if !utils.IsEmpty(g.options.ApiKey) {
+		req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", g.options.ApiKey))
 	}
 
 	resp, err := g.client.Do(req)
@@ -55,43 +60,55 @@ func (g *Grafana) get(URL string) ([]byte, error) {
 	return b, nil
 }
 
-/*func (g *Graylog) searchAbsolute(URL, streams, query, sort string, from, to string, limit int) ([]byte, error) {
+func (g *Grafana) renderImage(URL, uid, slug, orgId, panelId, width, height, from, to string) ([]byte, error) {
 
 	params := make(url.Values)
-	if !utils.IsEmpty(streams) {
-		params.Add("streams", streams)
+	if !utils.IsEmpty(orgId) {
+		params.Add("orgId", orgId)
 	}
-	if !utils.IsEmpty(query) {
-		params.Add("query", query)
+	if !utils.IsEmpty(panelId) {
+		params.Add("panelId", panelId)
 	}
-	if !utils.IsEmpty(sort) {
-		params.Add("sort", sort)
+	if !utils.IsEmpty(width) {
+		params.Add("width", width)
+	}
+	if !utils.IsEmpty(height) {
+		params.Add("height", height)
 	}
 	if !utils.IsEmpty(from) {
+		t, err := time.Parse(time.RFC3339Nano, from)
+		if err == nil {
+			from = strconv.Itoa(int(t.UTC().UnixMilli()))
+		}
 		params.Add("from", from)
 	}
 	if !utils.IsEmpty(to) {
+		t, err := time.Parse(time.RFC3339Nano, to)
+		if err == nil {
+			to = strconv.Itoa(int(t.UTC().UnixMilli()))
+		}
 		params.Add("to", to)
 	}
-	if limit > 0 {
-		params.Add("limit", strconv.Itoa(limit))
-	}
+	params.Add("tz", "UTC")
 
 	u, err := url.Parse(URL)
 	if err != nil {
 		return nil, err
 	}
 
-	u.Path = path.Join(u.Path, "/api/search/universal/absolute")
+	u.Path = path.Join(u.Path, fmt.Sprintf("/render/d-solo/%s/%s", uid, slug))
 	if params != nil {
 		u.RawQuery = params.Encode()
 	}
 	return g.get(u.String())
-}*/
+}
 
 func (g *Grafana) GetImage() ([]byte, error) {
 
-	return nil, fmt.Errorf("not implemented")
+	width := strconv.Itoa(g.options.ImageWidth)
+	height := strconv.Itoa(g.options.ImageHeight)
+
+	return g.renderImage(g.options.URL, g.options.UID, g.options.Slug, g.options.OrgID, g.options.PanelID, width, height, g.options.From, g.options.To)
 }
 
 func NewGrafana(options GrafanaOptions) *Grafana {

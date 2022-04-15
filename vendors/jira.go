@@ -7,13 +7,11 @@ import (
 )
 
 type JiraOptions struct {
-	URL         string
-	Timeout     int
-	Insecure    bool
-	User        string
-	Password    string
-	Output      string
-	OutputQuery string
+	URL      string
+	Timeout  int
+	Insecure bool
+	User     string
+	Password string
 }
 
 type Jira struct {

@@ -11,18 +11,24 @@ import (
 )
 
 var slackOptions = vendors.SlackOptions{
-	URL:         envGet("SLACK_URL", "").(string),
-	Timeout:     envGet("SLACK_TIMEOUT", 30).(int),
-	Insecure:    envGet("SLACK_INSECURE", false).(bool),
-	Message:     envGet("SLACK_MESSAGE", "").(string),
-	FileName:    envGet("SLACK_FILENAME", "").(string),
-	Title:       envGet("SLACK_TITLE", "").(string),
-	Content:     envGet("SLACK_CONTENT", "").(string),
-	Output:      envGet("SLACK_OUTPUT", "").(string),
-	OutputQuery: envGet("SLACK_OUTPUT_QUERY", "").(string),
+	URL:      envGet("SLACK_URL", "").(string),
+	Timeout:  envGet("SLACK_TIMEOUT", 30).(int),
+	Insecure: envGet("SLACK_INSECURE", false).(bool),
+	Message:  envGet("SLACK_MESSAGE", "").(string),
+	FileName: envGet("SLACK_FILENAME", "").(string),
+	Title:    envGet("SLACK_TITLE", "").(string),
+	Content:  envGet("SLACK_CONTENT", "").(string),
 }
 
-func slackNew(stdout *common.Stdout) common.Messenger {
+var slackOutput = common.OutputOptions{
+	Output: envGet("SLACK_OUTPUT", "").(string),
+	Query:  envGet("SLACK_OUTPUT_QUERY", "").(string),
+}
+
+func slackNew(stdout *common.Stdout) *vendors.Slack {
+
+	common.Debug("Slack", slackOptions, stdout)
+	common.Debug("Slack", slackOutput, stdout)
 
 	messageBytes, err := utils.Content(slackOptions.Message)
 	if err != nil {
@@ -62,8 +68,8 @@ func NewSlackCommand() *cobra.Command {
 	flags.StringVar(&slackOptions.FileName, "slack-filename", slackOptions.FileName, "Slack file name")
 	flags.StringVar(&slackOptions.Title, "slack-title", slackOptions.Title, "Slack title")
 	flags.StringVar(&slackOptions.Content, "slack-content", slackOptions.Content, "Slack content")
-	flags.StringVar(&slackOptions.Output, "slack-output", slackOptions.Output, "Slack output")
-	flags.StringVar(&slackOptions.OutputQuery, "slack-output-query", slackOptions.OutputQuery, "Slack output query")
+	flags.StringVar(&slackOutput.Output, "slack-output", slackOutput.Output, "Slack output")
+	flags.StringVar(&slackOutput.Query, "slack-output-query", slackOutput.Query, "Slack output query")
 
 	slackCmd.AddCommand(&cobra.Command{
 		Use:   "send",
@@ -76,7 +82,7 @@ func NewSlackCommand() *cobra.Command {
 				stdout.Error(err)
 				return
 			}
-			common.Output(slackOptions.OutputQuery, slackOptions.Output, "Slack", slackOptions, bytes, stdout)
+			common.OutputJson(slackOutput, "Slack", slackOptions, bytes, stdout)
 		},
 	})
 
@@ -91,7 +97,7 @@ func NewSlackCommand() *cobra.Command {
 				stdout.Error(err)
 				return
 			}
-			common.Output(slackOptions.OutputQuery, slackOptions.Output, "Slack", slackOptions, bytes, stdout)
+			common.OutputJson(slackOutput, "Slack", slackOptions, bytes, stdout)
 		},
 	})
 	return slackCmd

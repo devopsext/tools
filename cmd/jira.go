@@ -7,16 +7,22 @@ import (
 )
 
 var jiraOptions = vendors.JiraOptions{
-	URL:         envGet("JIRA_URL", "").(string),
-	Timeout:     envGet("JIRA_TIMEOUT", 30).(int),
-	Insecure:    envGet("JIRA_INSECURE", false).(bool),
-	User:        envGet("JIRA_USER", "").(string),
-	Password:    envGet("JIRA_PASSWORD", "").(string),
-	Output:      envGet("JIRA_OUTPUT", "").(string),
-	OutputQuery: envGet("JIRA_OUTPUT_QUERY", "").(string),
+	URL:      envGet("JIRA_URL", "").(string),
+	Timeout:  envGet("JIRA_TIMEOUT", 30).(int),
+	Insecure: envGet("JIRA_INSECURE", false).(bool),
+	User:     envGet("JIRA_USER", "").(string),
+	Password: envGet("JIRA_PASSWORD", "").(string),
 }
 
-func jiraNew(stdout *common.Stdout) common.TaskTracker {
+var jiraOutput = common.OutputOptions{
+	Output: envGet("JIRA_OUTPUT", "").(string),
+	Query:  envGet("JIRA_OUTPUT_QUERY", "").(string),
+}
+
+func jiraNew(stdout *common.Stdout) *vendors.Jira {
+
+	common.Debug("Jira", jiraOptions, stdout)
+	common.Debug("Jira", jiraOutput, stdout)
 
 	jira := vendors.NewJira(jiraOptions)
 	if jira == nil {
@@ -38,8 +44,8 @@ func NewJiraCommand() *cobra.Command {
 	flags.BoolVar(&jiraOptions.Insecure, "jira-insecure", jiraOptions.Insecure, "Jira insecure")
 	flags.StringVar(&jiraOptions.User, "jira-user", jiraOptions.User, "Jira user")
 	flags.StringVar(&jiraOptions.Password, "jira-password", jiraOptions.Password, "Jira password")
-	flags.StringVar(&jiraOptions.Output, "jira-output", jiraOptions.Output, "Jira output")
-	flags.StringVar(&jiraOptions.OutputQuery, "jira-output-query", jiraOptions.OutputQuery, "Jira output query")
+	flags.StringVar(&jiraOutput.Output, "jira-output", jiraOutput.Output, "Jira output")
+	flags.StringVar(&jiraOutput.Query, "jira-output-query", jiraOutput.Query, "Jira output query")
 
 	jiraCmd.AddCommand(&cobra.Command{
 		Use:   "create-task",
@@ -52,7 +58,7 @@ func NewJiraCommand() *cobra.Command {
 				stdout.Error(err)
 				return
 			}
-			common.Output(jiraOptions.OutputQuery, jiraOptions.Output, "Jira", jiraOptions, bytes, stdout)
+			common.OutputJson(jiraOutput, "Jira", jiraOptions, bytes, stdout)
 		},
 	})
 

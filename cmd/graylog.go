@@ -8,24 +8,30 @@ import (
 )
 
 var graylogOptions = vendors.GraylogOptions{
-	URL:         envGet("GRAYLOG_URL", "").(string),
-	Timeout:     envGet("GRAYLOG_TIMEOUT", 30).(int),
-	Insecure:    envGet("GRAYLOG_INSECURE", false).(bool),
-	User:        envGet("GRAYLOG_USER", "").(string),
-	Password:    envGet("GRAYLOG_PASSWORD", "").(string),
-	Streams:     envGet("GRAYLOG_STREAMS", "").(string),
-	Query:       envGet("GRAYLOG_QUERY", "").(string),
-	RangeType:   envGet("GRAYLOG_RANGE_TYPE", "absolute").(string),
-	From:        envGet("GRAYLOG_FROM", "").(string),
-	To:          envGet("GRAYLOG_TO", "").(string),
-	Sort:        envGet("GRAYLOG_SORT", "").(string),
-	Limit:       envGet("GRAYLOG_LIMIT", 100).(int),
-	Range:       envGet("GRAYLOG_RANGE", "").(string),
-	Output:      envGet("GRAYLOG_OUTPUT", "").(string),
-	OutputQuery: envGet("GRAYLOG_OUTPUT_QUERY", "").(string),
+	URL:       envGet("GRAYLOG_URL", "").(string),
+	Timeout:   envGet("GRAYLOG_TIMEOUT", 30).(int),
+	Insecure:  envGet("GRAYLOG_INSECURE", false).(bool),
+	User:      envGet("GRAYLOG_USER", "").(string),
+	Password:  envGet("GRAYLOG_PASSWORD", "").(string),
+	Streams:   envGet("GRAYLOG_STREAMS", "").(string),
+	Query:     envGet("GRAYLOG_QUERY", "").(string),
+	RangeType: envGet("GRAYLOG_RANGE_TYPE", "absolute").(string),
+	From:      envGet("GRAYLOG_FROM", "").(string),
+	To:        envGet("GRAYLOG_TO", "").(string),
+	Sort:      envGet("GRAYLOG_SORT", "").(string),
+	Limit:     envGet("GRAYLOG_LIMIT", 100).(int),
+	Range:     envGet("GRAYLOG_RANGE", "").(string),
 }
 
-func graylogNew(stdout *common.Stdout) common.LogManagement {
+var graylogOutput = common.OutputOptions{
+	Output: envGet("GRAYLOG_OUTPUT", "").(string),
+	Query:  envGet("GRAYLOG_OUTPUT_QUERY", "").(string),
+}
+
+func graylogNew(stdout *common.Stdout) *vendors.Graylog {
+
+	common.Debug("Graylog", grafanaOptions, stdout)
+	common.Debug("Graylog", graylogOutput, stdout)
 
 	queryBytes, err := utils.Content(graylogOptions.Query)
 	if err != nil {
@@ -60,8 +66,8 @@ func NewGraylogCommand() *cobra.Command {
 	flags.IntVar(&graylogOptions.Limit, "graylog-limit", graylogOptions.Limit, "Graylog limit")
 	flags.StringVar(&graylogOptions.From, "graylog-from", graylogOptions.From, "Graylog from time")
 	flags.StringVar(&graylogOptions.To, "graylog-to", graylogOptions.To, "Graylog to time")
-	flags.StringVar(&graylogOptions.Output, "graylog-output", graylogOptions.Output, "Graylog output")
-	flags.StringVar(&graylogOptions.OutputQuery, "graylog-output-query", graylogOptions.OutputQuery, "Graylog output query")
+	flags.StringVar(&graylogOutput.Output, "graylog-output", graylogOutput.Output, "Graylog output")
+	flags.StringVar(&graylogOutput.Query, "graylog-output-query", graylogOutput.Query, "Graylog output query")
 
 	graylogCmd.AddCommand(&cobra.Command{
 		Use:   "get-logs",
@@ -74,7 +80,7 @@ func NewGraylogCommand() *cobra.Command {
 				stdout.Error(err)
 				return
 			}
-			common.Output(graylogOptions.OutputQuery, graylogOptions.Output, "Graylog", graylogOptions, bytes, stdout)
+			common.OutputJson(graylogOutput, "Graylog", graylogOptions, bytes, stdout)
 		},
 	})
 
