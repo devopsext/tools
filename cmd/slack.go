@@ -11,7 +11,6 @@ import (
 )
 
 var slackOptions = vendors.SlackOptions{
-	URL:         envGet("SLACK_URL", "").(string),
 	Timeout:     envGet("SLACK_TIMEOUT", 30).(int),
 	Insecure:    envGet("SLACK_INSECURE", false).(bool),
 	Message:     envGet("SLACK_MESSAGE", "").(string),
@@ -20,6 +19,8 @@ var slackOptions = vendors.SlackOptions{
 	Content:     envGet("SLACK_CONTENT", "").(string),
 	Output:      envGet("SLACK_OUTPUT", "").(string),
 	OutputQuery: envGet("SLACK_OUTPUT_QUERY", "").(string),
+	Token:       envGet("SLACK_TOKEN", "").(string),
+	Channels:    strings.Split(envGet("SLACK_CHANNELS", "").(string), ","),
 }
 
 func slackNew(stdout *common.Stdout) common.Messenger {
@@ -55,7 +56,6 @@ func NewSlackCommand() *cobra.Command {
 	}
 
 	flags := slackCmd.PersistentFlags()
-	flags.StringVar(&slackOptions.URL, "slack-url", slackOptions.URL, "Slack URL")
 	flags.IntVar(&slackOptions.Timeout, "slack-timeout", slackOptions.Timeout, "Slack timeout")
 	flags.BoolVar(&slackOptions.Insecure, "slack-insecure", slackOptions.Insecure, "Slack insecure")
 	flags.StringVar(&slackOptions.Message, "slack-message", slackOptions.Message, "Slack message")
@@ -64,6 +64,8 @@ func NewSlackCommand() *cobra.Command {
 	flags.StringVar(&slackOptions.Content, "slack-content", slackOptions.Content, "Slack content")
 	flags.StringVar(&slackOptions.Output, "slack-output", slackOptions.Output, "Slack output")
 	flags.StringVar(&slackOptions.OutputQuery, "slack-output-query", slackOptions.OutputQuery, "Slack output query")
+	flags.StringVar(&slackOptions.Token, "slack-token", slackOptions.Token, "Slack token")
+	flags.StringSliceVar(&slackOptions.Channels, "slack-channel", slackOptions.Channels, "Slack channels")
 
 	slackCmd.AddCommand(&cobra.Command{
 		Use:   "send",

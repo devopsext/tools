@@ -2,16 +2,24 @@ package vendors
 
 import (
 	"bytes"
+	"github.com/devopsext/utils"
 	"io/ioutil"
 	"mime/multipart"
 	"net/http"
 	"net/url"
+	"strings"
+)
 
-	"github.com/devopsext/utils"
+const baseURL = "https://slack.com/api/"
+
+const (
+	filesUpload     = "files.upload"
+	chatPostMessage = "chat.postMessage"
 )
 
 type SlackOptions struct {
-	URL         string
+	Token       string
+	Channels    []string
 	Timeout     int
 	Insecure    bool
 	Message     string
@@ -46,7 +54,7 @@ func (s *Slack) getChannel(URL string) string {
 	return u.Query().Get("channels")
 }
 
-func (s *Slack) post(URL, contentType string, body bytes.Buffer, message string) ([]byte, error) {
+func (s *Slack) postBody(URL string, query url.Values, contentType string, body bytes.Buffer) ([]byte, error) {
 
 	reader := bytes.NewReader(body.Bytes())
 
@@ -56,6 +64,8 @@ func (s *Slack) post(URL, contentType string, body bytes.Buffer, message string)
 	}
 
 	req.Header.Set("Content-Type", contentType)
+	req.Header.Set("Authorization", "Bearer "+s.options.Token)
+	req.URL.RawQuery = query.Encode()
 
 	resp, err := s.client.Do(req)
 	if err != nil {
@@ -93,7 +103,13 @@ func (s *Slack) SendCustom(URL, message, title, content string) ([]byte, error) 
 	if err := w.Close(); err != nil {
 		return nil, err
 	}
-	return s.post(URL, w.FormDataContentType(), body, message)
+
+	q := url.Values{}
+	q.Add("channels", strings.Join(s.options.Channels, ","))
+
+	URL = s.filesUploadURL()
+
+	return s.postBody(URL, q, w.FormDataContentType(), body)
 }
 
 func (s *Slack) SendCustomFile(URL, message, fileName, title string, content []byte) ([]byte, error) {
@@ -124,15 +140,29 @@ func (s *Slack) SendCustomFile(URL, message, fileName, title string, content []b
 	if err := w.Close(); err != nil {
 		return nil, err
 	}
-	return s.post(URL, w.FormDataContentType(), body, message)
+
+	q := url.Values{}
+	q.Add("channels", strings.Join(s.options.Channels, ","))
+
+	URL = s.filesUploadURL()
+
+	return s.postBody(URL, q, w.FormDataContentType(), body)
 }
 
 func (s *Slack) Send() ([]byte, error) {
-	return s.SendCustom(s.options.URL, s.options.Message, s.options.Title, s.options.Content)
+	return s.SendCustom("", s.options.Message, s.options.Title, s.options.Content)
 }
 
 func (s *Slack) SendFile() ([]byte, error) {
-	return s.SendCustomFile(s.options.URL, s.options.Message, s.options.FileName, s.options.Title, []byte(s.options.Content))
+	return s.SendCustomFile("", s.options.Message, s.options.FileName, s.options.Title, []byte(s.options.Content))
+}
+
+func (s *Slack) filesUploadURL() string {
+	return baseURL + filesUpload
+}
+
+func (s *Slack) chatPostMessageURL() string {
+	return baseURL + chatPostMessage
 }
 
 func NewSlack(options SlackOptions) *Slack {
