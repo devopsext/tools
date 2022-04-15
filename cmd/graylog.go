@@ -64,12 +64,12 @@ func NewGraylogCommand() *cobra.Command {
 	flags.StringVar(&graylogOptions.OutputQuery, "graylog-output-query", graylogOptions.OutputQuery, "Graylog output query")
 
 	graylogCmd.AddCommand(&cobra.Command{
-		Use:   "logs",
-		Short: "Getting logs",
+		Use:   "get-logs",
+		Short: "Get logs",
 		Run: func(cmd *cobra.Command, args []string) {
 
 			stdout.Debug("Graylog getting logs...")
-			bytes, err := graylogNew(stdout).Logs()
+			bytes, err := graylogNew(stdout).GetLogs()
 			if err != nil {
 				stdout.Error(err)
 				return

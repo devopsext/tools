@@ -133,7 +133,7 @@ func (g *Graylog) searchAbsolute(URL, streams, query, sort string, from, to stri
 	return g.get(u.String())
 }
 
-func (g *Graylog) Logs() ([]byte, error) {
+func (g *Graylog) GetLogs() ([]byte, error) {
 
 	switch g.options.RangeType {
 	case "relative":

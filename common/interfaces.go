@@ -8,9 +8,13 @@ type Messenger interface {
 }
 
 type LogManagement interface {
-	Logs() ([]byte, error)
+	GetLogs() ([]byte, error)
 }
 
 type TaskTracker interface {
 	CreateTask() ([]byte, error)
+}
+
+type Dashboard interface {
+	GetImage() ([]byte, error)
 }
