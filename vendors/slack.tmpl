@@ -1,0 +1,38 @@
+{
+    "channel": "{{.Channel}}",
+    "blocks": [
+        {
+            "type": "header",
+            "text": {
+                "type": "plain_text",
+                "text": "{{ .Title}}",
+                "emoji": true
+            }
+        },
+        {
+            "type": "divider"
+        },
+        {
+            "type": "section",
+            "text": {
+                "type": "mrkdwn",
+                "text": "{{ .Message }}"
+            }
+        }
+{{- if ne .Content ""}}
+    , {
+            "type": "image",
+            "image_url": "{{ .ImageURL }}",
+            "alt_text": "chart"
+    }
+{{- end}}
+    ],
+    "text": "{{ .Title }}"
+{{- if ne .Content ""}}
+    , "attachments": [
+        {
+            "image_url": "{{ .ImageURL }}",
+        }
+    ]
+{{- end}}
+}

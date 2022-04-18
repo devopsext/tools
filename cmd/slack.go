@@ -23,7 +23,7 @@ var slackOptions = vendors.SlackOptions{
 	Channels:    strings.Split(envGet("SLACK_CHANNELS", "").(string), ","),
 }
 
-func slackNew(stdout *common.Stdout) common.Messenger {
+func slackNew(stdout *common.Stdout) *vendors.Slack {
 
 	messageBytes, err := utils.Content(slackOptions.Message)
 	if err != nil {
@@ -73,12 +73,14 @@ func NewSlackCommand() *cobra.Command {
 		Run: func(cmd *cobra.Command, args []string) {
 
 			stdout.Debug("Slack sending message...")
-			bytes, err := slackNew(stdout).Send()
-			if err != nil {
-				stdout.Error(err)
-				return
+			for _, channel := range slackOptions.Channels {
+				bytes, err := slackNew(stdout).SendMessage(channel)
+				if err != nil {
+					stdout.Error(err)
+					return
+				}
+				common.Output(slackOptions.OutputQuery, slackOptions.Output, "Slack", slackOptions, bytes, stdout)
 			}
-			common.Output(slackOptions.OutputQuery, slackOptions.Output, "Slack", slackOptions, bytes, stdout)
 		},
 	})
 
@@ -88,7 +90,8 @@ func NewSlackCommand() *cobra.Command {
 		Run: func(cmd *cobra.Command, args []string) {
 
 			stdout.Debug("Slack sending file...")
-			bytes, err := slackNew(stdout).SendFile()
+			s := slackNew(stdout)
+			bytes, err := s.SendFile()
 			if err != nil {
 				stdout.Error(err)
 				return
