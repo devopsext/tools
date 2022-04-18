@@ -17,11 +17,17 @@ var telegramOptions = vendors.TelegramOptions{
 	Message:             envGet("TELEGRAM_MESSAGE", "").(string),
 	FileName:            envGet("TELEGRAM_FILENAME", "").(string),
 	Content:             envGet("TELEGRAM_CONTENT", "").(string),
-	Output:              envGet("TELEGRAM_OUTPUT", "").(string),
-	OutputQuery:         envGet("TELEGRAM_OUTPUT_QUERY", "").(string),
 }
 
-func telegramNew(stdout *common.Stdout) common.Messenger {
+var telegramOutput = common.OutputOptions{
+	Output: envGet("TELEGRAM_OUTPUT", "").(string),
+	Query:  envGet("TELEGRAM_OUTPUT_QUERY", "").(string),
+}
+
+func telegramNew(stdout *common.Stdout) *vendors.Telegram {
+
+	common.Debug("Telegram", telegramOptions, stdout)
+	common.Debug("Telegram", telegramOutput, stdout)
 
 	messageBytes, err := utils.Content(telegramOptions.Message)
 	if err != nil {
@@ -61,8 +67,8 @@ func NewTelegramCommand() *cobra.Command {
 	flags.StringVar(&telegramOptions.Message, "telegram-message", telegramOptions.Message, "Telegram message")
 	flags.StringVar(&telegramOptions.FileName, "telegram-filename", telegramOptions.FileName, "Telegram file name")
 	flags.StringVar(&telegramOptions.Content, "telegram-content", telegramOptions.Content, "Telegram content")
-	flags.StringVar(&telegramOptions.Output, "telegram-output", telegramOptions.Output, "Telegram output")
-	flags.StringVar(&telegramOptions.OutputQuery, "telegram-output-query", telegramOptions.OutputQuery, "Telegram output query")
+	flags.StringVar(&telegramOutput.Output, "telegram-output", telegramOutput.Output, "Telegram output")
+	flags.StringVar(&telegramOutput.Query, "telegram-output-query", telegramOutput.Query, "Telegram output query")
 
 	telegramCmd.AddCommand(&cobra.Command{
 		Use:   "send",
@@ -75,7 +81,7 @@ func NewTelegramCommand() *cobra.Command {
 				stdout.Error(err)
 				return
 			}
-			common.Output(telegramOptions.OutputQuery, telegramOptions.Output, "Telegram", telegramOptions, bytes, stdout)
+			common.OutputJson(telegramOutput, "Telegram", telegramOptions, bytes, stdout)
 		},
 	})
 
@@ -90,7 +96,7 @@ func NewTelegramCommand() *cobra.Command {
 				stdout.Error(err)
 				return
 			}
-			common.Output(telegramOptions.OutputQuery, telegramOptions.Output, "Telegram", telegramOptions, bytes, stdout)
+			common.OutputJson(telegramOutput, "Telegram", telegramOptions, bytes, stdout)
 		},
 	})
 	return &telegramCmd

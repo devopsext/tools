@@ -10,6 +10,11 @@ import (
 	"github.com/devopsext/utils"
 )
 
+type OutputOptions struct {
+	Output string
+	Query  string
+}
+
 // we need custom json marshal due to no html escaption
 func jsonMarshal(t interface{}) ([]byte, error) {
 	buffer := &bytes.Buffer{}
@@ -19,9 +24,9 @@ func jsonMarshal(t interface{}) ([]byte, error) {
 	return buffer.Bytes(), err
 }
 
-func jsonataVars(p string, t interface{}) (map[string]interface{}, error) {
+func interfaceToMap(prefix string, i interface{}) (map[string]interface{}, error) {
 
-	bytes, err := jsonMarshal(t)
+	bytes, err := jsonMarshal(i)
 	if err != nil {
 		return nil, err
 	}
@@ -32,7 +37,7 @@ func jsonataVars(p string, t interface{}) (map[string]interface{}, error) {
 	}
 	r := make(map[string]interface{})
 	for k, v := range m {
-		k = fmt.Sprintf("%s%s", p, k)
+		k = fmt.Sprintf("%s%s", prefix, k)
 		r[k] = v
 	}
 	return r, nil
@@ -49,7 +54,7 @@ func Output(query, to string, prefix string, opts interface{}, bytes []byte, std
 	output := string(bytes)
 	if !utils.IsEmpty(query) {
 
-		vars, err := jsonataVars(prefix, opts)
+		vars, err := interfaceToMap(prefix, opts)
 		if err == nil {
 			jsonata.RegisterVars(vars)
 		}
@@ -80,6 +85,37 @@ func Output(query, to string, prefix string, opts interface{}, bytes []byte, std
 		err := ioutil.WriteFile(to, []byte(output), 0644)
 		if err != nil {
 			stdout.Error(err)
+		}
+	}
+}
+
+func OutputJson(outputOpts OutputOptions, prefix string, opts interface{}, bytes []byte, stdout *Stdout) {
+	Output(outputOpts.Query, outputOpts.Output, prefix, opts, bytes, stdout)
+}
+
+func OutputRaw(outputOpts OutputOptions, bytes []byte, stdout *Stdout) {
+
+	output := string(bytes)
+	if utils.IsEmpty(outputOpts.Output) {
+		stdout.Info(output)
+	} else {
+		stdout.Debug("Writing output to %s...", outputOpts.Output)
+		err := ioutil.WriteFile(outputOpts.Output, bytes, 0644)
+		if err != nil {
+			stdout.Error(err)
+		}
+	}
+}
+
+func Debug(prefix string, obj interface{}, stdout *Stdout) {
+
+	vars, err := interfaceToMap(prefix, obj)
+	if err != nil {
+		stdout.Panic(err)
+	}
+	for k, v := range vars {
+		if !utils.IsEmpty(v) {
+			stdout.Debug("%s: %s", k, v)
 		}
 	}
 }

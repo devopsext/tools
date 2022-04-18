@@ -14,21 +14,19 @@ import (
 )
 
 type GraylogOptions struct {
-	URL         string
-	Timeout     int
-	Insecure    bool
-	User        string
-	Password    string
-	Streams     string
-	Query       string
-	RangeType   string
-	Sort        string
-	Limit       int
-	From        string
-	To          string
-	Range       string
-	Output      string
-	OutputQuery string
+	URL       string
+	Timeout   int
+	Insecure  bool
+	User      string
+	Password  string
+	Streams   string
+	Query     string
+	RangeType string
+	Sort      string
+	Limit     int
+	From      string
+	To        string
+	Range     string
 }
 
 type Graylog struct {

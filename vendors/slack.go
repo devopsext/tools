@@ -31,6 +31,9 @@ type SlackOptions struct {
 	Title       string
 	FileName    string
 	Content     string // content or path to file
+}
+
+type SlackOutputOptions struct {
 	Output      string // path to output if empty to stdout
 	OutputQuery string
 }
@@ -74,6 +77,7 @@ func (s *Slack) sendMessage(channel, title, message, imageUrl string) ([]byte, e
 	return b, nil
 }
 
+//func (s *Slack) SendCustom(opts SlackOptions) ([]byte, error) {
 func (s *Slack) SendCustom(URL, message, title, content string) ([]byte, error) {
 
 	var body bytes.Buffer
