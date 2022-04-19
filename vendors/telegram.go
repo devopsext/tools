@@ -2,13 +2,13 @@ package vendors
 
 import (
 	"bytes"
-	"io/ioutil"
 	"mime/multipart"
 	"net/http"
 	"net/url"
 	"strconv"
 	"strings"
 
+	"github.com/devopsext/tools/common"
 	"github.com/devopsext/utils"
 )
 
@@ -69,31 +69,6 @@ func (t *Telegram) getSendDocumentURL(URL string) string {
 	return strings.Replace(URL, "sendMessage", "sendDocument", -1)
 }
 
-func (t *Telegram) post(URL, contentType string, body bytes.Buffer, message string) ([]byte, error) {
-
-	reader := bytes.NewReader(body.Bytes())
-
-	req, err := http.NewRequest("POST", URL, reader)
-	if err != nil {
-		return nil, err
-	}
-
-	req.Header.Set("Content-Type", contentType)
-
-	resp, err := t.client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-
-	defer resp.Body.Close()
-
-	b, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		return nil, err
-	}
-	return b, nil
-}
-
 func (t *Telegram) SendCustom(opts TelegramOptions) ([]byte, error) {
 
 	var body bytes.Buffer
@@ -122,7 +97,7 @@ func (t *Telegram) SendCustom(opts TelegramOptions) ([]byte, error) {
 		return nil, err
 	}
 
-	return t.post(opts.URL, w.FormDataContentType(), body, opts.Message)
+	return common.HttpPostRaw(t.client, opts.URL, w.FormDataContentType(), "", body.Bytes())
 }
 
 func (t *Telegram) SendCustomPhoto(opts TelegramOptions) ([]byte, error) {
@@ -161,7 +136,7 @@ func (t *Telegram) SendCustomPhoto(opts TelegramOptions) ([]byte, error) {
 	if err := w.Close(); err != nil {
 		return nil, err
 	}
-	return t.post(t.getSendPhotoURL(opts.URL), w.FormDataContentType(), body, opts.Message)
+	return common.HttpPostRaw(t.client, t.getSendPhotoURL(opts.URL), w.FormDataContentType(), "", body.Bytes())
 }
 
 func (t *Telegram) SendCustomDocument(opts TelegramOptions) ([]byte, error) {
@@ -200,7 +175,7 @@ func (t *Telegram) SendCustomDocument(opts TelegramOptions) ([]byte, error) {
 	if err := w.Close(); err != nil {
 		return nil, err
 	}
-	return t.post(t.getSendDocumentURL(opts.URL), w.FormDataContentType(), body, opts.Message)
+	return common.HttpPostRaw(t.client, t.getSendDocumentURL(opts.URL), w.FormDataContentType(), "", body.Bytes())
 }
 
 func (t *Telegram) Send() ([]byte, error) {

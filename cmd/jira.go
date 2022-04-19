@@ -3,15 +3,20 @@ package cmd
 import (
 	"github.com/devopsext/tools/common"
 	"github.com/devopsext/tools/vendors"
+	"github.com/devopsext/utils"
 	"github.com/spf13/cobra"
 )
 
 var jiraOptions = vendors.JiraOptions{
-	URL:      envGet("JIRA_URL", "").(string),
-	Timeout:  envGet("JIRA_TIMEOUT", 30).(int),
-	Insecure: envGet("JIRA_INSECURE", false).(bool),
-	User:     envGet("JIRA_USER", "").(string),
-	Password: envGet("JIRA_PASSWORD", "").(string),
+	URL:         envGet("JIRA_URL", "").(string),
+	Timeout:     envGet("JIRA_TIMEOUT", 30).(int),
+	Insecure:    envGet("JIRA_INSECURE", false).(bool),
+	User:        envGet("JIRA_USER", "").(string),
+	Password:    envGet("JIRA_PASSWORD", "").(string),
+	ProjectKey:  envGet("JIRA_PROJECT_KEY", "").(string),
+	IssueType:   envGet("JIRA_ISSUE_TYPE", "").(string),
+	Summary:     envGet("JIRA_SUMMARY", "").(string),
+	Description: envGet("JIRA_DESCRIPTION", "").(string),
 }
 
 var jiraOutput = common.OutputOptions{
@@ -23,6 +28,12 @@ func jiraNew(stdout *common.Stdout) *vendors.Jira {
 
 	common.Debug("Jira", jiraOptions, stdout)
 	common.Debug("Jira", jiraOutput, stdout)
+
+	descriptionBytes, err := utils.Content(jiraOptions.Description)
+	if err != nil {
+		stdout.Panic(err)
+	}
+	jiraOptions.Description = string(descriptionBytes)
 
 	jira := vendors.NewJira(jiraOptions)
 	if jira == nil {
@@ -44,16 +55,20 @@ func NewJiraCommand() *cobra.Command {
 	flags.BoolVar(&jiraOptions.Insecure, "jira-insecure", jiraOptions.Insecure, "Jira insecure")
 	flags.StringVar(&jiraOptions.User, "jira-user", jiraOptions.User, "Jira user")
 	flags.StringVar(&jiraOptions.Password, "jira-password", jiraOptions.Password, "Jira password")
+	flags.StringVar(&jiraOptions.ProjectKey, "jira-project-key", jiraOptions.ProjectKey, "Jira project key")
+	flags.StringVar(&jiraOptions.IssueType, "jira-issue-type", jiraOptions.IssueType, "Jira issue type")
+	flags.StringVar(&jiraOptions.Summary, "jira-summary", jiraOptions.Summary, "Jira summary")
+	flags.StringVar(&jiraOptions.Description, "jira-description", jiraOptions.Description, "Jira description")
 	flags.StringVar(&jiraOutput.Output, "jira-output", jiraOutput.Output, "Jira output")
 	flags.StringVar(&jiraOutput.Query, "jira-output-query", jiraOutput.Query, "Jira output query")
 
 	jiraCmd.AddCommand(&cobra.Command{
-		Use:   "create-task",
-		Short: "Create task",
+		Use:   "create-issue",
+		Short: "Create issue",
 		Run: func(cmd *cobra.Command, args []string) {
 
-			stdout.Debug("Jira creating task...")
-			bytes, err := jiraNew(stdout).CreateTask()
+			stdout.Debug("Jira creating issue...")
+			bytes, err := jiraNew(stdout).CreateIssue()
 			if err != nil {
 				stdout.Error(err)
 				return

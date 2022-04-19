@@ -15,6 +15,7 @@ graylog.output
 graylog.query
 jira.output
 jira.query
+jira.description
 grafana.png
 grafana.output
 grafana.query
