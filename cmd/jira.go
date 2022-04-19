@@ -1,6 +1,8 @@
 package cmd
 
 import (
+	"strings"
+
 	"github.com/devopsext/tools/common"
 	"github.com/devopsext/tools/vendors"
 	"github.com/devopsext/utils"
@@ -17,6 +19,10 @@ var jiraOptions = vendors.JiraOptions{
 	IssueType:   envGet("JIRA_ISSUE_TYPE", "").(string),
 	Summary:     envGet("JIRA_SUMMARY", "").(string),
 	Description: envGet("JIRA_DESCRIPTION", "").(string),
+	Labels:      strings.Split(envGet("JIRA_LABELS", "").(string), ","),
+	Priority:    envGet("JIRA_PRIORITY", "").(string),
+	Assignee:    envGet("JIRA_ASSIGNEE", "").(string),
+	Reporter:    envGet("JIRA_REPORTER", "").(string),
 }
 
 var jiraOutput = common.OutputOptions{
@@ -59,6 +65,10 @@ func NewJiraCommand() *cobra.Command {
 	flags.StringVar(&jiraOptions.IssueType, "jira-issue-type", jiraOptions.IssueType, "Jira issue type")
 	flags.StringVar(&jiraOptions.Summary, "jira-summary", jiraOptions.Summary, "Jira summary")
 	flags.StringVar(&jiraOptions.Description, "jira-description", jiraOptions.Description, "Jira description")
+	flags.StringSliceVar(&jiraOptions.Labels, "jira-labels", jiraOptions.Labels, "Jira labels")
+	flags.StringVar(&jiraOptions.Priority, "jira-priority", jiraOptions.Priority, "Jira priority")
+	flags.StringVar(&jiraOptions.Assignee, "jira-assignee", jiraOptions.Assignee, "Jira assignee")
+	flags.StringVar(&jiraOptions.Reporter, "jira-reporter", jiraOptions.Reporter, "Jira reporter")
 	flags.StringVar(&jiraOutput.Output, "jira-output", jiraOutput.Output, "Jira output")
 	flags.StringVar(&jiraOutput.Query, "jira-output-query", jiraOutput.Query, "Jira output query")
 

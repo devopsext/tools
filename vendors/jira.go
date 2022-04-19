@@ -22,6 +22,10 @@ type JiraOptions struct {
 	IssueType   string
 	Summary     string
 	Description string
+	Priority    string
+	Labels      []string
+	Assignee    string
+	Reporter    string
 }
 
 type JiraIssueProject struct {
@@ -32,11 +36,27 @@ type JiraIssueType struct {
 	Name string `json:"name"`
 }
 
+type JiraIssuePriority struct {
+	Name string `json:"name"`
+}
+
+type JiraIssueAssignee struct {
+	Name string `json:"name"`
+}
+
+type JiraIssueReporter struct {
+	Name string `json:"name"`
+}
+
 type JiraIssueFields struct {
-	Project     *JiraIssueProject `json:"project"`
-	IssueType   *JiraIssueType    `json:"issuetype"`
-	Summary     string            `json:"summary"`
-	Description string            `json:"description"`
+	Project     *JiraIssueProject  `json:"project"`
+	IssueType   *JiraIssueType     `json:"issuetype"`
+	Summary     string             `json:"summary"`
+	Description string             `json:"description"`
+	Labels      []string           `json:"labels"`
+	Priority    *JiraIssuePriority `json:"priority"`
+	Assignee    *JiraIssueAssignee `json:"assignee"`
+	Reporter    *JiraIssueReporter `json:"reporter"`
 }
 
 type JiraCreateIssue struct {
@@ -60,7 +80,26 @@ func (j *Jira) CreateCustomIssue(opts JiraOptions) ([]byte, error) {
 			},
 			Summary:     opts.Summary,
 			Description: opts.Description,
+			Labels:      opts.Labels,
 		},
+	}
+
+	if !utils.IsEmpty(opts.Priority) {
+		issue.Fields.Priority = &JiraIssuePriority{
+			Name: opts.Priority,
+		}
+	}
+
+	if !utils.IsEmpty(opts.Assignee) {
+		issue.Fields.Assignee = &JiraIssueAssignee{
+			Name: opts.Assignee,
+		}
+	}
+
+	if !utils.IsEmpty(opts.Reporter) {
+		issue.Fields.Reporter = &JiraIssueReporter{
+			Name: opts.Reporter,
+		}
 	}
 
 	req, err := json.Marshal(&issue)
