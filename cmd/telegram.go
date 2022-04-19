@@ -12,6 +12,7 @@ import (
 
 var telegramOptions = vendors.TelegramOptions{
 	URL:                 envGet("TELEGRAM_URL", "").(string),
+	Insecure:            envGet("TELEGRAM_INSECURE", false).(bool),
 	Timeout:             envGet("TELEGRAM_TIMEOUT", 30).(int),
 	DisableNotification: envGet("TELEGRAM_DISABLE_NOTIFICATION", false).(bool),
 	Message:             envGet("TELEGRAM_MESSAGE", "").(string),
@@ -71,7 +72,7 @@ func NewTelegramCommand() *cobra.Command {
 	flags.StringVar(&telegramOutput.Query, "telegram-output-query", telegramOutput.Query, "Telegram output query")
 
 	telegramCmd.AddCommand(&cobra.Command{
-		Use:   "send",
+		Use:   "send-message",
 		Short: "Send text message",
 		Run: func(cmd *cobra.Command, args []string) {
 
@@ -86,12 +87,27 @@ func NewTelegramCommand() *cobra.Command {
 	})
 
 	telegramCmd.AddCommand(&cobra.Command{
-		Use:   "send-file",
-		Short: "Send file",
+		Use:   "send-photo",
+		Short: "Send photo",
 		Run: func(cmd *cobra.Command, args []string) {
 
-			stdout.Debug("Telegram sending file...")
-			bytes, err := telegramNew(stdout).SendFile()
+			stdout.Debug("Telegram sending photo...")
+			bytes, err := telegramNew(stdout).SendPhoto()
+			if err != nil {
+				stdout.Error(err)
+				return
+			}
+			common.OutputJson(telegramOutput, "Telegram", telegramOptions, bytes, stdout)
+		},
+	})
+
+	telegramCmd.AddCommand(&cobra.Command{
+		Use:   "send-document",
+		Short: "Send document",
+		Run: func(cmd *cobra.Command, args []string) {
+
+			stdout.Debug("Telegram sending document...")
+			bytes, err := telegramNew(stdout).SendDocument()
 			if err != nil {
 				stdout.Error(err)
 				return
