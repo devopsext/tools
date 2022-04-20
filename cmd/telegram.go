@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"path/filepath"
-	"strings"
 
 	"github.com/devopsext/tools/common"
 	"github.com/devopsext/tools/vendors"
@@ -43,7 +42,7 @@ func telegramNew(stdout *common.Stdout) *vendors.Telegram {
 	telegramOptions.Content = string(contentBytes)
 
 	if utils.IsEmpty(telegramOptions.FileName) && utils.FileExists(telegramOptions.Content) {
-		telegramOptions.FileName = strings.TrimSuffix(telegramOptions.Content, filepath.Ext(telegramOptions.Content))
+		telegramOptions.FileName = filepath.Base(telegramOptions.Content)
 	}
 
 	telegram := vendors.NewTelegram(telegramOptions)

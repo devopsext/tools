@@ -121,7 +121,7 @@ func Debug(prefix string, obj interface{}, stdout *Stdout) {
 	}
 }
 
-func HttpPostRaw(client *http.Client, URL, contentType string, authorization string, raw []byte) ([]byte, error) {
+func HttpPostRawWithHeaders(client *http.Client, URL string, headers map[string]string, raw []byte) ([]byte, error) {
 
 	reader := bytes.NewReader(raw)
 
@@ -130,9 +130,11 @@ func HttpPostRaw(client *http.Client, URL, contentType string, authorization str
 		return nil, err
 	}
 
-	req.Header.Set("Content-Type", contentType)
-	if !utils.IsEmpty(authorization) {
-		req.Header.Set("Authorization", authorization)
+	for k, v := range headers {
+		if utils.IsEmpty(v) {
+			continue
+		}
+		req.Header.Set(k, v)
 	}
 
 	resp, err := client.Do(req)
@@ -147,4 +149,13 @@ func HttpPostRaw(client *http.Client, URL, contentType string, authorization str
 		return nil, err
 	}
 	return b, nil
+}
+
+func HttpPostRaw(client *http.Client, URL, contentType string, authorization string, raw []byte) ([]byte, error) {
+
+	headers := make(map[string]string)
+	headers["Content-Type"] = contentType
+	headers["Authorization"] = authorization
+
+	return HttpPostRawWithHeaders(client, URL, headers, raw)
 }
