@@ -9,7 +9,6 @@ import (
 	"mime/multipart"
 	"net/http"
 	"net/url"
-	"strings"
 )
 
 //go:embed slack.tmpl
@@ -23,14 +22,15 @@ const (
 )
 
 type SlackOptions struct {
-	Token       string
-	Channels    []string
 	Timeout     int
 	Insecure    bool
-	Message     string
+	Token       string
+	Channel     string
 	Title       string
+	Message     string
 	FileName    string
-	Content     string // content or path to file
+	FileContent string // content or path to file
+	ImageURL    string
 }
 
 type SlackOutputOptions struct {
@@ -38,12 +38,15 @@ type SlackOutputOptions struct {
 	OutputQuery string
 }
 
-type Message struct {
-	Channel  string
-	Title    string
-	Message  string
-	ImageURL string
-	Content  string
+type SlackMessage struct {
+	Token       string
+	Channel     string
+	ParentTS    string
+	Title       string
+	Message     string
+	ImageURL    string
+	FileName    string
+	FileContent string
 }
 
 type Slack struct {
@@ -52,33 +55,56 @@ type Slack struct {
 }
 
 func (s *Slack) Send() ([]byte, error) {
-	return s.SendCustom("", s.options.Message, s.options.Title, s.options.Content)
-	//return s.SendMessage(s.options.Channels[0], s.options.Title, s.options.Message, s.options.Content)
+	m := SlackMessage{
+		Token:       s.options.Token,
+		Channel:     s.options.Channel,
+		Title:       s.options.Title,
+		Message:     s.options.Message,
+		FileContent: s.options.FileContent,
+	}
+	return s.SendCustom(m)
 }
 
 func (s *Slack) SendFile() ([]byte, error) {
-	return s.SendCustomFile("", s.options.Message, s.options.FileName, s.options.Title, []byte(s.options.Content))
+	m := SlackMessage{
+		Token:       s.options.Token,
+		Channel:     s.options.Channel,
+		Title:       s.options.Title,
+		Message:     s.options.Message,
+		FileContent: s.options.FileContent,
+	}
+	return s.SendCustomFile(m)
 }
 
-func (s *Slack) SendMessage(channel string) ([]byte, error) {
-	return s.sendMessage(channel, s.options.Title, s.options.Message, s.options.Content)
+func (s *Slack) SendMessage() ([]byte, error) {
+	m := SlackMessage{
+		Token:    s.options.Token,
+		Channel:  s.options.Channel,
+		Title:    s.options.Title,
+		Message:  s.options.Message,
+		ImageURL: s.options.ImageURL,
+	}
+	return s.sendMessage(m)
 }
 
-func (s *Slack) sendMessage(channel, title, message, imageUrl string) ([]byte, error) {
-	m, err := s.prepareMessage(channel, title, message, imageUrl)
+func (s *Slack) SendMessageCustom(m SlackMessage) ([]byte, error) {
+	return s.sendMessage(m)
+}
+
+func (s *Slack) sendMessage(m SlackMessage) ([]byte, error) {
+	jsonMsg, err := s.prepareMessage(m)
 	if err != nil {
 		return nil, err
 	}
 	q := url.Values{}
-	b, err := s.postJson(s.apiURL(chatPostMessage), q, *m)
+	b, err := s.post(m.Token, s.apiURL(chatPostMessage), q, "application/json; charset=utf-8", *jsonMsg)
 	if err != nil {
 		return nil, err
 	}
 	return b, nil
 }
 
-//func (s *Slack) SendCustom(opts SlackOptions) ([]byte, error) {
-func (s *Slack) SendCustom(URL, message, title, content string) ([]byte, error) {
+func (s *Slack) SendCustom(m SlackMessage) ([]byte, error) {
 
 	var body bytes.Buffer
 	w := multipart.NewWriter(&body)
@@ -86,15 +112,15 @@ func (s *Slack) SendCustom(URL, message, title, content string) ([]byte, error) 
 		w.Close()
 	}()
 
-	if err := w.WriteField("initial_comment", message); err != nil {
+	if err := w.WriteField("initial_comment", m.Message); err != nil {
 		return nil, err
 	}
 
-	if err := w.WriteField("title", title); err != nil {
+	if err := w.WriteField("title", m.Title); err != nil {
 		return nil, err
 	}
 
-	if err := w.WriteField("content", content); err != nil {
+	if err := w.WriteField("content", m.FileContent); err != nil {
 		return nil, err
 	}
 
@@ -103,12 +129,12 @@ func (s *Slack) SendCustom(URL, message, title, content string) ([]byte, error) 
 	}
 
 	q := url.Values{}
-	q.Add("channels", strings.Join(s.options.Channels, ","))
+	q.Add("channels", s.options.Channel)
 
-	return s.postBody(s.apiURL(filesUpload), q, w.FormDataContentType(), body)
+	return s.post(m.Token, s.apiURL(filesUpload), q, w.FormDataContentType(), body)
 }
 
-func (s *Slack) SendCustomFile(URL, message, fileName, title string, content []byte) ([]byte, error) {
+func (s *Slack) SendCustomFile(m SlackMessage) ([]byte, error) {
 
 	var body bytes.Buffer
 	w := multipart.NewWriter(&body)
@@ -116,20 +142,20 @@ func (s *Slack) SendCustomFile(URL, message, fileName, title string, content []b
 		w.Close()
 	}()
 
-	if err := w.WriteField("initial_comment", message); err != nil {
+	if err := w.WriteField("initial_comment", m.Message); err != nil {
 		return nil, err
 	}
 
-	if err := w.WriteField("title", title); err != nil {
+	if err := w.WriteField("title", m.Title); err != nil {
 		return nil, err
 	}
 
-	fw, err := w.CreateFormFile("file", fileName)
+	fw, err := w.CreateFormFile("file", m.ImageURL)
 	if err != nil {
 		return nil, err
 	}
 
-	if _, err := fw.Write(content); err != nil {
+	if _, err := fw.Write([]byte(m.FileContent)); err != nil {
 		return nil, err
 	}
 
@@ -138,9 +164,9 @@ func (s *Slack) SendCustomFile(URL, message, fileName, title string, content []b
 	}
 
 	q := url.Values{}
-	q.Add("channels", strings.Join(s.options.Channels, ","))
+	q.Add("channels", m.Channel)
 
-	return s.postBody(s.apiURL(filesUpload), q, w.FormDataContentType(), body)
+	return s.post(m.Token, s.apiURL(filesUpload), q, w.FormDataContentType(), body)
 }
 
 func NewSlack(options SlackOptions) *Slack {
@@ -151,13 +177,7 @@ func NewSlack(options SlackOptions) *Slack {
 	}
 }
 
-func (s *Slack) prepareMessage(channel, title, message, imageUrl string) (*bytes.Buffer, error) {
-	m := &Message{
-		Message:  message,
-		Title:    title,
-		ImageURL: imageUrl,
-		Channel:  channel,
-	}
+func (s *Slack) prepareMessage(m SlackMessage) (*bytes.Buffer, error) {
 
 	t, err := template.New("slack").Parse(msgTemplate)
 	if err != nil {
@@ -171,26 +191,7 @@ func (s *Slack) prepareMessage(channel, title, message, imageUrl string) (*bytes
 	return b, nil
 }
 
-// assume that url is => https://slack.com/api/files.upload?token=%s&channels=%s
-func (s *Slack) getToken(URL string) string {
-
-	u, err := url.Parse(URL)
-	if err != nil {
-		return ""
-	}
-	return u.Query().Get("token")
-}
-
-func (s *Slack) getChannel(URL string) string {
-
-	u, err := url.Parse(URL)
-	if err != nil {
-		return ""
-	}
-	return u.Query().Get("channels")
-}
-
-func (s *Slack) postBody(URL string, query url.Values, contentType string, body bytes.Buffer) ([]byte, error) {
+func (s *Slack) post(token string, URL string, query url.Values, contentType string, body bytes.Buffer) ([]byte, error) {
 
 	reader := bytes.NewReader(body.Bytes())
 
@@ -199,8 +200,11 @@ func (s *Slack) postBody(URL string, query url.Values, contentType string, body 
 		return nil, err
 	}
 
+	if token == "" {
+		token = s.options.Token
+	}
 	req.Header.Set("Content-Type", contentType)
-	req.Header.Set("Authorization", "Bearer "+s.options.Token)
+	req.Header.Set("Authorization", "Bearer "+token)
 	req.URL.RawQuery = query.Encode()
 
 	resp, err := s.client.Do(req)
@@ -214,10 +218,6 @@ func (s *Slack) postBody(URL string, query url.Values, contentType string, body 
 		return nil, err
 	}
 	return b, nil
-}
-
-func (s *Slack) postJson(URL string, query url.Values, body bytes.Buffer) ([]byte, error) {
-	return s.postBody(URL, query, "application/json; charset=utf-8", body)
 }
 
 func (s *Slack) apiURL(cmd string) string {

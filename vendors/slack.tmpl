@@ -19,7 +19,7 @@
                 "text": "{{ .Message }}"
             }
         }
-{{- if ne .Content ""}}
+{{- if ne .ImageURL ""}}
     , {
             "type": "image",
             "image_url": "{{ .ImageURL }}",
@@ -28,7 +28,10 @@
 {{- end}}
     ],
     "text": "{{ .Title }}"
-{{- if ne .Content ""}}
+{{- if ne .ParentTS ""}}
+    , "thread_ts": "{{ .ParentTS }}"
+{{- end}}
+{{- if ne .ImageURL ""}}
     , "attachments": [
         {
             "image_url": "{{ .ImageURL }}",
