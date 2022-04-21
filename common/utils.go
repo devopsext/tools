@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"net/http"
 
 	"github.com/blues/jsonata-go"
 	"github.com/devopsext/utils"
@@ -118,4 +119,43 @@ func Debug(prefix string, obj interface{}, stdout *Stdout) {
 			stdout.Debug("%s: %s", k, v)
 		}
 	}
+}
+
+func HttpPostRawWithHeaders(client *http.Client, URL string, headers map[string]string, raw []byte) ([]byte, error) {
+
+	reader := bytes.NewReader(raw)
+
+	req, err := http.NewRequest("POST", URL, reader)
+	if err != nil {
+		return nil, err
+	}
+
+	for k, v := range headers {
+		if utils.IsEmpty(v) {
+			continue
+		}
+		req.Header.Set(k, v)
+	}
+
+	resp, err := client.Do(req)
+	if err != nil {
+		return nil, err
+	}
+
+	defer resp.Body.Close()
+
+	b, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return nil, err
+	}
+	return b, nil
+}
+
+func HttpPostRaw(client *http.Client, URL, contentType string, authorization string, raw []byte) ([]byte, error) {
+
+	headers := make(map[string]string)
+	headers["Content-Type"] = contentType
+	headers["Authorization"] = authorization
+
+	return HttpPostRawWithHeaders(client, URL, headers, raw)
 }

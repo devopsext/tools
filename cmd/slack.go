@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"path/filepath"
-	"strings"
 
 	"github.com/devopsext/tools/common"
 	"github.com/devopsext/tools/vendors"
@@ -45,7 +44,7 @@ func slackNew(stdout *common.Stdout) *vendors.Slack {
 	slackOptions.FileContent = string(contentBytes)
 
 	if utils.IsEmpty(slackOptions.FileName) && utils.FileExists(slackOptions.FileContent) {
-		slackOptions.FileName = strings.TrimSuffix(slackOptions.FileContent, filepath.Ext(slackOptions.FileContent))
+		slackOptions.FileName = filepath.Base(slackOptions.FileContent)
 	}
 
 	slack := vendors.NewSlack(slackOptions)
