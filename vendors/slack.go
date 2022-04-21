@@ -22,15 +22,15 @@ const (
 )
 
 type SlackOptions struct {
-	Timeout     int
-	Insecure    bool
-	Token       string
-	Channel     string
-	Title       string
-	Message     string
-	FileName    string
-	FileContent string // content or path to file
-	ImageURL    string
+	Timeout  int
+	Insecure bool
+	Token    string
+	Channel  string
+	Title    string
+	Message  string
+	FileName string
+	File     string // content or path to file
+	ImageURL string
 }
 
 type SlackOutputOptions struct {
@@ -60,7 +60,7 @@ func (s *Slack) Send() ([]byte, error) {
 		Channel:     s.options.Channel,
 		Title:       s.options.Title,
 		Message:     s.options.Message,
-		FileContent: s.options.FileContent,
+		FileContent: s.options.File,
 	}
 	return s.SendCustom(m)
 }
@@ -71,7 +71,7 @@ func (s *Slack) SendFile() ([]byte, error) {
 		Channel:     s.options.Channel,
 		Title:       s.options.Title,
 		Message:     s.options.Message,
-		FileContent: s.options.FileContent,
+		FileContent: s.options.File,
 	}
 	return s.SendCustomFile(m)
 }

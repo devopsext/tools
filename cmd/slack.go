@@ -10,15 +10,15 @@ import (
 )
 
 var slackOptions = vendors.SlackOptions{
-	Timeout:     envGet("SLACK_TIMEOUT", 30).(int),
-	Insecure:    envGet("SLACK_INSECURE", false).(bool),
-	Token:       envGet("SLACK_TOKEN", "").(string),
-	Channel:     envGet("SLACK_CHANNEL", "").(string),
-	Title:       envGet("SLACK_TITLE", "").(string),
-	Message:     envGet("SLACK_MESSAGE", "").(string),
-	ImageURL:    envGet("SLACK_IMAGE_URL", "").(string),
-	FileName:    envGet("SLACK_FILENAME", "").(string),
-	FileContent: envGet("SLACK_CONTENT", "").(string),
+	Timeout:  envGet("SLACK_TIMEOUT", 30).(int),
+	Insecure: envGet("SLACK_INSECURE", false).(bool),
+	Token:    envGet("SLACK_TOKEN", "").(string),
+	Channel:  envGet("SLACK_CHANNEL", "").(string),
+	Title:    envGet("SLACK_TITLE", "").(string),
+	Message:  envGet("SLACK_MESSAGE", "").(string),
+	ImageURL: envGet("SLACK_IMAGE_URL", "").(string),
+	FileName: envGet("SLACK_FILENAME", "").(string),
+	File:     envGet("SLACK_FILE", "").(string),
 }
 
 var slackOutput = common.OutputOptions{
@@ -37,14 +37,14 @@ func slackNew(stdout *common.Stdout) *vendors.Slack {
 	}
 	slackOptions.Message = string(messageBytes)
 
-	contentBytes, err := utils.Content(slackOptions.FileContent)
+	fileBytes, err := utils.Content(slackOptions.File)
 	if err != nil {
 		stdout.Panic(err)
 	}
-	slackOptions.FileContent = string(contentBytes)
+	slackOptions.File = string(fileBytes)
 
-	if utils.IsEmpty(slackOptions.FileName) && utils.FileExists(slackOptions.FileContent) {
-		slackOptions.FileName = filepath.Base(slackOptions.FileContent)
+	if utils.IsEmpty(slackOptions.FileName) && utils.FileExists(slackOptions.File) {
+		slackOptions.FileName = filepath.Base(slackOptions.File)
 	}
 
 	slack := vendors.NewSlack(slackOptions)
@@ -68,7 +68,7 @@ func NewSlackCommand() *cobra.Command {
 	flags.StringVar(&slackOptions.FileName, "slack-filename", slackOptions.FileName, "Slack file name")
 	flags.StringVar(&slackOptions.ImageURL, "slack-image-url", slackOptions.ImageURL, "Slack image url")
 	flags.StringVar(&slackOptions.Title, "slack-title", slackOptions.Title, "Slack title")
-	flags.StringVar(&slackOptions.FileContent, "slack-content", slackOptions.FileContent, "Slack content")
+	flags.StringVar(&slackOptions.File, "slack-file", slackOptions.File, "Slack file content or path")
 	flags.StringVar(&slackOptions.Token, "slack-token", slackOptions.Token, "Slack token")
 	flags.StringVar(&slackOptions.Channel, "slack-channel", slackOptions.Channel, "Slack channel")
 	flags.StringVar(&slackOutput.Output, "slack-output", slackOutput.Output, "Slack output")
