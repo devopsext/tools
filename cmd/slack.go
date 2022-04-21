@@ -81,7 +81,7 @@ func NewSlackCommand() *cobra.Command {
 				stdout.Error(err)
 				return
 			}
-			common.OutputJson(slackOutput, "Slack", slackOptions, bytes, stdout)
+			common.OutputJson(slackOutput, "Slack", []interface{}{slackOptions}, bytes, stdout)
 		},
 	})
 
@@ -96,7 +96,7 @@ func NewSlackCommand() *cobra.Command {
 				stdout.Error(err)
 				return
 			}
-			common.OutputJson(slackOutput, "Slack", slackOptions, bytes, stdout)
+			common.OutputJson(slackOutput, "Slack", []interface{}{slackOptions}, bytes, stdout)
 		},
 	})
 	return slackCmd

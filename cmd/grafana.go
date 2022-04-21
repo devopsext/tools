@@ -7,18 +7,27 @@ import (
 )
 
 var grafanaOptions = vendors.GrafanaOptions{
-	URL:         envGet("GRAFANA_URL", "").(string),
-	Timeout:     envGet("GRAFANA_TIMEOUT", 30).(int),
-	Insecure:    envGet("GRAFANA_INSECURE", false).(bool),
-	ApiKey:      envGet("GRAFANA_API_KEY", "").(string),
-	OrgID:       envGet("GRAFANA_ORG_ID", "1").(string),
-	UID:         envGet("GRAFANA_UID", "").(string),
-	Slug:        envGet("GRAFANA_SLUG", "").(string),
-	PanelID:     envGet("GRAFANA_PANEL_ID", "").(string),
-	From:        envGet("GRAFANA_FROM", "").(string),
-	To:          envGet("GRAFANA_TO", "").(string),
-	ImageWidth:  envGet("GRAFANA_IMAGE_WIDTH", 1280).(int),
-	ImageHeight: envGet("GRAFANA_IMAGE_HEIGHT", 640).(int),
+	URL:      envGet("GRAFANA_URL", "").(string),
+	Timeout:  envGet("GRAFANA_TIMEOUT", 30).(int),
+	Insecure: envGet("GRAFANA_INSECURE", false).(bool),
+	ApiKey:   envGet("GRAFANA_API_KEY", "").(string),
+	OrgID:    envGet("GRAFANA_ORG_ID", "1").(string),
+	UID:      envGet("GRAFANA_UID", "").(string),
+	Slug:     envGet("GRAFANA_SLUG", "").(string),
+}
+
+var grafanaRenderImageOptions = vendors.GrafanaRenderImageOptions{
+	PanelID: envGet("GRAFANA_IMAGE_PANEL_ID", "").(string),
+	From:    envGet("GRAFANA_IMAGE_FROM", "").(string),
+	To:      envGet("GRAFANA_IMAGE_TO", "").(string),
+	Width:   envGet("GRAFANA_IMAGE_WIDTH", 1280).(int),
+	Height:  envGet("GRAFANA_IMAGE_HEIGHT", 640).(int),
+}
+
+var grafanaGetDashboardsOptions = vendors.GrafanaGetDashboardsOptions{
+	PanelID: envGet("GRAFANA_DASHBOARD_PANEL_ID", "").(string),
+	From:    envGet("GRAFANA_DASHBOARD_FROM", "").(string),
+	To:      envGet("GRAFANA_DASHBOARD_TO", "").(string),
 }
 
 var grafanaOutput = common.OutputOptions{
@@ -52,27 +61,54 @@ func NewGrafanaCommand() *cobra.Command {
 	flags.StringVar(&grafanaOptions.ApiKey, "grafana-api-key", grafanaOptions.ApiKey, "Grafana api key")
 	flags.StringVar(&grafanaOptions.OrgID, "grafana-org-id", grafanaOptions.OrgID, "Grafana org id")
 	flags.StringVar(&grafanaOptions.UID, "grafana-uid", grafanaOptions.UID, "Grafana dashboard uid")
-	flags.StringVar(&grafanaOptions.Slug, "grafana-slug", grafanaOptions.Slug, "Grafana slug")
-	flags.StringVar(&grafanaOptions.PanelID, "grafana-panel-id", grafanaOptions.PanelID, "Grafana panel id")
-	flags.StringVar(&grafanaOptions.From, "grafana-from", grafanaOptions.From, "Grafana from")
-	flags.StringVar(&grafanaOptions.To, "grafana-to", grafanaOptions.To, "Grafana to")
-	flags.IntVar(&grafanaOptions.ImageWidth, "grafana-image-width", grafanaOptions.ImageWidth, "Grafana image width")
-	flags.IntVar(&grafanaOptions.ImageHeight, "grafana-image-height", grafanaOptions.ImageHeight, "Grafana image height")
+	flags.StringVar(&grafanaOptions.Slug, "grafana-slug", grafanaOptions.Slug, "Grafana dashboard slug")
+
+	flags.StringVar(&grafanaRenderImageOptions.PanelID, "grafana-image-panel-id", grafanaRenderImageOptions.PanelID, "Grafana image panel id")
+	flags.StringVar(&grafanaRenderImageOptions.From, "grafana-image-from", grafanaRenderImageOptions.From, "Grafana image from")
+	flags.StringVar(&grafanaRenderImageOptions.To, "grafana-image-to", grafanaRenderImageOptions.To, "Grafana image to")
+	flags.IntVar(&grafanaRenderImageOptions.Width, "grafana-image-width", grafanaRenderImageOptions.Width, "Grafana image width")
+	flags.IntVar(&grafanaRenderImageOptions.Height, "grafana-image-height", grafanaRenderImageOptions.Height, "Grafana image height")
+
+	flags.StringVar(&grafanaGetDashboardsOptions.PanelID, "grafana-dashboard-panel-id", grafanaGetDashboardsOptions.PanelID, "Grafana dashboard panel id")
+	flags.StringVar(&grafanaGetDashboardsOptions.From, "grafana-dashboard-from", grafanaGetDashboardsOptions.From, "Grafana dashboard from")
+	flags.StringVar(&grafanaGetDashboardsOptions.To, "grafana-dashboard-to", grafanaGetDashboardsOptions.To, "Grafana dashboard to")
+
 	flags.StringVar(&grafanaOutput.Output, "grafana-output", grafanaOutput.Output, "Grafana output")
 	flags.StringVar(&grafanaOutput.Query, "grafana-output-query", grafanaOutput.Query, "Grafana output query")
 
 	grafanaCmd.AddCommand(&cobra.Command{
-		Use:   "get-image",
-		Short: "Get image",
+		Use:   "render-image",
+		Short: "Render image",
 		Run: func(cmd *cobra.Command, args []string) {
 
-			stdout.Debug("Grafana getting image...")
-			bytes, err := grafanaNew(stdout).GetImage()
+			stdout.Debug("Grafana rendering image...")
+			common.Debug("Grafana", grafanaRenderImageOptions, stdout)
+
+			grafanaOptions.RenderImageOptions = &grafanaRenderImageOptions
+			bytes, err := grafanaNew(stdout).RenderImage()
 			if err != nil {
 				stdout.Error(err)
 				return
 			}
-			common.OutputRaw(grafanaOutput, bytes, stdout)
+			common.OutputRaw(grafanaOutput.Output, bytes, stdout)
+		},
+	})
+
+	grafanaCmd.AddCommand(&cobra.Command{
+		Use:   "get-dashboards",
+		Short: "Get dashboards",
+		Run: func(cmd *cobra.Command, args []string) {
+
+			stdout.Debug("Grafana getting dashboards...")
+			common.Debug("Grafana", grafanaGetDashboardsOptions, stdout)
+
+			grafanaOptions.GetDashboardsOptions = &grafanaGetDashboardsOptions
+			bytes, err := grafanaNew(stdout).GetDashboards()
+			if err != nil {
+				stdout.Error(err)
+				return
+			}
+			common.OutputJson(grafanaOutput, "Grafana", []interface{}{grafanaOptions, grafanaGetDashboardsOptions}, bytes, stdout)
 		},
 	})
 

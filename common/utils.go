@@ -44,7 +44,7 @@ func interfaceToMap(prefix string, i interface{}) (map[string]interface{}, error
 	return r, nil
 }
 
-func Output(query, to string, prefix string, opts interface{}, bytes []byte, stdout *Stdout) {
+func Output(query, to string, prefix string, opts []interface{}, bytes []byte, stdout *Stdout) {
 
 	b, err := utils.Content(query)
 	if err != nil {
@@ -55,9 +55,11 @@ func Output(query, to string, prefix string, opts interface{}, bytes []byte, std
 	output := string(bytes)
 	if !utils.IsEmpty(query) {
 
-		vars, err := interfaceToMap(prefix, opts)
-		if err == nil {
-			jsonata.RegisterVars(vars)
+		for _, v := range opts {
+			vars, err := interfaceToMap(prefix, v)
+			if err == nil {
+				jsonata.RegisterVars(vars)
+			}
 		}
 
 		expr := jsonata.MustCompile(query)
@@ -90,18 +92,18 @@ func Output(query, to string, prefix string, opts interface{}, bytes []byte, std
 	}
 }
 
-func OutputJson(outputOpts OutputOptions, prefix string, opts interface{}, bytes []byte, stdout *Stdout) {
+func OutputJson(outputOpts OutputOptions, prefix string, opts []interface{}, bytes []byte, stdout *Stdout) {
 	Output(outputOpts.Query, outputOpts.Output, prefix, opts, bytes, stdout)
 }
 
-func OutputRaw(outputOpts OutputOptions, bytes []byte, stdout *Stdout) {
+func OutputRaw(output string, bytes []byte, stdout *Stdout) {
 
-	output := string(bytes)
-	if utils.IsEmpty(outputOpts.Output) {
-		stdout.Info(output)
+	out := string(bytes)
+	if utils.IsEmpty(output) {
+		stdout.Info(out)
 	} else {
-		stdout.Debug("Writing output to %s...", outputOpts.Output)
-		err := ioutil.WriteFile(outputOpts.Output, bytes, 0644)
+		stdout.Debug("Writing output to %s...", output)
+		err := ioutil.WriteFile(output, bytes, 0644)
 		if err != nil {
 			stdout.Error(err)
 		}
@@ -141,8 +143,11 @@ func HttpPostRawWithHeaders(client *http.Client, URL string, headers map[string]
 	if err != nil {
 		return nil, err
 	}
-
 	defer resp.Body.Close()
+
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		return nil, fmt.Errorf(resp.Status)
+	}
 
 	b, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
@@ -158,4 +163,44 @@ func HttpPostRaw(client *http.Client, URL, contentType string, authorization str
 	headers["Authorization"] = authorization
 
 	return HttpPostRawWithHeaders(client, URL, headers, raw)
+}
+
+func HttpGetRawWithHeaders(client *http.Client, URL string, headers map[string]string) ([]byte, error) {
+
+	req, err := http.NewRequest("GET", URL, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	for k, v := range headers {
+		if utils.IsEmpty(v) {
+			continue
+		}
+		req.Header.Set(k, v)
+	}
+
+	resp, err := client.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		return nil, fmt.Errorf(resp.Status)
+	}
+
+	b, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return nil, err
+	}
+	return b, nil
+}
+
+func HttpGetRaw(client *http.Client, URL, contentType string, authorization string) ([]byte, error) {
+
+	headers := make(map[string]string)
+	headers["Content-Type"] = contentType
+	headers["Authorization"] = authorization
+
+	return HttpGetRawWithHeaders(client, URL, headers)
 }

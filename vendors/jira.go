@@ -156,7 +156,7 @@ func (j *Jira) CreateIssue() ([]byte, error) {
 	return j.CreateCustomIssue(j.options)
 }
 
-func (j *Jira) CustomIssueAddComment(opts JiraOptions) ([]byte, error) {
+func (j *Jira) IssueAddCustomComment(opts JiraOptions) ([]byte, error) {
 
 	if opts.IssueOptions == nil || opts.IssueAddCommentOptions == nil {
 		return nil, fmt.Errorf("options are not enough")
@@ -187,10 +187,10 @@ func (j *Jira) CustomIssueAddComment(opts JiraOptions) ([]byte, error) {
 }
 
 func (j *Jira) IssueAddComment() ([]byte, error) {
-	return j.CustomIssueAddComment(j.options)
+	return j.IssueAddCustomComment(j.options)
 }
 
-func (j *Jira) CustomIssueAddAttachment(opts JiraOptions) ([]byte, error) {
+func (j *Jira) IssueAddCustomAttachment(opts JiraOptions) ([]byte, error) {
 
 	if opts.IssueOptions == nil || opts.IssueAddAttachmentOptions == nil {
 		return nil, fmt.Errorf("options are not enough")
@@ -233,7 +233,7 @@ func (j *Jira) CustomIssueAddAttachment(opts JiraOptions) ([]byte, error) {
 }
 
 func (j *Jira) IssueAddAttachment() ([]byte, error) {
-	return j.CustomIssueAddAttachment(j.options)
+	return j.IssueAddCustomAttachment(j.options)
 }
 
 func NewJira(options JiraOptions) *Jira {

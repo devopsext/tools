@@ -80,7 +80,7 @@ func NewGraylogCommand() *cobra.Command {
 				stdout.Error(err)
 				return
 			}
-			common.OutputJson(graylogOutput, "Graylog", graylogOptions, bytes, stdout)
+			common.OutputJson(graylogOutput, "Graylog", []interface{}{graylogOptions}, bytes, stdout)
 		},
 	})
 

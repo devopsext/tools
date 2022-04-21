@@ -95,7 +95,7 @@ func NewJiraCommand() *cobra.Command {
 				stdout.Error(err)
 				return
 			}
-			common.OutputJson(jiraOutput, "Jira", jiraOptions, bytes, stdout)
+			common.OutputJson(jiraOutput, "Jira", []interface{}{jiraOptions, jiraCreateIssueOptions}, bytes, stdout)
 		},
 	}
 	flags = createIssueCmd.PersistentFlags()
@@ -140,7 +140,7 @@ func NewJiraCommand() *cobra.Command {
 				stdout.Error(err)
 				return
 			}
-			common.OutputJson(jiraOutput, "Jira", jiraOptions, bytes, stdout)
+			common.OutputJson(jiraOutput, "Jira", []interface{}{jiraOptions, jiraIssueOptions, jiraIssueAddCommentOptions}, bytes, stdout)
 		},
 	}
 	flags = issueAddComment.PersistentFlags()
@@ -174,7 +174,7 @@ func NewJiraCommand() *cobra.Command {
 				stdout.Error(err)
 				return
 			}
-			common.OutputJson(jiraOutput, "Jira", jiraOptions, bytes, stdout)
+			common.OutputJson(jiraOutput, "Jira", []interface{}{jiraOptions, jiraIssueOptions, jiraIssueAddAttachmentOptions}, bytes, stdout)
 		},
 	}
 	flags = issueAddAttachment.PersistentFlags()
