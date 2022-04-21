@@ -150,7 +150,7 @@ func (s *Slack) SendCustomFile(m SlackMessage) ([]byte, error) {
 		return nil, err
 	}
 
-	fw, err := w.CreateFormFile("file", m.ImageURL)
+	fw, err := w.CreateFormFile("file", m.FileName)
 	if err != nil {
 		return nil, err
 	}
