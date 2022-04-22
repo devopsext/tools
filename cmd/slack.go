@@ -10,13 +10,15 @@ import (
 )
 
 var slackOptions = vendors.SlackOptions{
-	URL:      envGet("SLACK_URL", "").(string),
 	Timeout:  envGet("SLACK_TIMEOUT", 30).(int),
 	Insecure: envGet("SLACK_INSECURE", false).(bool),
-	Message:  envGet("SLACK_MESSAGE", "").(string),
-	FileName: envGet("SLACK_FILENAME", "").(string),
+	Token:    envGet("SLACK_TOKEN", "").(string),
+	Channel:  envGet("SLACK_CHANNEL", "").(string),
 	Title:    envGet("SLACK_TITLE", "").(string),
-	Content:  envGet("SLACK_CONTENT", "").(string),
+	Message:  envGet("SLACK_MESSAGE", "").(string),
+	ImageURL: envGet("SLACK_IMAGE_URL", "").(string),
+	FileName: envGet("SLACK_FILENAME", "").(string),
+	File:     envGet("SLACK_FILE", "").(string),
 }
 
 var slackOutput = common.OutputOptions{
@@ -35,14 +37,14 @@ func slackNew(stdout *common.Stdout) *vendors.Slack {
 	}
 	slackOptions.Message = string(messageBytes)
 
-	contentBytes, err := utils.Content(slackOptions.Content)
+	fileBytes, err := utils.Content(slackOptions.File)
 	if err != nil {
 		stdout.Panic(err)
 	}
-	slackOptions.Content = string(contentBytes)
+	slackOptions.File = string(fileBytes)
 
-	if utils.IsEmpty(slackOptions.FileName) && utils.FileExists(slackOptions.Content) {
-		slackOptions.FileName = filepath.Base(slackOptions.Content)
+	if utils.IsEmpty(slackOptions.FileName) && utils.FileExists(slackOptions.File) {
+		slackOptions.FileName = filepath.Base(slackOptions.File)
 	}
 
 	slack := vendors.NewSlack(slackOptions)
@@ -60,13 +62,15 @@ func NewSlackCommand() *cobra.Command {
 	}
 
 	flags := slackCmd.PersistentFlags()
-	flags.StringVar(&slackOptions.URL, "slack-url", slackOptions.URL, "Slack URL")
 	flags.IntVar(&slackOptions.Timeout, "slack-timeout", slackOptions.Timeout, "Slack timeout")
 	flags.BoolVar(&slackOptions.Insecure, "slack-insecure", slackOptions.Insecure, "Slack insecure")
 	flags.StringVar(&slackOptions.Message, "slack-message", slackOptions.Message, "Slack message")
 	flags.StringVar(&slackOptions.FileName, "slack-filename", slackOptions.FileName, "Slack file name")
+	flags.StringVar(&slackOptions.ImageURL, "slack-image-url", slackOptions.ImageURL, "Slack image url")
 	flags.StringVar(&slackOptions.Title, "slack-title", slackOptions.Title, "Slack title")
-	flags.StringVar(&slackOptions.Content, "slack-content", slackOptions.Content, "Slack content")
+	flags.StringVar(&slackOptions.File, "slack-file", slackOptions.File, "Slack file content or path")
+	flags.StringVar(&slackOptions.Token, "slack-token", slackOptions.Token, "Slack token")
+	flags.StringVar(&slackOptions.Channel, "slack-channel", slackOptions.Channel, "Slack channel")
 	flags.StringVar(&slackOutput.Output, "slack-output", slackOutput.Output, "Slack output")
 	flags.StringVar(&slackOutput.Query, "slack-output-query", slackOutput.Query, "Slack output query")
 
@@ -76,7 +80,7 @@ func NewSlackCommand() *cobra.Command {
 		Run: func(cmd *cobra.Command, args []string) {
 
 			stdout.Debug("Slack sending message...")
-			bytes, err := slackNew(stdout).Send()
+			bytes, err := slackNew(stdout).SendMessage()
 			if err != nil {
 				stdout.Error(err)
 				return
@@ -91,7 +95,8 @@ func NewSlackCommand() *cobra.Command {
 		Run: func(cmd *cobra.Command, args []string) {
 
 			stdout.Debug("Slack sending file...")
-			bytes, err := slackNew(stdout).SendFile()
+			s := slackNew(stdout)
+			bytes, err := s.SendFile()
 			if err != nil {
 				stdout.Error(err)
 				return
