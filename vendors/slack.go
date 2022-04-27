@@ -3,12 +3,13 @@ package vendors
 import (
 	"bytes"
 	_ "embed"
-	"github.com/devopsext/utils"
 	"html/template"
 	"io/ioutil"
 	"mime/multipart"
 	"net/http"
 	"net/url"
+
+	"github.com/devopsext/utils"
 )
 
 //go:embed slack.tmpl
@@ -87,7 +88,7 @@ func (s *Slack) SendMessage() ([]byte, error) {
 	return s.sendMessage(m)
 }
 
-func (s *Slack) SendMessageCustom(m SlackMessage) ([]byte, error) {
+func (s *Slack) SendCustomMessage(m SlackMessage) ([]byte, error) {
 	return s.sendMessage(m)
 }
 
@@ -169,14 +170,6 @@ func (s *Slack) SendCustomFile(m SlackMessage) ([]byte, error) {
 	return s.post(m.Token, s.apiURL(filesUpload), q, w.FormDataContentType(), body)
 }
 
-func NewSlack(options SlackOptions) *Slack {
-
-	return &Slack{
-		client:  utils.NewHttpClient(options.Timeout, options.Insecure),
-		options: options,
-	}
-}
-
 func (s *Slack) prepareMessage(m SlackMessage) (*bytes.Buffer, error) {
 
 	t, err := template.New("slack").Parse(msgTemplate)
@@ -222,4 +215,12 @@ func (s *Slack) post(token string, URL string, query url.Values, contentType str
 
 func (s *Slack) apiURL(cmd string) string {
 	return baseURL + cmd
+}
+
+func NewSlack(options SlackOptions) *Slack {
+
+	return &Slack{
+		client:  utils.NewHttpClient(options.Timeout, options.Insecure),
+		options: options,
+	}
 }

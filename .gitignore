@@ -12,6 +12,7 @@ slack.query
 telegram.output
 telegram.query
 graylog.output
+graylog.txt
 graylog.query
 jira.output
 jira.query

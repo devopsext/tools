@@ -75,7 +75,7 @@ func NewSlackCommand() *cobra.Command {
 	flags.StringVar(&slackOutput.Query, "slack-output-query", slackOutput.Query, "Slack output query")
 
 	slackCmd.AddCommand(&cobra.Command{
-		Use:   "send",
+		Use:   "send-message",
 		Short: "Send text message",
 		Run: func(cmd *cobra.Command, args []string) {
 
