@@ -159,9 +159,12 @@ func HttpPostRawWithHeaders(client *http.Client, URL string, headers map[string]
 func HttpPostRaw(client *http.Client, URL, contentType string, authorization string, raw []byte) ([]byte, error) {
 
 	headers := make(map[string]string)
-	headers["Content-Type"] = contentType
-	headers["Authorization"] = authorization
-
+	if !utils.IsEmpty(contentType) {
+		headers["Content-Type"] = contentType
+	}
+	if !utils.IsEmpty(authorization) {
+		headers["Authorization"] = authorization
+	}
 	return HttpPostRawWithHeaders(client, URL, headers, raw)
 }
 
