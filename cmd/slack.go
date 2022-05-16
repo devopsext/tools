@@ -19,6 +19,7 @@ var slackOptions = vendors.SlackOptions{
 	ImageURL: envGet("SLACK_IMAGE_URL", "").(string),
 	FileName: envGet("SLACK_FILENAME", "").(string),
 	File:     envGet("SLACK_FILE", "").(string),
+	ParentTS: envGet("SLACK_THREAD", "").(string),
 }
 
 var slackOutput = common.OutputOptions{
@@ -71,6 +72,7 @@ func NewSlackCommand() *cobra.Command {
 	flags.StringVar(&slackOptions.File, "slack-file", slackOptions.File, "Slack file content or path")
 	flags.StringVar(&slackOptions.Token, "slack-token", slackOptions.Token, "Slack token")
 	flags.StringVar(&slackOptions.Channel, "slack-channel", slackOptions.Channel, "Slack channel")
+	flags.StringVar(&slackOptions.ParentTS, "slack-thread", slackOptions.ParentTS, "Slack thread")
 	flags.StringVar(&slackOutput.Output, "slack-output", slackOutput.Output, "Slack output")
 	flags.StringVar(&slackOutput.Query, "slack-output-query", slackOutput.Query, "Slack output query")
 

@@ -32,6 +32,7 @@ type SlackOptions struct {
 	FileName string
 	File     string // content or path to file
 	ImageURL string
+	ParentTS string
 }
 
 type SlackOutputOptions struct {
@@ -62,6 +63,7 @@ func (s *Slack) Send() ([]byte, error) {
 		Title:       s.options.Title,
 		Message:     s.options.Message,
 		FileContent: s.options.File,
+		ParentTS:    s.options.ParentTS,
 	}
 	return s.SendCustom(m)
 }
@@ -73,6 +75,7 @@ func (s *Slack) SendFile() ([]byte, error) {
 		Title:       s.options.Title,
 		Message:     s.options.Message,
 		FileContent: s.options.File,
+		ParentTS:    s.options.ParentTS,
 	}
 	return s.SendCustomFile(m)
 }
@@ -84,6 +87,7 @@ func (s *Slack) SendMessage() ([]byte, error) {
 		Title:    s.options.Title,
 		Message:  s.options.Message,
 		ImageURL: s.options.ImageURL,
+		ParentTS: s.options.ParentTS,
 	}
 	return s.sendMessage(m)
 }
