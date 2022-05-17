@@ -38,15 +38,15 @@ func slackNew(stdout *common.Stdout) *vendors.Slack {
 	}
 	slackOptions.Message = string(messageBytes)
 
+	if utils.IsEmpty(slackOptions.FileName) && utils.FileExists(slackOptions.File) {
+		slackOptions.FileName = filepath.Base(slackOptions.File)
+	}
+
 	fileBytes, err := utils.Content(slackOptions.File)
 	if err != nil {
 		stdout.Panic(err)
 	}
 	slackOptions.File = string(fileBytes)
-
-	if utils.IsEmpty(slackOptions.FileName) && utils.FileExists(slackOptions.File) {
-		slackOptions.FileName = filepath.Base(slackOptions.File)
-	}
 
 	slack := vendors.NewSlack(slackOptions)
 	if slack == nil {

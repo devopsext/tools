@@ -75,22 +75,26 @@ func (s *Slack) SendFile() ([]byte, error) {
 	m := SlackMessage{
 		Token:       s.options.Token,
 		Channel:     s.options.Channel,
+		ParentTS:    s.options.ParentTS,
 		Title:       s.options.Title,
 		Message:     s.options.Message,
+		ImageURL:    s.options.ImageURL,
+		FileName:    s.options.FileName,
 		FileContent: s.options.File,
-		ParentTS:    s.options.ParentTS,
 	}
 	return s.SendCustomFile(m)
 }
 
 func (s *Slack) SendMessage() ([]byte, error) {
 	m := SlackMessage{
-		Token:    s.options.Token,
-		Channel:  s.options.Channel,
-		Title:    s.options.Title,
-		Message:  s.options.Message,
-		ImageURL: s.options.ImageURL,
-		ParentTS: s.options.ParentTS,
+		Token:       s.options.Token,
+		Channel:     s.options.Channel,
+		ParentTS:    s.options.ParentTS,
+		Title:       s.options.Title,
+		Message:     s.options.Message,
+		ImageURL:    s.options.ImageURL,
+		FileName:    s.options.FileName,
+		FileContent: s.options.File,
 	}
 	return s.sendMessage(m)
 }
@@ -171,12 +175,22 @@ func (s *Slack) SendCustomFile(m SlackMessage) ([]byte, error) {
 		w.Close()
 	}()
 
-	if err := w.WriteField("initial_comment", m.Message); err != nil {
-		return nil, err
+	if !utils.IsEmpty(m.Message) {
+		if err := w.WriteField("initial_comment", m.Message); err != nil {
+			return nil, err
+		}
 	}
 
-	if err := w.WriteField("title", m.Title); err != nil {
-		return nil, err
+	if !utils.IsEmpty(m.Title) {
+		if err := w.WriteField("title", m.Title); err != nil {
+			return nil, err
+		}
+	}
+
+	if !utils.IsEmpty(m.ParentTS) {
+		if err := w.WriteField("thread_ts", m.ParentTS); err != nil {
+			return nil, err
+		}
 	}
 
 	fw, err := w.CreateFormFile("file", m.FileName)
