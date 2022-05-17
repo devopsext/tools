@@ -27,12 +27,12 @@ func jsonMarshal(t interface{}) ([]byte, error) {
 
 func interfaceToMap(prefix string, i interface{}) (map[string]interface{}, error) {
 
-	bytes, err := jsonMarshal(i)
+	data, err := jsonMarshal(i)
 	if err != nil {
 		return nil, err
 	}
 	var m map[string]interface{}
-	err = json.Unmarshal(bytes, &m)
+	err = json.Unmarshal(data, &m)
 	if err != nil {
 		return nil, err
 	}
@@ -206,4 +206,20 @@ func HttpGetRaw(client *http.Client, URL, contentType string, authorization stri
 	headers["Authorization"] = authorization
 
 	return HttpGetRawWithHeaders(client, URL, headers)
+}
+
+func TruncateString(str string, length int) string {
+	if length <= 0 {
+		return ""
+	}
+	truncated := ""
+	count := 0
+	for _, char := range str {
+		truncated += string(char)
+		count++
+		if count >= length {
+			break
+		}
+	}
+	return truncated
 }

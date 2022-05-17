@@ -3,11 +3,14 @@ package vendors
 import (
 	"bytes"
 	_ "embed"
+	"errors"
+	"github.com/devopsext/tools/common"
 	"html/template"
 	"io/ioutil"
 	"mime/multipart"
 	"net/http"
 	"net/url"
+	"strings"
 
 	"github.com/devopsext/utils"
 )
@@ -97,6 +100,27 @@ func (s *Slack) SendCustomMessage(m SlackMessage) ([]byte, error) {
 }
 
 func (s *Slack) sendMessage(m SlackMessage) ([]byte, error) {
+	if m.Message == "" {
+		return nil, errors.New("slack message is empty")
+	}
+	if m.Title == "" {
+
+		// find the first nonempty line
+		lines := strings.Split(m.Message, "\n")
+		for _, line := range lines {
+			if line != "" {
+				m.Title = line
+				break
+			}
+		}
+
+		// if still empty, use the first line
+		if m.Title == "" {
+			m.Title = "No title"
+		}
+
+		m.Title = common.TruncateString(m.Title, 150)
+	}
 	jsonMsg, err := s.prepareMessage(m)
 	if err != nil {
 		return nil, err
