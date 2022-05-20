@@ -1,41 +1,19 @@
 {
     "channel": "{{.Channel}}",
     "blocks": [
-        {
-            "type": "header",
-            "text": {
-                "type": "plain_text",
-                "text": "{{ .Title}}",
-                "emoji": true
-            }
-        },
-        {
-            "type": "divider"
-        },
-        {
-            "type": "section",
-            "text": {
-                "type": "mrkdwn",
-                "text": "{{ .Message }}"
-            }
-        }
+        { "type": "section",
+          "text": { "type": "mrkdwn", "text": "*{{ .Title}}*" }},
+        { "type": "divider" },
+        { "type": "section",
+          "text": { "type": "mrkdwn", "text": "{{ .Message }}" }}
 {{- if ne .ImageURL ""}}
-    , {
-            "type": "image",
-            "image_url": "{{ .ImageURL }}",
-            "alt_text": "chart"
-    }
-{{- end}}
-    ],
+    , { "type": "image", "image_url": "{{ .ImageURL }}", "alt_text": "chart" }
+{{- end}}],
     "text": "{{ .Title }}"
 {{- if ne .ParentTS ""}}
     , "thread_ts": "{{ .ParentTS }}"
 {{- end}}
 {{- if ne .ImageURL ""}}
-    , "attachments": [
-        {
-            "image_url": "{{ .ImageURL }}",
-        }
-    ]
+    , "attachments": [ { "image_url": "{{ .ImageURL }}" }]
 {{- end}}
 }
