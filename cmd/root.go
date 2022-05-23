@@ -57,7 +57,7 @@ func Execute() {
 	rootCmd.AddCommand(NewGraylogCommand())
 	rootCmd.AddCommand(NewJiraCommand())
 	rootCmd.AddCommand(NewGrafanaCommand())
-	rootCmd.AddCommand(NewCmdbCommand())
+	rootCmd.AddCommand(NewJSONCommand())
 
 	if err := rootCmd.Execute(); err != nil {
 		stdout.Error(err)
