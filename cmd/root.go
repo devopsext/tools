@@ -14,8 +14,6 @@ var version = "unknown"
 var APPNAME = "TOOLS"
 var stdout *common.Stdout
 
-//var appName = strings.ToLower(APPNAME)
-
 var stdoutOptions = common.StdoutOptions{
 	Format:          envGet("STDOUT_FORMAT", "template").(string),
 	Level:           envGet("STDOUT_LEVEL", "info").(string),
@@ -29,12 +27,10 @@ func envGet(s string, d interface{}) interface{} {
 }
 
 func Execute() {
-
 	rootCmd := &cobra.Command{
 		Use:   "tools",
 		Short: "Tools",
 		PersistentPreRun: func(cmd *cobra.Command, args []string) {
-
 			stdout = common.NewStdout(stdoutOptions)
 			stdout.SetCallerOffset(1)
 		},
@@ -61,6 +57,7 @@ func Execute() {
 	rootCmd.AddCommand(NewGraylogCommand())
 	rootCmd.AddCommand(NewJiraCommand())
 	rootCmd.AddCommand(NewGrafanaCommand())
+	rootCmd.AddCommand(NewJSONCommand())
 
 	if err := rootCmd.Execute(); err != nil {
 		stdout.Error(err)
