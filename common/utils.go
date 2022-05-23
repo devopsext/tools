@@ -26,7 +26,6 @@ func jsonMarshal(t interface{}) ([]byte, error) {
 }
 
 func interfaceToMap(prefix string, i interface{}) (map[string]interface{}, error) {
-
 	data, err := jsonMarshal(i)
 	if err != nil {
 		return nil, err
@@ -45,7 +44,6 @@ func interfaceToMap(prefix string, i interface{}) (map[string]interface{}, error
 }
 
 func Output(query, to string, prefix string, opts []interface{}, bytes []byte, stdout *Stdout) {
-
 	b, err := utils.Content(query)
 	if err != nil {
 		stdout.Panic(err)
@@ -54,7 +52,6 @@ func Output(query, to string, prefix string, opts []interface{}, bytes []byte, s
 
 	output := string(bytes)
 	if !utils.IsEmpty(query) {
-
 		for _, v := range opts {
 			vars, err := interfaceToMap(prefix, v)
 			if err == nil {
@@ -85,7 +82,7 @@ func Output(query, to string, prefix string, opts []interface{}, bytes []byte, s
 		stdout.Info(output)
 	} else {
 		stdout.Debug("Writing output to %s...", to)
-		err := ioutil.WriteFile(to, []byte(output), 0644)
+		err := ioutil.WriteFile(to, []byte(output), 0600)
 		if err != nil {
 			stdout.Error(err)
 		}
@@ -97,13 +94,12 @@ func OutputJson(outputOpts OutputOptions, prefix string, opts []interface{}, byt
 }
 
 func OutputRaw(output string, bytes []byte, stdout *Stdout) {
-
 	out := string(bytes)
 	if utils.IsEmpty(output) {
 		stdout.Info(out)
 	} else {
 		stdout.Debug("Writing output to %s...", output)
-		err := ioutil.WriteFile(output, bytes, 0644)
+		err := ioutil.WriteFile(output, bytes, 0600)
 		if err != nil {
 			stdout.Error(err)
 		}
@@ -111,7 +107,6 @@ func OutputRaw(output string, bytes []byte, stdout *Stdout) {
 }
 
 func Debug(prefix string, obj interface{}, stdout *Stdout) {
-
 	vars, err := interfaceToMap(prefix, obj)
 	if err != nil {
 		stdout.Panic(err)
@@ -202,8 +197,12 @@ func HttpGetRawWithHeaders(client *http.Client, URL string, headers map[string]s
 func HttpGetRaw(client *http.Client, URL, contentType string, authorization string) ([]byte, error) {
 
 	headers := make(map[string]string)
-	headers["Content-Type"] = contentType
-	headers["Authorization"] = authorization
+	if !utils.IsEmpty(contentType) {
+		headers["Content-Type"] = contentType
+	}
+	if !utils.IsEmpty(authorization) {
+		headers["Authorization"] = authorization
+	}
 
 	return HttpGetRawWithHeaders(client, URL, headers)
 }
