@@ -58,6 +58,7 @@ func Execute() {
 	rootCmd.AddCommand(NewJiraCommand())
 	rootCmd.AddCommand(NewGrafanaCommand())
 	rootCmd.AddCommand(NewJSONCommand())
+	rootCmd.AddCommand(NewGitlabCommand())
 
 	if err := rootCmd.Execute(); err != nil {
 		stdout.Error(err)
