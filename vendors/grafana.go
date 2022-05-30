@@ -14,26 +14,35 @@ import (
 )
 
 type GrafanaRenderImageOptions struct {
-	Width  int
-	Height int
+	PanelID string
+	From    string
+	To      string
+	Width   int
+	Height  int
+}
+
+type GrafanaGetDashboardsOptions struct {
+	PanelID string
+	From    string
+	To      string
 }
 
 type GrafanaGetAnnotationsOptions struct {
+	From string
+	To   string
 	Tags string
 }
 
 type GrafanaOptions struct {
-	PanelID               string
 	URL                   string
 	Timeout               int
 	Insecure              bool
 	APIKey                string
 	OrgID                 string
-	From                  string
-	To                    string
 	UID                   string
 	Slug                  string
 	RenderImageOptions    *GrafanaRenderImageOptions
+	GetDashboardsOptions  *GrafanaGetDashboardsOptions
 	GetAnnotationsOptions *GrafanaGetAnnotationsOptions
 }
 
@@ -51,8 +60,8 @@ func (g *Grafana) RenderCustomImage(opts GrafanaOptions) ([]byte, error) {
 	if !utils.IsEmpty(opts.OrgID) {
 		params.Add("orgId", opts.OrgID)
 	}
-	if !utils.IsEmpty(opts.PanelID) {
-		params.Add("panelId", opts.PanelID)
+	if !utils.IsEmpty(opts.RenderImageOptions.PanelID) {
+		params.Add("panelId", opts.RenderImageOptions.PanelID)
 	}
 	if opts.RenderImageOptions.Width > 0 {
 		params.Add("width", strconv.Itoa(opts.RenderImageOptions.Width))
@@ -60,11 +69,11 @@ func (g *Grafana) RenderCustomImage(opts GrafanaOptions) ([]byte, error) {
 	if opts.RenderImageOptions.Height > 0 {
 		params.Add("height", strconv.Itoa(opts.RenderImageOptions.Height))
 	}
-	if !utils.IsEmpty(opts.From) {
-		params.Add("from", toRFC3339Nano(opts.From))
+	if !utils.IsEmpty(opts.RenderImageOptions.From) {
+		params.Add("from", toRFC3339Nano(opts.RenderImageOptions.From))
 	}
-	if !utils.IsEmpty(opts.To) {
-		params.Add("to", toRFC3339Nano(opts.To))
+	if !utils.IsEmpty(opts.RenderImageOptions.To) {
+		params.Add("to", toRFC3339Nano(opts.RenderImageOptions.To))
 	}
 	params.Add("tz", "UTC")
 
@@ -136,11 +145,11 @@ func (g *Grafana) GetCustomAnnotations(options GrafanaOptions) ([]byte, error) {
 	if !utils.IsEmpty(options.OrgID) {
 		params.Add("orgId", options.OrgID)
 	}
-	if !utils.IsEmpty(options.From) {
-		params.Add("from", toRFC3339Nano(options.From))
+	if !utils.IsEmpty(options.GetAnnotationsOptions.From) {
+		params.Add("from", toRFC3339Nano(options.GetAnnotationsOptions.From))
 	}
-	if !utils.IsEmpty(options.To) {
-		params.Add("to", toRFC3339Nano(options.To))
+	if !utils.IsEmpty(options.GetAnnotationsOptions.To) {
+		params.Add("to", toRFC3339Nano(options.GetAnnotationsOptions.To))
 	}
 	params.Add("tz", "UTC")
 

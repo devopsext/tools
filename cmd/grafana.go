@@ -14,18 +14,26 @@ var grafanaOptions = vendors.GrafanaOptions{
 	OrgID:    envGet("GRAFANA_ORG_ID", "1").(string),
 	UID:      envGet("GRAFANA_UID", "").(string),
 	Slug:     envGet("GRAFANA_SLUG", "").(string),
-	From:     envGet("GRAFANA_FROM", "").(string),
-	To:       envGet("GRAFANA_TO", "").(string),
-	PanelID:  envGet("GRAFANA_PANEL_ID", "").(string),
 }
 
 var grafanaRenderImageOptions = vendors.GrafanaRenderImageOptions{
-	Width:  envGet("GRAFANA_IMAGE_WIDTH", 1280).(int),
-	Height: envGet("GRAFANA_IMAGE_HEIGHT", 640).(int),
+	PanelID: envGet("GRAFANA_IMAGE_PANEL_ID", "").(string),
+	From:    envGet("GRAFANA_IMAGE_FROM", "").(string),
+	To:      envGet("GRAFANA_IMAGE_TO", "").(string),
+	Width:   envGet("GRAFANA_IMAGE_WIDTH", 1280).(int),
+	Height:  envGet("GRAFANA_IMAGE_HEIGHT", 640).(int),
+}
+
+var grafanaGetDashboardsOptions = vendors.GrafanaGetDashboardsOptions{
+	PanelID: envGet("GRAFANA_DASHBOARD_PANEL_ID", "").(string),
+	From:    envGet("GRAFANA_DASHBOARD_FROM", "").(string),
+	To:      envGet("GRAFANA_DASHBOARD_TO", "").(string),
 }
 
 var grafanaGetAnnotationsOptions = vendors.GrafanaGetAnnotationsOptions{
 	Tags: envGet("GRAFANA_ANNOTATION_TAGS", "").(string),
+	From: envGet("GRAFANA_ANNOTATION_FROM", "").(string),
+	To:   envGet("GRAFANA_ANNOTATION_TO", "").(string),
 }
 
 var grafanaOutput = common.OutputOptions{
@@ -59,9 +67,6 @@ func NewGrafanaCommand() *cobra.Command {
 	flags.StringVar(&grafanaOptions.OrgID, "grafana-org-id", grafanaOptions.OrgID, "Grafana org id")
 	flags.StringVar(&grafanaOptions.UID, "grafana-uid", grafanaOptions.UID, "Grafana dashboard uid")
 	flags.StringVar(&grafanaOptions.Slug, "grafana-slug", grafanaOptions.Slug, "Grafana dashboard slug")
-	flags.StringVar(&grafanaOptions.From, "grafana-from", grafanaOptions.From, "Grafana from")
-	flags.StringVar(&grafanaOptions.To, "grafana-to", grafanaOptions.To, "Grafana to")
-	flags.StringVar(&grafanaOptions.PanelID, "grafana-panel-id", grafanaOptions.PanelID, "Grafana panel id")
 
 	flags.StringVar(&grafanaOutput.Output, "grafana-output", grafanaOutput.Output, "Grafana output")
 	flags.StringVar(&grafanaOutput.Query, "grafana-output-query", grafanaOutput.Query, "Grafana output query")
@@ -84,6 +89,9 @@ func NewGrafanaCommand() *cobra.Command {
 	}
 
 	flags = renderImageCmd.PersistentFlags()
+	flags.StringVar(&grafanaRenderImageOptions.PanelID, "grafana-image-panel-id", grafanaRenderImageOptions.PanelID, "Grafana image panel id")
+	flags.StringVar(&grafanaRenderImageOptions.From, "grafana-image-from", grafanaRenderImageOptions.From, "Grafana image from")
+	flags.StringVar(&grafanaRenderImageOptions.To, "grafana-image-to", grafanaRenderImageOptions.To, "Grafana image to")
 	flags.IntVar(&grafanaRenderImageOptions.Width, "grafana-image-width", grafanaRenderImageOptions.Width, "Grafana image width")
 	flags.IntVar(&grafanaRenderImageOptions.Height, "grafana-image-height", grafanaRenderImageOptions.Height, "Grafana image height")
 
@@ -94,15 +102,23 @@ func NewGrafanaCommand() *cobra.Command {
 		Short: "Get dashboards",
 		Run: func(cmd *cobra.Command, args []string) {
 			stdout.Debug("Grafana getting dashboards...")
+			common.Debug("Grafana", grafanaGetDashboardsOptions, stdout)
 
+			grafanaOptions.GetDashboardsOptions = &grafanaGetDashboardsOptions
 			bytes, err := grafanaNew(stdout).GetDashboards()
 			if err != nil {
 				stdout.Error(err)
 				return
 			}
-			common.OutputJson(grafanaOutput, "Grafana", []interface{}{grafanaOptions}, bytes, stdout)
+			common.OutputJson(grafanaOutput, "Grafana", []interface{}{grafanaOptions, grafanaGetDashboardsOptions}, bytes, stdout)
 		},
 	}
+
+	flags = getDashboardCmd.PersistentFlags()
+
+	flags.StringVar(&grafanaGetDashboardsOptions.PanelID, "grafana-dashboard-panel-id", grafanaGetDashboardsOptions.PanelID, "Grafana dashboard panel id")
+	flags.StringVar(&grafanaGetDashboardsOptions.From, "grafana-dashboard-from", grafanaGetDashboardsOptions.From, "Grafana dashboard from")
+	flags.StringVar(&grafanaGetDashboardsOptions.To, "grafana-dashboard-to", grafanaGetDashboardsOptions.To, "Grafana dashboard to")
 
 	grafanaCmd.AddCommand(&getDashboardCmd)
 
@@ -124,6 +140,9 @@ func NewGrafanaCommand() *cobra.Command {
 	}
 
 	flags = getAnnotationsCmd.PersistentFlags()
+
+	flags.StringVar(&grafanaGetAnnotationsOptions.From, "grafana-annotation-from", grafanaGetAnnotationsOptions.From, "Grafana annotation from")
+	flags.StringVar(&grafanaGetAnnotationsOptions.To, "grafana-annotation-to", grafanaGetAnnotationsOptions.To, "Grafana annotation to")
 	flags.StringVar(&grafanaGetAnnotationsOptions.Tags, "grafana-annotations-tags", grafanaGetAnnotationsOptions.Tags, "Grafana annotations tags (comma separated)")
 
 	grafanaCmd.AddCommand(&getAnnotationsCmd)
