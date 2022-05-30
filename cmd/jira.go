@@ -109,16 +109,16 @@ func NewJiraCommand() *cobra.Command {
 	flags.StringVar(&jiraCreateIssueOptions.Reporter, "jira-issue-reporter", jiraCreateIssueOptions.Reporter, "Jira issue reporter")
 	jiraCmd.AddCommand(createIssueCmd)
 
-	issue := &cobra.Command{
+	issueCmd := &cobra.Command{
 		Use:   "issue",
 		Short: "Issue methods",
 	}
-	flags = issue.PersistentFlags()
+	flags = issueCmd.PersistentFlags()
 	flags.StringVar(&jiraIssueOptions.IdOrKey, "jira-issue-id-or-key", jiraIssueOptions.IdOrKey, "Jira issue ID or key")
-	jiraCmd.AddCommand(issue)
+	jiraCmd.AddCommand(issueCmd)
 
 	// tools jira issue add-comment --jira-params --issue-params --add-comment-params
-	issueAddComment := &cobra.Command{
+	issueAddCommentCmd := &cobra.Command{
 		Use:   "add-comment",
 		Short: "Issue add comment",
 		Run: func(cmd *cobra.Command, args []string) {
@@ -143,12 +143,12 @@ func NewJiraCommand() *cobra.Command {
 			common.OutputJson(jiraOutput, "Jira", []interface{}{jiraOptions, jiraIssueOptions, jiraIssueAddCommentOptions}, bytes, stdout)
 		},
 	}
-	flags = issueAddComment.PersistentFlags()
+	flags = issueAddCommentCmd.PersistentFlags()
 	flags.StringVar(&jiraIssueAddCommentOptions.Body, "jira-issue-comment-body", jiraIssueAddCommentOptions.Body, "Jira issue comment body")
-	issue.AddCommand(issueAddComment)
+	issueCmd.AddCommand(issueAddCommentCmd)
 
 	// tools jira issue add-attachment --jira-params --issue-params --add-attachment-params
-	issueAddAttachment := &cobra.Command{
+	issueAddAttachmentCmd := &cobra.Command{
 		Use:   "add-attachment",
 		Short: "Issue add attachment",
 		Run: func(cmd *cobra.Command, args []string) {
@@ -177,10 +177,10 @@ func NewJiraCommand() *cobra.Command {
 			common.OutputJson(jiraOutput, "Jira", []interface{}{jiraOptions, jiraIssueOptions, jiraIssueAddAttachmentOptions}, bytes, stdout)
 		},
 	}
-	flags = issueAddAttachment.PersistentFlags()
+	flags = issueAddAttachmentCmd.PersistentFlags()
 	flags.StringVar(&jiraIssueAddAttachmentOptions.File, "jira-issue-attachment-file", jiraIssueAddAttachmentOptions.File, "Jira issue attachment file")
 	flags.StringVar(&jiraIssueAddAttachmentOptions.Name, "jira-issue-attachment-name", jiraIssueAddAttachmentOptions.Name, "Jira issue attachment name")
-	issue.AddCommand(issueAddAttachment)
+	issueCmd.AddCommand(issueAddAttachmentCmd)
 
 	return &jiraCmd
 }

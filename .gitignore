@@ -20,6 +20,8 @@ jira.description
 grafana.png
 grafana.output
 grafana.query
+google.query
+google.output
 test.png
 
 

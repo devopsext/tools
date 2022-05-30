@@ -113,7 +113,7 @@ func Debug(prefix string, obj interface{}, stdout *Stdout) {
 	}
 	for k, v := range vars {
 		if !utils.IsEmpty(v) {
-			stdout.Debug("%s: %s", k, v)
+			stdout.Debug("%s: %v", k, v)
 		}
 	}
 }
