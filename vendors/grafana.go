@@ -28,9 +28,14 @@ type GrafanaGetDashboardsOptions struct {
 }
 
 type GrafanaGetAnnotationsOptions struct {
-	From string
-	To   string
-	Tags string
+	From        string
+	To          string
+	Tags        string
+	Type        string
+	Limit       int
+	AlertID     int
+	DashboardID int
+	PanelID     int
 }
 
 type GrafanaOptions struct {
@@ -150,6 +155,21 @@ func (g *Grafana) GetCustomAnnotations(options GrafanaOptions) ([]byte, error) {
 	}
 	if !utils.IsEmpty(options.GetAnnotationsOptions.To) {
 		params.Add("to", toRFC3339Nano(options.GetAnnotationsOptions.To))
+	}
+	if options.GetAnnotationsOptions.Type == "alert" || options.GetAnnotationsOptions.Type == "annotation" {
+		params.Add("type", options.GetAnnotationsOptions.Type)
+	}
+	if options.GetAnnotationsOptions.Limit > 0 {
+		params.Add("limit", strconv.Itoa(options.GetAnnotationsOptions.Limit))
+	}
+	if options.GetAnnotationsOptions.AlertID > 0 {
+		params.Add("alertId", strconv.Itoa(options.GetAnnotationsOptions.AlertID))
+	}
+	if options.GetAnnotationsOptions.DashboardID > 0 {
+		params.Add("dashboardId", strconv.Itoa(options.GetAnnotationsOptions.DashboardID))
+	}
+	if options.GetAnnotationsOptions.PanelID > 0 {
+		params.Add("panelId", strconv.Itoa(options.GetAnnotationsOptions.PanelID))
 	}
 	params.Add("tz", "UTC")
 
