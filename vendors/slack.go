@@ -5,14 +5,13 @@ import (
 	_ "embed"
 	"errors"
 	"github.com/devopsext/tools/common"
-	"html/template"
+	"github.com/devopsext/utils"
 	"io/ioutil"
 	"mime/multipart"
 	"net/http"
 	"net/url"
 	"strings"
-
-	"github.com/devopsext/utils"
+	"text/template"
 )
 
 //go:embed slack.tmpl
@@ -108,7 +107,6 @@ func (s *Slack) sendMessage(m SlackMessage) ([]byte, error) {
 		return nil, errors.New("slack message is empty")
 	}
 	if m.Title == "" {
-
 		// find the first nonempty line
 		lines := strings.Split(m.Message, "\n")
 		for _, line := range lines {
@@ -138,7 +136,6 @@ func (s *Slack) sendMessage(m SlackMessage) ([]byte, error) {
 }
 
 func (s *Slack) SendCustom(m SlackMessage) ([]byte, error) {
-
 	var body bytes.Buffer
 	w := multipart.NewWriter(&body)
 	defer func() {
@@ -168,7 +165,6 @@ func (s *Slack) SendCustom(m SlackMessage) ([]byte, error) {
 }
 
 func (s *Slack) SendCustomFile(m SlackMessage) ([]byte, error) {
-
 	var body bytes.Buffer
 	w := multipart.NewWriter(&body)
 	defer func() {
@@ -213,7 +209,6 @@ func (s *Slack) SendCustomFile(m SlackMessage) ([]byte, error) {
 }
 
 func (s *Slack) prepareMessage(m SlackMessage) (*bytes.Buffer, error) {
-
 	t, err := template.New("slack").Parse(msgTemplate)
 	if err != nil {
 		return nil, err
@@ -260,7 +255,6 @@ func (s *Slack) apiURL(cmd string) string {
 }
 
 func NewSlack(options SlackOptions) *Slack {
-
 	return &Slack{
 		client:  utils.NewHttpClient(options.Timeout, options.Insecure),
 		options: options,

@@ -7,13 +7,10 @@
         { "type": "section",
           "text": { "type": "mrkdwn", "text": "{{ .Message }}" }}
 {{- if ne .ImageURL ""}}
-    , { "type": "image", "image_url": "{{ .ImageURL }}", "alt_text": "chart" }
+    , {"type": "image", "image_url": "{{ .ImageURL }}", "alt_text": "{{ .ImageURL }}"}
 {{- end}}],
     "text": "{{ .Title }}"
 {{- if ne .ParentTS ""}}
     , "thread_ts": "{{ .ParentTS }}"
-{{- end}}
-{{- if ne .ImageURL ""}}
-    , "attachments": [ { "image_url": "{{ .ImageURL }}" }]
 {{- end}}
 }
