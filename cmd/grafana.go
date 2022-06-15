@@ -41,6 +41,13 @@ var grafanaGetAnnotationsOptions = vendors.GrafanaGetAnnotationsOptions{
 	PanelID:     envGet("GRAFANA_ANNOTATION_PANEL_ID", 0).(int),
 }
 
+var grafanaCreateAnnotationOptions = vendors.GrafanaCreateAnnotationOptions{
+	Time:    envGet("GRAFANA_ANNOTATION_TIME", "").(string),
+	TimeEnd: envGet("GRAFANA_ANNOTATION_TIME_END", "").(string),
+	Tags:    envGet("GRAFANA_ANNOTATION_TAGS", "").(string),
+	Text:    envGet("GRAFANA_ANNOTATION_TEXT", "").(string),
+}
+
 var grafanaOutput = common.OutputOptions{
 	Output: envGet("GRAFANA_OUTPUT", "").(string),
 	Query:  envGet("GRAFANA_OUTPUT_QUERY", "").(string),
@@ -156,6 +163,37 @@ func NewGrafanaCommand() *cobra.Command {
 	flags.IntVar(&grafanaGetAnnotationsOptions.PanelID, "grafana-annotation-panel", grafanaGetAnnotationsOptions.PanelID, "Grafana annotations panel (optional).")
 
 	grafanaCmd.AddCommand(&getAnnotationsCmd)
+
+	createAnnotationCmd := cobra.Command{
+		Use:   "create-annotation",
+		Short: "Create grafana annotation",
+		Run: func(cmd *cobra.Command, args []string) {
+			stdout.Debug("Grafana creating annotation...")
+			common.Debug("Grafana", grafanaCreateAnnotationOptions, stdout)
+
+			if grafanaCreateAnnotationOptions.Text == "" {
+				stdout.Error("Grafana annotation text is required")
+				return
+			}
+
+			grafanaOptions.CreateAnnotationOptions = &grafanaCreateAnnotationOptions
+
+			bytes, err := grafanaNew(stdout).CreateAnnotation()
+			if err != nil {
+				stdout.Error(err)
+				return
+			}
+			common.OutputJson(grafanaOutput, "Grafana", []interface{}{grafanaOptions}, bytes, stdout)
+		},
+	}
+
+	flags = createAnnotationCmd.PersistentFlags()
+	flags.StringVar(&grafanaCreateAnnotationOptions.Text, "grafana-annotation-text", grafanaCreateAnnotationOptions.Text, "Grafana annotation text")
+	flags.StringVar(&grafanaCreateAnnotationOptions.Time, "grafana-annotation-time", grafanaCreateAnnotationOptions.Time, "Grafana annotation time")
+	flags.StringVar(&grafanaCreateAnnotationOptions.TimeEnd, "grafana-annotation-time-end", grafanaCreateAnnotationOptions.Tags, "Grafana annotation end time")
+	flags.StringVar(&grafanaCreateAnnotationOptions.Tags, "grafana-annotation-tags", grafanaCreateAnnotationOptions.Tags, "Grafana annotation tags (comma separated)")
+
+	grafanaCmd.AddCommand(&createAnnotationCmd)
 
 	return &grafanaCmd
 }
