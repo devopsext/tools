@@ -141,6 +141,10 @@ func (g *Grafana) GetAnnotations() ([]byte, error) {
 }
 
 func (g Grafana) CreateAnnotation() ([]byte, error) {
+	return g.CreateCustomAnnotation(g.options.CreateAnnotationOptions)
+}
+
+func (g Grafana) CreateCustomAnnotation(ao *GrafanaCreateAnnotationOptions) ([]byte, error) {
 	u, err := url.Parse(g.options.URL)
 	if err != nil {
 		return nil, err
@@ -152,7 +156,7 @@ func (g Grafana) CreateAnnotation() ([]byte, error) {
 	if !utils.IsEmpty(g.options.APIKey) {
 		auth = fmt.Sprintf("Bearer %s", g.options.APIKey)
 	}
-	b, err := json.Marshal(createAnnotation(g.options.CreateAnnotationOptions))
+	b, err := json.Marshal(createAnnotation(ao))
 	if err != nil {
 		return nil, err
 	}
