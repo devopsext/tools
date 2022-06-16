@@ -30,7 +30,7 @@ var graylogOutput = common.OutputOptions{
 
 func graylogNew(stdout *common.Stdout) *vendors.Graylog {
 
-	common.Debug("Graylog", grafanaOptions, stdout)
+	common.Debug("Graylog", graylogOptions, stdout)
 	common.Debug("Graylog", graylogOutput, stdout)
 
 	queryBytes, err := utils.Content(graylogOptions.Query)
