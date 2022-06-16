@@ -61,6 +61,8 @@ func Execute() {
 	rootCmd.AddCommand(NewGitlabCommand())
 	rootCmd.AddCommand(NewGoogleCommand())
 
+	rootCmd.AddCommand(NewTemplateCommand())
+
 	if err := rootCmd.Execute(); err != nil {
 		stdout.Error(err)
 		os.Exit(1)

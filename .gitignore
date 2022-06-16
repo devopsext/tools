@@ -9,6 +9,7 @@ __debug_bin
 tools
 slack.output
 slack.query
+slack-old.query
 telegram.output
 telegram.query
 graylog.output
@@ -23,6 +24,10 @@ grafana.query
 google.query
 google.output
 test.png
+template.txt
+template.output
+template.query
+template.json
 
 
 # Created by https://www.toptal.com/developers/gitignore/api/jetbrains

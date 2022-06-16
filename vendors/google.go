@@ -49,6 +49,7 @@ const (
 	googleCalendarURL = "https://www.googleapis.com/calendar/v3"
 )
 
+// https://developers.google.com/oauthplayground
 func (g *Google) refreshCustomAccessToken(opts GoogleOptions) (*GoogleTokenReponse, error) {
 
 	var body bytes.Buffer

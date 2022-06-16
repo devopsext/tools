@@ -4,10 +4,11 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"github.com/blues/jsonata-go"
-	"github.com/devopsext/utils"
 	"io/ioutil"
 	"net/http"
+
+	"github.com/blues/jsonata-go"
+	"github.com/devopsext/utils"
 )
 
 type OutputOptions struct {
