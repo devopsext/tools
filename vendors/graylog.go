@@ -2,7 +2,6 @@ package vendors
 
 import (
 	"fmt"
-	"io/ioutil"
 	"net/http"
 	"net/url"
 	"path"
@@ -10,6 +9,7 @@ import (
 
 	"encoding/base64"
 
+	"github.com/devopsext/tools/common"
 	"github.com/devopsext/utils"
 )
 
@@ -36,32 +36,13 @@ type Graylog struct {
 
 func (g *Graylog) get(URL string) ([]byte, error) {
 
-	req, err := http.NewRequest("GET", URL, nil)
-	if err != nil {
-		return nil, err
-	}
-
-	req.Header.Set("Content-Type", "application/json")
+	auth := ""
 	if !utils.IsEmpty(g.options.User) {
 		basic := base64.StdEncoding.EncodeToString([]byte(fmt.Sprintf("%s:%s", g.options.User, g.options.Password)))
-		req.Header.Set("Authorization", fmt.Sprintf("Basic %s", basic))
+		auth = fmt.Sprintf("Basic %s", basic)
 	}
 
-	resp, err := g.client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		return nil, fmt.Errorf(resp.Status)
-	}
-
-	b, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		return nil, err
-	}
-	return b, nil
+	return common.HttpGetRaw(g.client, URL, "application/json", auth)
 }
 
 // https://graylog.some.host/api/search/universal/relative?query=*&range=3600&limit=100&sort=timestamp:desc&pretty=true

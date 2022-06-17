@@ -76,7 +76,6 @@ func NewTelegramCommand() *cobra.Command {
 		Run: func(cmd *cobra.Command, args []string) {
 
 			stdout.Debug("Telegram sending message...")
-			common.Debug("Telegram", telegramOptions, stdout)
 			common.Debug("Telegram", telegramMessageOptions, stdout)
 
 			textBytes, err := utils.Content(telegramMessageOptions.Text)
@@ -104,7 +103,6 @@ func NewTelegramCommand() *cobra.Command {
 		Run: func(cmd *cobra.Command, args []string) {
 
 			stdout.Debug("Telegram sending photo...")
-			common.Debug("Telegram", telegramOptions, stdout)
 			common.Debug("Telegram", telegramPhotoOptions, stdout)
 
 			contentBytes, err := utils.Content(telegramPhotoOptions.Content)
@@ -138,7 +136,6 @@ func NewTelegramCommand() *cobra.Command {
 		Run: func(cmd *cobra.Command, args []string) {
 
 			stdout.Debug("Telegram sending document...")
-			common.Debug("Telegram", telegramOptions, stdout)
 			common.Debug("Telegram", telegramDocumentOptions, stdout)
 
 			contentBytes, err := utils.Content(telegramDocumentOptions.Content)
