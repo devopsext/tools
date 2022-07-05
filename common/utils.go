@@ -118,11 +118,11 @@ func Debug(prefix string, obj interface{}, stdout *Stdout) {
 	}
 }
 
-func HttpPostRawWithHeaders(client *http.Client, URL string, headers map[string]string, raw []byte) ([]byte, error) {
+func HttpRequestRawWithHeaders(client *http.Client, method, URL string, headers map[string]string, raw []byte) ([]byte, error) {
 
 	reader := bytes.NewReader(raw)
 
-	req, err := http.NewRequest("POST", URL, reader)
+	req, err := http.NewRequest(method, URL, reader)
 	if err != nil {
 		return nil, err
 	}
@@ -151,6 +151,10 @@ func HttpPostRawWithHeaders(client *http.Client, URL string, headers map[string]
 	return b, nil
 }
 
+func HttpPostRawWithHeaders(client *http.Client, URL string, headers map[string]string, raw []byte) ([]byte, error) {
+	return HttpRequestRawWithHeaders(client, "POST", URL, headers, raw)
+}
+
 func HttpPostRaw(client *http.Client, URL, contentType string, authorization string, raw []byte) ([]byte, error) {
 
 	headers := make(map[string]string)
@@ -161,6 +165,22 @@ func HttpPostRaw(client *http.Client, URL, contentType string, authorization str
 		headers["Authorization"] = authorization
 	}
 	return HttpPostRawWithHeaders(client, URL, headers, raw)
+}
+
+func HttpPutRawWithHeaders(client *http.Client, URL string, headers map[string]string, raw []byte) ([]byte, error) {
+	return HttpRequestRawWithHeaders(client, "PUT", URL, headers, raw)
+}
+
+func HttpPutRaw(client *http.Client, URL, contentType string, authorization string, raw []byte) ([]byte, error) {
+
+	headers := make(map[string]string)
+	if !utils.IsEmpty(contentType) {
+		headers["Content-Type"] = contentType
+	}
+	if !utils.IsEmpty(authorization) {
+		headers["Authorization"] = authorization
+	}
+	return HttpPutRawWithHeaders(client, URL, headers, raw)
 }
 
 func HttpGetRawWithHeaders(client *http.Client, URL string, headers map[string]string) ([]byte, error) {

@@ -18,19 +18,19 @@ var jiraOptions = vendors.JiraOptions{
 	Password: envGet("JIRA_PASSWORD", "").(string),
 }
 
-var jiraCreateIssueOptions = vendors.JiraCreateIssueOptions{
-	ProjectKey:  envGet("JIRA_ISSUE_PROJECT_KEY", "").(string),
-	Type:        envGet("JIRA_ISSUE_TYPE", "").(string),
-	Summary:     envGet("JIRA_ISSUE_SUMMARY", "").(string),
-	Description: envGet("JIRA_ISSUE_DESCRIPTION", "").(string),
-	Labels:      strings.Split(envGet("JIRA_ISSUE_LABELS", "").(string), ","),
-	Priority:    envGet("JIRA_ISSUE_PRIORITY", "").(string),
-	Assignee:    envGet("JIRA_ISSUE_ASSIGNEE", "").(string),
-	Reporter:    envGet("JIRA_ISSUE_REPORTER", "").(string),
+var jiraIssueCreateOptions = vendors.JiraIssueCreateOptions{
+	ProjectKey: envGet("JIRA_ISSUE_PROJECT_KEY", "").(string),
+	Type:       envGet("JIRA_ISSUE_TYPE", "").(string),
+	Priority:   envGet("JIRA_ISSUE_PRIORITY", "").(string),
+	Assignee:   envGet("JIRA_ISSUE_ASSIGNEE", "").(string),
+	Reporter:   envGet("JIRA_ISSUE_REPORTER", "").(string),
 }
 
 var jiraIssueOptions = vendors.JiraIssueOptions{
-	IdOrKey: envGet("JIRA_ISSUE_ID_OR_KEY", "").(string),
+	IdOrKey:     envGet("JIRA_ISSUE_ID_OR_KEY", "").(string),
+	Summary:     envGet("JIRA_ISSUE_SUMMARY", "").(string),
+	Description: envGet("JIRA_ISSUE_DESCRIPTION", "").(string),
+	Labels:      strings.Split(envGet("JIRA_ISSUE_LABELS", "").(string), ","),
 }
 
 var jiraIssueAddCommentOptions = vendors.JiraIssueAddCommentOptions{
@@ -41,6 +41,8 @@ var jiraIssueAddAttachmentOptions = vendors.JiraIssueAddAttachmentOptions{
 	File: envGet("JIRA_ISSUE_ATTACHMENT_FILE", "").(string),
 	Name: envGet("JIRA_ISSUE_ATTACHMENT_NAME", "").(string),
 }
+
+var jiraIssueUpdateOptions = vendors.JiraIssueUpdateOptions{}
 
 var jiraOutput = common.OutputOptions{
 	Output: envGet("JIRA_OUTPUT", "").(string),
@@ -74,48 +76,50 @@ func NewJiraCommand() *cobra.Command {
 	flags.StringVar(&jiraOutput.Output, "jira-output", jiraOutput.Output, "Jira output")
 	flags.StringVar(&jiraOutput.Query, "jira-output-query", jiraOutput.Query, "Jira output query")
 
-	// tools jira create-issue --jira-params --create-issue-params
-	createIssueCmd := &cobra.Command{
-		Use:   "create-issue",
-		Short: "Create issue",
-		Run: func(cmd *cobra.Command, args []string) {
-
-			stdout.Debug("Jira creating issue...")
-			common.Debug("Jira", jiraCreateIssueOptions, stdout)
-
-			descriptionBytes, err := utils.Content(jiraCreateIssueOptions.Description)
-			if err != nil {
-				stdout.Panic(err)
-			}
-			jiraCreateIssueOptions.Description = string(descriptionBytes)
-
-			jiraOptions.CreateIssueOptions = &jiraCreateIssueOptions
-			bytes, err := jiraNew(stdout).CreateIssue()
-			if err != nil {
-				stdout.Error(err)
-				return
-			}
-			common.OutputJson(jiraOutput, "Jira", []interface{}{jiraOptions, jiraCreateIssueOptions}, bytes, stdout)
-		},
-	}
-	flags = createIssueCmd.PersistentFlags()
-	flags.StringVar(&jiraCreateIssueOptions.ProjectKey, "jira-issue-project-key", jiraCreateIssueOptions.ProjectKey, "Jira issue project key")
-	flags.StringVar(&jiraCreateIssueOptions.Type, "jira-issue-type", jiraCreateIssueOptions.Type, "Jira issue type")
-	flags.StringVar(&jiraCreateIssueOptions.Summary, "jira-issue-summary", jiraCreateIssueOptions.Summary, "Jira issue summary")
-	flags.StringVar(&jiraCreateIssueOptions.Description, "jira-issue-description", jiraCreateIssueOptions.Description, "Jira issue description")
-	flags.StringSliceVar(&jiraCreateIssueOptions.Labels, "jira-issue-labels", jiraCreateIssueOptions.Labels, "Jira issue labels")
-	flags.StringVar(&jiraCreateIssueOptions.Priority, "jira-issue-priority", jiraCreateIssueOptions.Priority, "Jira issue priority")
-	flags.StringVar(&jiraCreateIssueOptions.Assignee, "jira-issue-assignee", jiraCreateIssueOptions.Assignee, "Jira issue assignee")
-	flags.StringVar(&jiraCreateIssueOptions.Reporter, "jira-issue-reporter", jiraCreateIssueOptions.Reporter, "Jira issue reporter")
-	jiraCmd.AddCommand(createIssueCmd)
-
 	issueCmd := &cobra.Command{
 		Use:   "issue",
 		Short: "Issue methods",
 	}
 	flags = issueCmd.PersistentFlags()
 	flags.StringVar(&jiraIssueOptions.IdOrKey, "jira-issue-id-or-key", jiraIssueOptions.IdOrKey, "Jira issue ID or key")
+	flags.StringVar(&jiraIssueOptions.Summary, "jira-issue-summary", jiraIssueOptions.Summary, "Jira issue summary")
+	flags.StringVar(&jiraIssueOptions.Description, "jira-issue-description", jiraIssueOptions.Description, "Jira issue description")
+	flags.StringSliceVar(&jiraIssueOptions.Labels, "jira-issue-labels", jiraIssueOptions.Labels, "Jira issue labels")
 	jiraCmd.AddCommand(issueCmd)
+
+	// tools jira issue create --jira-params --create-issue-params
+	issueCreateCmd := &cobra.Command{
+		Use:   "create",
+		Short: "Create issue",
+		Run: func(cmd *cobra.Command, args []string) {
+
+			stdout.Debug("Jira creating issue...")
+			common.Debug("Jira", jiraIssueOptions, stdout)
+			common.Debug("Jira", jiraIssueCreateOptions, stdout)
+
+			descriptionBytes, err := utils.Content(jiraIssueOptions.Description)
+			if err != nil {
+				stdout.Panic(err)
+			}
+			jiraIssueOptions.Description = string(descriptionBytes)
+
+			jiraOptions.IssueOptions = &jiraIssueOptions
+			jiraOptions.IssueCreateOptions = &jiraIssueCreateOptions
+			bytes, err := jiraNew(stdout).IssueCreate()
+			if err != nil {
+				stdout.Error(err)
+				return
+			}
+			common.OutputJson(jiraOutput, "Jira", []interface{}{jiraOptions, jiraIssueOptions, jiraIssueCreateOptions}, bytes, stdout)
+		},
+	}
+	flags = issueCreateCmd.PersistentFlags()
+	flags.StringVar(&jiraIssueCreateOptions.ProjectKey, "jira-issue-project-key", jiraIssueCreateOptions.ProjectKey, "Jira issue project key")
+	flags.StringVar(&jiraIssueCreateOptions.Type, "jira-issue-type", jiraIssueCreateOptions.Type, "Jira issue type")
+	flags.StringVar(&jiraIssueCreateOptions.Priority, "jira-issue-priority", jiraIssueCreateOptions.Priority, "Jira issue priority")
+	flags.StringVar(&jiraIssueCreateOptions.Assignee, "jira-issue-assignee", jiraIssueCreateOptions.Assignee, "Jira issue assignee")
+	flags.StringVar(&jiraIssueCreateOptions.Reporter, "jira-issue-reporter", jiraIssueCreateOptions.Reporter, "Jira issue reporter")
+	issueCmd.AddCommand(issueCreateCmd)
 
 	// tools jira issue add-comment --jira-params --issue-params --add-comment-params
 	issueAddCommentCmd := &cobra.Command{
@@ -181,6 +185,34 @@ func NewJiraCommand() *cobra.Command {
 	flags.StringVar(&jiraIssueAddAttachmentOptions.File, "jira-issue-attachment-file", jiraIssueAddAttachmentOptions.File, "Jira issue attachment file")
 	flags.StringVar(&jiraIssueAddAttachmentOptions.Name, "jira-issue-attachment-name", jiraIssueAddAttachmentOptions.Name, "Jira issue attachment name")
 	issueCmd.AddCommand(issueAddAttachmentCmd)
+
+	// tools jira issue update --jira-params --issue-params
+	issueUpdateCmd := &cobra.Command{
+		Use:   "update",
+		Short: "Issue update",
+		Run: func(cmd *cobra.Command, args []string) {
+
+			stdout.Debug("Jira issue updating...")
+			common.Debug("Jira", jiraIssueOptions, stdout)
+			common.Debug("Jira", jiraIssueUpdateOptions, stdout)
+
+			descriptionBytes, err := utils.Content(jiraIssueOptions.Description)
+			if err != nil {
+				stdout.Panic(err)
+			}
+			jiraIssueOptions.Description = string(descriptionBytes)
+
+			jiraOptions.IssueOptions = &jiraIssueOptions
+			jiraOptions.IssueUpdateOptions = &jiraIssueUpdateOptions
+			bytes, err := jiraNew(stdout).IssueUpdate()
+			if err != nil {
+				stdout.Error(err)
+				return
+			}
+			common.OutputJson(jiraOutput, "Jira", []interface{}{jiraOptions, jiraIssueOptions, jiraIssueUpdateOptions}, bytes, stdout)
+		},
+	}
+	issueCmd.AddCommand(issueUpdateCmd)
 
 	return &jiraCmd
 }

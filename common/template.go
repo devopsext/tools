@@ -8,6 +8,7 @@ import (
 	"html"
 	htmlTemplate "html/template"
 	"io/ioutil"
+	"net/http"
 	"os"
 	"regexp"
 	"strconv"
@@ -244,6 +245,27 @@ func (tpl *Template) fContent(s string) (string, error) {
 	return string(bytes), nil
 }
 
+func (tpl *Template) fURLWait(url string, status, timeout int, size int64) (bool, error) {
+
+	if utils.IsEmpty(url) {
+		return false, nil
+	}
+
+	for i := 0; i < timeout; i++ {
+		resp, err := http.Get(url)
+		if err != nil || resp.StatusCode != status {
+			continue
+		}
+		if size <= 0 {
+			return true, nil
+		} else if resp.ContentLength >= size {
+			return true, nil
+		}
+		time.Sleep(time.Second)
+	}
+	return false, nil
+}
+
 func (tpl *Template) setTemplateFuncs(funcs map[string]interface{}) {
 
 	funcs["regexReplaceAll"] = tpl.fRegexReplaceAll
@@ -267,6 +289,7 @@ func (tpl *Template) setTemplateFuncs(funcs map[string]interface{}) {
 	funcs["gjson"] = tpl.fGjson
 	funcs["ifDef"] = tpl.fIfDef
 	funcs["content"] = tpl.fContent
+	funcs["urlWait"] = tpl.fURLWait
 }
 
 func (tpl *TextTemplate) RenderCustomText(opts TemplateOptions) ([]byte, error) {
