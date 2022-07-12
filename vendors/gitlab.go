@@ -3,12 +3,16 @@ package vendors
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/devopsext/utils"
 	"io/ioutil"
 	"net/http"
 	"net/url"
 	"time"
+
+	"github.com/devopsext/utils"
 )
+
+type GitlabPipelineGetVariablesOptions struct {
+}
 
 type GitlabOptions struct {
 	Timeout  int
@@ -22,12 +26,12 @@ type Gitlab struct {
 	options GitlabOptions
 }
 
-type PipelineOptions struct {
+type GitlabPipelineOptions struct {
 	Project string
 	Ref     string
 }
 
-type PipelinesResp struct {
+type GitlabPipelinesResp struct {
 	ID        int       `json:"id"`
 	Iid       int       `json:"iid"`
 	ProjectID int       `json:"project_id"`
@@ -40,7 +44,7 @@ type PipelinesResp struct {
 	WebURL    string    `json:"web_url"`
 }
 
-type PipelineVariableResp struct {
+type GitlabPipelineVariableResp struct {
 	VariableType string `json:"variable_type"`
 	Key          string `json:"key"`
 	Value        string `json:"value"`
@@ -71,7 +75,7 @@ func (g *Gitlab) get(url string) ([]byte, error) {
 	return b, nil
 }
 
-func (g Gitlab) getLastPipeline(project string, ref string) (*PipelinesResp, error) {
+func (g Gitlab) getLastPipeline(project string, ref string) (*GitlabPipelinesResp, error) {
 	u, err := url.Parse(g.options.URL)
 	if err != nil {
 		return nil, err
@@ -91,7 +95,7 @@ func (g Gitlab) getLastPipeline(project string, ref string) (*PipelinesResp, err
 		return nil, err
 	}
 
-	var pipelines []PipelinesResp
+	var pipelines []GitlabPipelinesResp
 	err = json.Unmarshal(b, &pipelines)
 	if err != nil {
 		return nil, err
@@ -129,7 +133,7 @@ func (g Gitlab) getPipelineVariables(project string, pipeline int) (map[string]i
 		return nil, err
 	}
 
-	var variables []PipelineVariableResp
+	var variables []GitlabPipelineVariableResp
 	err = json.Unmarshal(b, &variables)
 	if err != nil {
 		return nil, err
@@ -172,6 +176,14 @@ func (g Gitlab) GetLastPipelineVariables(project string, ref string) ([]byte, er
 		return nil, err
 	}
 	return b, nil
+}
+
+func (g *Gitlab) CustomPipelineGetVariables(gitlabOpts GitlabOptions, pipelineGetVariablesOptions GitlabPipelineGetVariablesOptions) ([]byte, error) {
+	return nil, nil
+}
+
+func (g *Gitlab) PipelineGetVariables(options GitlabPipelineGetVariablesOptions) ([]byte, error) {
+	return g.CustomPipelineGetVariables(g.options, options)
 }
 
 func NewGitlab(options GitlabOptions) *Gitlab {

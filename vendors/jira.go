@@ -38,20 +38,12 @@ type JiraIssueAddAttachmentOptions struct {
 	Name string
 }
 
-type JiraIssueUpdateOptions struct {
-}
-
 type JiraOptions struct {
-	URL                       string
-	Timeout                   int
-	Insecure                  bool
-	User                      string
-	Password                  string
-	IssueCreateOptions        *JiraIssueCreateOptions
-	IssueOptions              *JiraIssueOptions
-	IssueAddCommentOptions    *JiraIssueAddCommentOptions
-	IssueAddAttachmentOptions *JiraIssueAddAttachmentOptions
-	IssueUpdateOptions        *JiraIssueUpdateOptions
+	URL      string
+	Timeout  int
+	Insecure bool
+	User     string
+	Password string
 }
 
 type JiraIssueProject struct {
@@ -112,41 +104,37 @@ func (j *Jira) getAuth(opts JiraOptions) string {
 	return auth
 }
 
-func (j *Jira) IssueCreateCustom(opts JiraOptions) ([]byte, error) {
-
-	if opts.IssueOptions == nil || opts.IssueCreateOptions == nil {
-		return nil, fmt.Errorf("options are not enough")
-	}
+func (j *Jira) CustomIssueCreate(jiraOptions JiraOptions, issueOptions JiraIssueOptions, issueCreateOptions JiraIssueCreateOptions) ([]byte, error) {
 
 	issue := &JiraIssueCreate{
 		Fields: &JiraIssueFields{
 			Project: &JiraIssueProject{
-				Key: opts.IssueCreateOptions.ProjectKey,
+				Key: issueCreateOptions.ProjectKey,
 			},
 			IssueType: &JiraIssueType{
-				Name: opts.IssueCreateOptions.Type,
+				Name: issueCreateOptions.Type,
 			},
-			Summary:     opts.IssueOptions.Summary,
-			Description: opts.IssueOptions.Description,
-			Labels:      opts.IssueOptions.Labels,
+			Summary:     issueOptions.Summary,
+			Description: issueOptions.Description,
+			Labels:      issueOptions.Labels,
 		},
 	}
 
-	if !utils.IsEmpty(opts.IssueCreateOptions.Priority) {
+	if !utils.IsEmpty(issueCreateOptions.Priority) {
 		issue.Fields.Priority = &JiraIssuePriority{
-			Name: opts.IssueCreateOptions.Priority,
+			Name: issueCreateOptions.Priority,
 		}
 	}
 
-	if !utils.IsEmpty(opts.IssueCreateOptions.Assignee) {
+	if !utils.IsEmpty(issueCreateOptions.Assignee) {
 		issue.Fields.Assignee = &JiraIssueAssignee{
-			Name: opts.IssueCreateOptions.Assignee,
+			Name: issueCreateOptions.Assignee,
 		}
 	}
 
-	if !utils.IsEmpty(opts.IssueCreateOptions.Reporter) {
+	if !utils.IsEmpty(issueCreateOptions.Reporter) {
 		issue.Fields.Reporter = &JiraIssueReporter{
-			Name: opts.IssueCreateOptions.Reporter,
+			Name: issueCreateOptions.Reporter,
 		}
 	}
 
@@ -155,26 +143,22 @@ func (j *Jira) IssueCreateCustom(opts JiraOptions) ([]byte, error) {
 		return nil, err
 	}
 
-	u, err := url.Parse(opts.URL)
+	u, err := url.Parse(jiraOptions.URL)
 	if err != nil {
 		return nil, err
 	}
 	u.Path = path.Join(u.Path, "/rest/api/2/issue")
-	return common.HttpPostRaw(j.client, u.String(), "application/json", j.getAuth(opts), req)
+	return common.HttpPostRaw(j.client, u.String(), "application/json", j.getAuth(jiraOptions), req)
 }
 
-func (j *Jira) IssueCreate() ([]byte, error) {
-	return j.IssueCreateCustom(j.options)
+func (j *Jira) IssueCreate(issueOptions JiraIssueOptions, issueCreateOptions JiraIssueCreateOptions) ([]byte, error) {
+	return j.CustomIssueCreate(j.options, issueOptions, issueCreateOptions)
 }
 
-func (j *Jira) IssueAddCustomComment(opts JiraOptions) ([]byte, error) {
-
-	if opts.IssueOptions == nil || opts.IssueAddCommentOptions == nil {
-		return nil, fmt.Errorf("options are not enough")
-	}
+func (j *Jira) CustomIssueAddComment(jiraOptions JiraOptions, issueOptions JiraIssueOptions, addCommentOptions JiraIssueAddCommentOptions) ([]byte, error) {
 
 	comment := &JiraIssueAddComment{
-		Body: opts.IssueAddCommentOptions.Body,
+		Body: addCommentOptions.Body,
 	}
 
 	req, err := json.Marshal(&comment)
@@ -182,29 +166,25 @@ func (j *Jira) IssueAddCustomComment(opts JiraOptions) ([]byte, error) {
 		return nil, err
 	}
 
-	u, err := url.Parse(opts.URL)
+	u, err := url.Parse(jiraOptions.URL)
 	if err != nil {
 		return nil, err
 	}
-	u.Path = path.Join(u.Path, fmt.Sprintf("/rest/api/2/issue/%s/comment", opts.IssueOptions.IdOrKey))
-	return common.HttpPostRaw(j.client, u.String(), "application/json", j.getAuth(opts), req)
+	u.Path = path.Join(u.Path, fmt.Sprintf("/rest/api/2/issue/%s/comment", issueOptions.IdOrKey))
+	return common.HttpPostRaw(j.client, u.String(), "application/json", j.getAuth(jiraOptions), req)
 }
 
-func (j *Jira) IssueAddComment() ([]byte, error) {
-	return j.IssueAddCustomComment(j.options)
+func (j *Jira) IssueAddComment(issueOptions JiraIssueOptions, addCommentOptions JiraIssueAddCommentOptions) ([]byte, error) {
+	return j.CustomIssueAddComment(j.options, issueOptions, addCommentOptions)
 }
 
-func (j *Jira) IssueAddCustomAttachment(opts JiraOptions) ([]byte, error) {
+func (j *Jira) CustomIssueAddAttachment(jiraOptions JiraOptions, issueOptions JiraIssueOptions, addAttachmentOptions JiraIssueAddAttachmentOptions) ([]byte, error) {
 
-	if opts.IssueOptions == nil || opts.IssueAddAttachmentOptions == nil {
-		return nil, fmt.Errorf("options are not enough")
-	}
-
-	u, err := url.Parse(opts.URL)
+	u, err := url.Parse(jiraOptions.URL)
 	if err != nil {
 		return nil, err
 	}
-	u.Path = path.Join(u.Path, fmt.Sprintf("/rest/api/2/issue/%s/attachments", opts.IssueOptions.IdOrKey))
+	u.Path = path.Join(u.Path, fmt.Sprintf("/rest/api/2/issue/%s/attachments", issueOptions.IdOrKey))
 
 	var body bytes.Buffer
 	w := multipart.NewWriter(&body)
@@ -212,12 +192,12 @@ func (j *Jira) IssueAddCustomAttachment(opts JiraOptions) ([]byte, error) {
 		w.Close()
 	}()
 
-	fw, err := w.CreateFormFile("file", opts.IssueAddAttachmentOptions.Name)
+	fw, err := w.CreateFormFile("file", addAttachmentOptions.Name)
 	if err != nil {
 		return nil, err
 	}
 
-	if _, err := fw.Write([]byte(opts.IssueAddAttachmentOptions.File)); err != nil {
+	if _, err := fw.Write([]byte(addAttachmentOptions.File)); err != nil {
 		return nil, err
 	}
 
@@ -227,32 +207,28 @@ func (j *Jira) IssueAddCustomAttachment(opts JiraOptions) ([]byte, error) {
 
 	headers := make(map[string]string)
 	headers["Content-type"] = w.FormDataContentType()
-	headers["Authorization"] = j.getAuth(opts)
+	headers["Authorization"] = j.getAuth(jiraOptions)
 	headers["X-Atlassian-Token"] = "no-check"
 	return common.HttpPostRawWithHeaders(j.client, u.String(), headers, body.Bytes())
 }
 
-func (j *Jira) IssueAddAttachment() ([]byte, error) {
-	return j.IssueAddCustomAttachment(j.options)
+func (j *Jira) IssueAddAttachment(issueOptions JiraIssueOptions, addAttachmentOptions JiraIssueAddAttachmentOptions) ([]byte, error) {
+	return j.CustomIssueAddAttachment(j.options, issueOptions, addAttachmentOptions)
 }
 
-func (j *Jira) IssueUpdateCustom(opts JiraOptions) ([]byte, error) {
-
-	if opts.IssueOptions == nil || opts.IssueUpdateOptions == nil {
-		return nil, fmt.Errorf("options are not enough")
-	}
+func (j *Jira) CustomIssueUpdate(jiraOptions JiraOptions, issueOptions JiraIssueOptions) ([]byte, error) {
 
 	issue := &JiraIssueUpdate{
 		Fields: &JiraIssueFields{
-			Summary:     opts.IssueOptions.Summary,
-			Description: opts.IssueOptions.Description,
+			Summary:     issueOptions.Summary,
+			Description: issueOptions.Description,
 		},
 	}
 
-	if len(opts.IssueOptions.Labels) > 0 {
-		for _, v := range opts.IssueOptions.Labels {
+	if len(issueOptions.Labels) > 0 {
+		for _, v := range issueOptions.Labels {
 			if !utils.IsEmpty(v) {
-				issue.Fields.Labels = opts.IssueOptions.Labels
+				issue.Fields.Labels = issueOptions.Labels
 				break
 			}
 		}
@@ -263,16 +239,16 @@ func (j *Jira) IssueUpdateCustom(opts JiraOptions) ([]byte, error) {
 		return nil, err
 	}
 
-	u, err := url.Parse(opts.URL)
+	u, err := url.Parse(jiraOptions.URL)
 	if err != nil {
 		return nil, err
 	}
-	u.Path = path.Join(u.Path, fmt.Sprintf("/rest/api/2/issue/%s", opts.IssueOptions.IdOrKey))
-	return common.HttpPutRaw(j.client, u.String(), "application/json", j.getAuth(opts), req)
+	u.Path = path.Join(u.Path, fmt.Sprintf("/rest/api/2/issue/%s", issueOptions.IdOrKey))
+	return common.HttpPutRaw(j.client, u.String(), "application/json", j.getAuth(jiraOptions), req)
 }
 
-func (j *Jira) IssueUpdate() ([]byte, error) {
-	return j.IssueUpdateCustom(j.options)
+func (j *Jira) IssueUpdate(options JiraIssueOptions) ([]byte, error) {
+	return j.CustomIssueUpdate(j.options, options)
 }
 
 func NewJira(options JiraOptions) *Jira {

@@ -42,8 +42,6 @@ var jiraIssueAddAttachmentOptions = vendors.JiraIssueAddAttachmentOptions{
 	Name: envGet("JIRA_ISSUE_ATTACHMENT_NAME", "").(string),
 }
 
-var jiraIssueUpdateOptions = vendors.JiraIssueUpdateOptions{}
-
 var jiraOutput = common.OutputOptions{
 	Output: envGet("JIRA_OUTPUT", "").(string),
 	Query:  envGet("JIRA_OUTPUT_QUERY", "").(string),
@@ -103,9 +101,7 @@ func NewJiraCommand() *cobra.Command {
 			}
 			jiraIssueOptions.Description = string(descriptionBytes)
 
-			jiraOptions.IssueOptions = &jiraIssueOptions
-			jiraOptions.IssueCreateOptions = &jiraIssueCreateOptions
-			bytes, err := jiraNew(stdout).IssueCreate()
+			bytes, err := jiraNew(stdout).IssueCreate(jiraIssueOptions, jiraIssueCreateOptions)
 			if err != nil {
 				stdout.Error(err)
 				return
@@ -137,9 +133,7 @@ func NewJiraCommand() *cobra.Command {
 			}
 			jiraIssueAddCommentOptions.Body = string(bodyBytes)
 
-			jiraOptions.IssueOptions = &jiraIssueOptions
-			jiraOptions.IssueAddCommentOptions = &jiraIssueAddCommentOptions
-			bytes, err := jiraNew(stdout).IssueAddComment()
+			bytes, err := jiraNew(stdout).IssueAddComment(jiraIssueOptions, jiraIssueAddCommentOptions)
 			if err != nil {
 				stdout.Error(err)
 				return
@@ -171,9 +165,7 @@ func NewJiraCommand() *cobra.Command {
 			}
 			jiraIssueAddAttachmentOptions.File = string(fileBytes)
 
-			jiraOptions.IssueOptions = &jiraIssueOptions
-			jiraOptions.IssueAddAttachmentOptions = &jiraIssueAddAttachmentOptions
-			bytes, err := jiraNew(stdout).IssueAddAttachment()
+			bytes, err := jiraNew(stdout).IssueAddAttachment(jiraIssueOptions, jiraIssueAddAttachmentOptions)
 			if err != nil {
 				stdout.Error(err)
 				return
@@ -194,7 +186,6 @@ func NewJiraCommand() *cobra.Command {
 
 			stdout.Debug("Jira issue updating...")
 			common.Debug("Jira", jiraIssueOptions, stdout)
-			common.Debug("Jira", jiraIssueUpdateOptions, stdout)
 
 			descriptionBytes, err := utils.Content(jiraIssueOptions.Description)
 			if err != nil {
@@ -202,14 +193,12 @@ func NewJiraCommand() *cobra.Command {
 			}
 			jiraIssueOptions.Description = string(descriptionBytes)
 
-			jiraOptions.IssueOptions = &jiraIssueOptions
-			jiraOptions.IssueUpdateOptions = &jiraIssueUpdateOptions
-			bytes, err := jiraNew(stdout).IssueUpdate()
+			bytes, err := jiraNew(stdout).IssueUpdate(jiraIssueOptions)
 			if err != nil {
 				stdout.Error(err)
 				return
 			}
-			common.OutputJson(jiraOutput, "Jira", []interface{}{jiraOptions, jiraIssueOptions, jiraIssueUpdateOptions}, bytes, stdout)
+			common.OutputJson(jiraOutput, "Jira", []interface{}{jiraOptions, jiraIssueOptions}, bytes, stdout)
 		},
 	}
 	issueCmd.AddCommand(issueUpdateCmd)

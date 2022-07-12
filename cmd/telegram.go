@@ -84,8 +84,7 @@ func NewTelegramCommand() *cobra.Command {
 			}
 			telegramMessageOptions.Text = string(textBytes)
 
-			telegramOptions.MessageOptions = &telegramMessageOptions
-			bytes, err := telegramNew(stdout).SendMessage()
+			bytes, err := telegramNew(stdout).SendMessage(telegramMessageOptions)
 			if err != nil {
 				stdout.Error(err)
 				return
@@ -115,8 +114,7 @@ func NewTelegramCommand() *cobra.Command {
 				telegramPhotoOptions.Name = filepath.Base(telegramPhotoOptions.Content)
 			}
 
-			telegramOptions.PhotoOptions = &telegramPhotoOptions
-			bytes, err := telegramNew(stdout).SendPhoto()
+			bytes, err := telegramNew(stdout).SendPhoto(telegramPhotoOptions)
 			if err != nil {
 				stdout.Error(err)
 				return
@@ -148,8 +146,7 @@ func NewTelegramCommand() *cobra.Command {
 				telegramDocumentOptions.Name = filepath.Base(telegramDocumentOptions.Content)
 			}
 
-			telegramOptions.DocumentOptions = &telegramDocumentOptions
-			bytes, err := telegramNew(stdout).SendDocument()
+			bytes, err := telegramNew(stdout).SendDocument(telegramDocumentOptions)
 			if err != nil {
 				stdout.Error(err)
 				return

@@ -28,7 +28,6 @@ type GoogleOptions struct {
 	OAuthClientSecret string
 	RefreshToken      string
 	AccessToken       string
-	CalendarOptions   *GoogleCalendarOptions
 }
 
 type GoogleTokenReponse struct {
@@ -112,13 +111,9 @@ func (g *Google) getCustomAccessToken(opts GoogleOptions) (string, error) {
 	return r.AccessToken, nil
 }
 
-func (g *Google) CalendarGetCustomEvents(opts GoogleOptions) ([]byte, error) {
+func (g *Google) CustomCalendarGetEvents(googleOpts GoogleOptions, calendarOpts GoogleCalendarOptions) ([]byte, error) {
 
-	if opts.CalendarOptions == nil {
-		return nil, fmt.Errorf("options are not enough")
-	}
-
-	accessToken, err := g.getCustomAccessToken(opts)
+	accessToken, err := g.getCustomAccessToken(googleOpts)
 	if err != nil {
 		return nil, err
 	}
@@ -126,28 +121,28 @@ func (g *Google) CalendarGetCustomEvents(opts GoogleOptions) ([]byte, error) {
 
 	params := make(url.Values)
 	params.Add("access_token", accessToken)
-	if !utils.IsEmpty(opts.CalendarOptions.TimeMin) {
-		params.Add("timeMin", opts.CalendarOptions.TimeMin)
+	if !utils.IsEmpty(calendarOpts.TimeMin) {
+		params.Add("timeMin", calendarOpts.TimeMin)
 	}
-	if !utils.IsEmpty(opts.CalendarOptions.TimeMax) {
-		params.Add("timeMax", opts.CalendarOptions.TimeMax)
+	if !utils.IsEmpty(calendarOpts.TimeMax) {
+		params.Add("timeMax", calendarOpts.TimeMax)
 	}
-	params.Add("alwaysIncludeEmail", strconv.FormatBool(opts.CalendarOptions.AlwaysIncludeEmail))
+	params.Add("alwaysIncludeEmail", strconv.FormatBool(calendarOpts.AlwaysIncludeEmail))
 
 	u, err := url.Parse(googleCalendarURL)
 	if err != nil {
 		return nil, err
 	}
 
-	u.Path = path.Join(u.Path, fmt.Sprintf("/calendars/%s/events", opts.CalendarOptions.ID))
+	u.Path = path.Join(u.Path, fmt.Sprintf("/calendars/%s/events", calendarOpts.ID))
 	if params != nil {
 		u.RawQuery = params.Encode()
 	}
 	return common.HttpGetRawWithHeaders(g.client, u.String(), nil)
 }
 
-func (g *Google) CalendarGetEvents() ([]byte, error) {
-	return g.CalendarGetCustomEvents(g.options)
+func (g *Google) CalendarGetEvents(options GoogleCalendarOptions) ([]byte, error) {
+	return g.CustomCalendarGetEvents(g.options, options)
 }
 
 func NewGoogle(options GoogleOptions, stdout *common.Stdout) *Google {

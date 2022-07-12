@@ -24,12 +24,6 @@ var grafanaRenderImageOptions = vendors.GrafanaRenderImageOptions{
 	Height:  envGet("GRAFANA_IMAGE_HEIGHT", 640).(int),
 }
 
-var grafanaGetDashboardsOptions = vendors.GrafanaGetDashboardsOptions{
-	PanelID: envGet("GRAFANA_DASHBOARD_PANEL_ID", "").(string),
-	From:    envGet("GRAFANA_DASHBOARD_FROM", "").(string),
-	To:      envGet("GRAFANA_DASHBOARD_TO", "").(string),
-}
-
 var grafanaGetAnnotationsOptions = vendors.GrafanaGetAnnotationsOptions{
 	Tags:        envGet("GRAFANA_ANNOTATION_TAGS", "").(string),
 	From:        envGet("GRAFANA_ANNOTATION_FROM", "").(string),
@@ -90,8 +84,7 @@ func NewGrafanaCommand() *cobra.Command {
 			stdout.Debug("Grafana rendering image...")
 			common.Debug("Grafana", grafanaRenderImageOptions, stdout)
 
-			grafanaOptions.RenderImageOptions = &grafanaRenderImageOptions
-			bytes, err := grafanaNew(stdout).RenderImage()
+			bytes, err := grafanaNew(stdout).RenderImage(grafanaRenderImageOptions)
 			if err != nil {
 				stdout.Error(err)
 				return
@@ -114,24 +107,15 @@ func NewGrafanaCommand() *cobra.Command {
 		Short: "Get dashboards",
 		Run: func(cmd *cobra.Command, args []string) {
 			stdout.Debug("Grafana getting dashboards...")
-			common.Debug("Grafana", grafanaGetDashboardsOptions, stdout)
 
-			grafanaOptions.GetDashboardsOptions = &grafanaGetDashboardsOptions
 			bytes, err := grafanaNew(stdout).GetDashboards()
 			if err != nil {
 				stdout.Error(err)
 				return
 			}
-			common.OutputJson(grafanaOutput, "Grafana", []interface{}{grafanaOptions, grafanaGetDashboardsOptions}, bytes, stdout)
+			common.OutputJson(grafanaOutput, "Grafana", []interface{}{grafanaOptions}, bytes, stdout)
 		},
 	}
-
-	flags = getDashboardCmd.PersistentFlags()
-
-	flags.StringVar(&grafanaGetDashboardsOptions.PanelID, "grafana-dashboard-panel-id", grafanaGetDashboardsOptions.PanelID, "Grafana dashboard panel id")
-	flags.StringVar(&grafanaGetDashboardsOptions.From, "grafana-dashboard-from", grafanaGetDashboardsOptions.From, "Grafana dashboard from")
-	flags.StringVar(&grafanaGetDashboardsOptions.To, "grafana-dashboard-to", grafanaGetDashboardsOptions.To, "Grafana dashboard to")
-
 	grafanaCmd.AddCommand(&getDashboardCmd)
 
 	getAnnotationsCmd := cobra.Command{
@@ -141,13 +125,12 @@ func NewGrafanaCommand() *cobra.Command {
 			stdout.Debug("Grafana getting annotations...")
 			common.Debug("Grafana", grafanaGetAnnotationsOptions, stdout)
 
-			grafanaOptions.GetAnnotationsOptions = &grafanaGetAnnotationsOptions
-			bytes, err := grafanaNew(stdout).GetAnnotations()
+			bytes, err := grafanaNew(stdout).GetAnnotations(grafanaGetAnnotationsOptions)
 			if err != nil {
 				stdout.Error(err)
 				return
 			}
-			common.OutputJson(grafanaOutput, "Grafana", []interface{}{grafanaOptions}, bytes, stdout)
+			common.OutputJson(grafanaOutput, "Grafana", []interface{}{grafanaOptions, grafanaGetAnnotationsOptions}, bytes, stdout)
 		},
 	}
 
@@ -176,14 +159,12 @@ func NewGrafanaCommand() *cobra.Command {
 				return
 			}
 
-			grafanaOptions.CreateAnnotationOptions = &grafanaCreateAnnotationOptions
-
-			bytes, err := grafanaNew(stdout).CreateAnnotation()
+			bytes, err := grafanaNew(stdout).CreateAnnotation(grafanaCreateAnnotationOptions)
 			if err != nil {
 				stdout.Error(err)
 				return
 			}
-			common.OutputJson(grafanaOutput, "Grafana", []interface{}{grafanaOptions}, bytes, stdout)
+			common.OutputJson(grafanaOutput, "Grafana", []interface{}{grafanaOptions, grafanaCreateAnnotationOptions}, bytes, stdout)
 		},
 	}
 

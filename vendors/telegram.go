@@ -43,9 +43,6 @@ type TelegramOptions struct {
 	DisableNotification   bool
 	ParseMode             string
 	DisableWebPagePreview bool
-	MessageOptions        *TelegramMessageOptions
-	PhotoOptions          *TelegramPhotoOptions
-	DocumentOptions       *TelegramDocumentOptions
 }
 
 type Telegram struct {
@@ -73,11 +70,7 @@ func (t *Telegram) getDefaultParseMode(parseMode string) string {
 	return parseMode
 }
 
-func (t *Telegram) SendCustomMessage(opts TelegramOptions) ([]byte, error) {
-
-	if opts.MessageOptions == nil {
-		return nil, fmt.Errorf("options are not enough")
-	}
+func (t *Telegram) CustomSendMessage(telegramOptions TelegramOptions, messageOptions TelegramMessageOptions) ([]byte, error) {
 
 	var body bytes.Buffer
 	w := multipart.NewWriter(&body)
@@ -85,33 +78,33 @@ func (t *Telegram) SendCustomMessage(opts TelegramOptions) ([]byte, error) {
 		w.Close()
 	}()
 
-	if err := w.WriteField("text", opts.MessageOptions.Text); err != nil {
+	if err := w.WriteField("text", messageOptions.Text); err != nil {
 		return nil, err
 	}
 
-	if err := w.WriteField("parse_mode", t.getDefaultParseMode(opts.ParseMode)); err != nil {
+	if err := w.WriteField("parse_mode", t.getDefaultParseMode(telegramOptions.ParseMode)); err != nil {
 		return nil, err
 	}
 
-	if err := w.WriteField("disable_web_page_preview", strconv.FormatBool(opts.DisableWebPagePreview)); err != nil {
+	if err := w.WriteField("disable_web_page_preview", strconv.FormatBool(telegramOptions.DisableWebPagePreview)); err != nil {
 		return nil, err
 	}
 
-	if err := w.WriteField("disable_notification", strconv.FormatBool(opts.DisableNotification)); err != nil {
+	if err := w.WriteField("disable_notification", strconv.FormatBool(telegramOptions.DisableNotification)); err != nil {
 		return nil, err
 	}
 
 	if err := w.Close(); err != nil {
 		return nil, err
 	}
-	return common.HttpPostRaw(t.client, t.getSendMessageURL(opts), w.FormDataContentType(), "", body.Bytes())
+	return common.HttpPostRaw(t.client, t.getSendMessageURL(telegramOptions), w.FormDataContentType(), "", body.Bytes())
 }
 
-func (t *Telegram) SendCustomPhoto(opts TelegramOptions) ([]byte, error) {
+func (t *Telegram) SendMessage(options TelegramMessageOptions) ([]byte, error) {
+	return t.CustomSendMessage(t.options, options)
+}
 
-	if opts.PhotoOptions == nil {
-		return nil, fmt.Errorf("options are not enough")
-	}
+func (t *Telegram) CustomSendPhoto(telegramOptions TelegramOptions, photoOptions TelegramPhotoOptions) ([]byte, error) {
 
 	var body bytes.Buffer
 	w := multipart.NewWriter(&body)
@@ -119,89 +112,82 @@ func (t *Telegram) SendCustomPhoto(opts TelegramOptions) ([]byte, error) {
 		w.Close()
 	}()
 
-	if err := w.WriteField("caption", opts.PhotoOptions.Caption); err != nil {
+	if err := w.WriteField("caption", photoOptions.Caption); err != nil {
 		return nil, err
 	}
 
-	if err := w.WriteField("parse_mode", t.getDefaultParseMode(opts.ParseMode)); err != nil {
+	if err := w.WriteField("parse_mode", t.getDefaultParseMode(telegramOptions.ParseMode)); err != nil {
 		return nil, err
 	}
 
-	if err := w.WriteField("disable_web_page_preview", strconv.FormatBool(opts.DisableWebPagePreview)); err != nil {
+	if err := w.WriteField("disable_web_page_preview", strconv.FormatBool(telegramOptions.DisableWebPagePreview)); err != nil {
 		return nil, err
 	}
 
-	if err := w.WriteField("disable_notification", strconv.FormatBool(opts.DisableNotification)); err != nil {
+	if err := w.WriteField("disable_notification", strconv.FormatBool(telegramOptions.DisableNotification)); err != nil {
 		return nil, err
 	}
 
-	fw, err := w.CreateFormFile("photo", opts.PhotoOptions.Name)
+	fw, err := w.CreateFormFile("photo", photoOptions.Name)
 	if err != nil {
 		return nil, err
 	}
 
-	if _, err := fw.Write([]byte(opts.PhotoOptions.Content)); err != nil {
+	if _, err := fw.Write([]byte(photoOptions.Content)); err != nil {
 		return nil, err
 	}
 
 	if err := w.Close(); err != nil {
 		return nil, err
 	}
-	return common.HttpPostRaw(t.client, t.getSendPhotoURL(opts), w.FormDataContentType(), "", body.Bytes())
+	return common.HttpPostRaw(t.client, t.getSendPhotoURL(telegramOptions), w.FormDataContentType(), "", body.Bytes())
 }
 
-func (t *Telegram) SendCustomDocument(opts TelegramOptions) ([]byte, error) {
+func (t *Telegram) SendPhoto(options TelegramPhotoOptions) ([]byte, error) {
+	return t.CustomSendPhoto(t.options, options)
+}
 
-	if opts.DocumentOptions == nil {
-		return nil, fmt.Errorf("options are not enough")
-	}
+func (t *Telegram) CustomSendDocument(telegramOptions TelegramOptions, documentOptions TelegramDocumentOptions) ([]byte, error) {
+
 	var body bytes.Buffer
 	w := multipart.NewWriter(&body)
 	defer func() {
 		w.Close()
 	}()
 
-	if err := w.WriteField("caption", opts.DocumentOptions.Caption); err != nil {
+	if err := w.WriteField("caption", documentOptions.Caption); err != nil {
 		return nil, err
 	}
 
-	if err := w.WriteField("parse_mode", t.getDefaultParseMode(opts.ParseMode)); err != nil {
+	if err := w.WriteField("parse_mode", t.getDefaultParseMode(telegramOptions.ParseMode)); err != nil {
 		return nil, err
 	}
 
-	if err := w.WriteField("disable_web_page_preview", strconv.FormatBool(opts.DisableWebPagePreview)); err != nil {
+	if err := w.WriteField("disable_web_page_preview", strconv.FormatBool(telegramOptions.DisableWebPagePreview)); err != nil {
 		return nil, err
 	}
 
-	if err := w.WriteField("disable_notification", strconv.FormatBool(opts.DisableNotification)); err != nil {
+	if err := w.WriteField("disable_notification", strconv.FormatBool(telegramOptions.DisableNotification)); err != nil {
 		return nil, err
 	}
 
-	fw, err := w.CreateFormFile("document", opts.DocumentOptions.Name)
+	fw, err := w.CreateFormFile("document", documentOptions.Name)
 	if err != nil {
 		return nil, err
 	}
 
-	if _, err := fw.Write([]byte(opts.DocumentOptions.Content)); err != nil {
+	if _, err := fw.Write([]byte(documentOptions.Content)); err != nil {
 		return nil, err
 	}
 
 	if err := w.Close(); err != nil {
 		return nil, err
 	}
-	return common.HttpPostRaw(t.client, t.getSendDocumentURL(opts), w.FormDataContentType(), "", body.Bytes())
+	return common.HttpPostRaw(t.client, t.getSendDocumentURL(telegramOptions), w.FormDataContentType(), "", body.Bytes())
 }
 
-func (t *Telegram) SendMessage() ([]byte, error) {
-	return t.SendCustomMessage(t.options)
-}
-
-func (t *Telegram) SendPhoto() ([]byte, error) {
-	return t.SendCustomPhoto(t.options)
-}
-
-func (t *Telegram) SendDocument() ([]byte, error) {
-	return t.SendCustomDocument(t.options)
+func (t *Telegram) SendDocument(options TelegramDocumentOptions) ([]byte, error) {
+	return t.CustomSendDocument(t.options, options)
 }
 
 func NewTelegram(options TelegramOptions) *Telegram {

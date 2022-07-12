@@ -22,12 +22,6 @@ type GrafanaRenderImageOptions struct {
 	Height  int
 }
 
-type GrafanaGetDashboardsOptions struct {
-	PanelID string
-	From    string
-	To      string
-}
-
 type GrafanaGetAnnotationsOptions struct {
 	From        string
 	To          string
@@ -39,25 +33,21 @@ type GrafanaGetAnnotationsOptions struct {
 	PanelID     int
 }
 
-type GrafanaOptions struct {
-	URL                     string
-	Timeout                 int
-	Insecure                bool
-	APIKey                  string
-	OrgID                   string
-	UID                     string
-	Slug                    string
-	RenderImageOptions      *GrafanaRenderImageOptions
-	GetDashboardsOptions    *GrafanaGetDashboardsOptions
-	GetAnnotationsOptions   *GrafanaGetAnnotationsOptions
-	CreateAnnotationOptions *GrafanaCreateAnnotationOptions
-}
-
 type GrafanaCreateAnnotationOptions struct {
 	Time    string
 	TimeEnd string
 	Tags    string
 	Text    string
+}
+
+type GrafanaOptions struct {
+	URL      string
+	Timeout  int
+	Insecure bool
+	APIKey   string
+	OrgID    string
+	UID      string
+	Slug     string
 }
 
 type GrafanaAnnotation struct {
@@ -72,80 +62,69 @@ type Grafana struct {
 	options GrafanaOptions
 }
 
-func (g *Grafana) RenderCustomImage(opts GrafanaOptions) ([]byte, error) {
-	if opts.RenderImageOptions == nil {
-		return nil, fmt.Errorf("options are not enough")
-	}
+func (g *Grafana) CustomRenderImage(grafanaOptions GrafanaOptions, renderImageOptions GrafanaRenderImageOptions) ([]byte, error) {
 
 	var params = make(url.Values)
-	if !utils.IsEmpty(opts.OrgID) {
-		params.Add("orgId", opts.OrgID)
+	if !utils.IsEmpty(grafanaOptions.OrgID) {
+		params.Add("orgId", grafanaOptions.OrgID)
 	}
-	if !utils.IsEmpty(opts.RenderImageOptions.PanelID) {
-		params.Add("panelId", opts.RenderImageOptions.PanelID)
+	if !utils.IsEmpty(renderImageOptions.PanelID) {
+		params.Add("panelId", renderImageOptions.PanelID)
 	}
-	if opts.RenderImageOptions.Width > 0 {
-		params.Add("width", strconv.Itoa(opts.RenderImageOptions.Width))
+	if renderImageOptions.Width > 0 {
+		params.Add("width", strconv.Itoa(renderImageOptions.Width))
 	}
-	if opts.RenderImageOptions.Height > 0 {
-		params.Add("height", strconv.Itoa(opts.RenderImageOptions.Height))
+	if renderImageOptions.Height > 0 {
+		params.Add("height", strconv.Itoa(renderImageOptions.Height))
 	}
-	if !utils.IsEmpty(opts.RenderImageOptions.From) {
-		params.Add("from", toRFC3339NanoStr(opts.RenderImageOptions.From))
+	if !utils.IsEmpty(renderImageOptions.From) {
+		params.Add("from", toRFC3339NanoStr(renderImageOptions.From))
 	}
-	if !utils.IsEmpty(opts.RenderImageOptions.To) {
-		params.Add("to", toRFC3339NanoStr(opts.RenderImageOptions.To))
+	if !utils.IsEmpty(renderImageOptions.To) {
+		params.Add("to", toRFC3339NanoStr(renderImageOptions.To))
 	}
 	params.Add("tz", "UTC")
 
-	u, err := url.Parse(opts.URL)
+	u, err := url.Parse(grafanaOptions.URL)
 	if err != nil {
 		return nil, err
 	}
 
-	u.Path = path.Join(u.Path, fmt.Sprintf("/render/d-solo/%s/%s", opts.UID, opts.Slug))
+	u.Path = path.Join(u.Path, fmt.Sprintf("/render/d-solo/%s/%s", grafanaOptions.UID, grafanaOptions.Slug))
 	u.RawQuery = params.Encode()
 
 	auth := ""
-	if !utils.IsEmpty(opts.APIKey) {
-		auth = fmt.Sprintf("Bearer %s", opts.APIKey)
+	if !utils.IsEmpty(grafanaOptions.APIKey) {
+		auth = fmt.Sprintf("Bearer %s", grafanaOptions.APIKey)
 	}
 	return common.HttpGetRaw(g.client, u.String(), "", auth)
 }
 
-func (g *Grafana) RenderImage() ([]byte, error) {
-	return g.RenderCustomImage(g.options)
+func (g *Grafana) RenderImage(options GrafanaRenderImageOptions) ([]byte, error) {
+	return g.CustomRenderImage(g.options, options)
 }
 
-func (g *Grafana) GetCustomDashboards(opts GrafanaOptions) ([]byte, error) {
-	u, err := url.Parse(opts.URL)
+func (g *Grafana) CustomGetDashboards(grafanaOptions GrafanaOptions) ([]byte, error) {
+	u, err := url.Parse(grafanaOptions.URL)
 	if err != nil {
 		return nil, err
 	}
 
-	u.Path = path.Join(u.Path, fmt.Sprintf("api/dashboards/uid/%s", opts.UID))
+	u.Path = path.Join(u.Path, fmt.Sprintf("api/dashboards/uid/%s", grafanaOptions.UID))
 
 	auth := ""
-	if !utils.IsEmpty(opts.APIKey) {
-		auth = fmt.Sprintf("Bearer %s", opts.APIKey)
+	if !utils.IsEmpty(grafanaOptions.APIKey) {
+		auth = fmt.Sprintf("Bearer %s", grafanaOptions.APIKey)
 	}
 	return common.HttpGetRaw(g.client, u.String(), "", auth)
 }
 
 func (g *Grafana) GetDashboards() ([]byte, error) {
-	return g.GetCustomDashboards(g.options)
+	return g.CustomGetDashboards(g.options)
 }
 
-func (g *Grafana) GetAnnotations() ([]byte, error) {
-	return g.GetCustomAnnotations(g.options)
-}
-
-func (g Grafana) CreateAnnotation() ([]byte, error) {
-	return g.CreateCustomAnnotation(g.options.CreateAnnotationOptions)
-}
-
-func (g Grafana) CreateCustomAnnotation(ao *GrafanaCreateAnnotationOptions) ([]byte, error) {
-	u, err := url.Parse(g.options.URL)
+func (g Grafana) CustomCreateAnnotation(grafanaOptions GrafanaOptions, createAnnotationOptions GrafanaCreateAnnotationOptions) ([]byte, error) {
+	u, err := url.Parse(grafanaOptions.URL)
 	if err != nil {
 		return nil, err
 	}
@@ -153,10 +132,10 @@ func (g Grafana) CreateCustomAnnotation(ao *GrafanaCreateAnnotationOptions) ([]b
 	u.Path = path.Join(u.Path, "api/annotations")
 
 	auth := ""
-	if !utils.IsEmpty(g.options.APIKey) {
+	if !utils.IsEmpty(grafanaOptions.APIKey) {
 		auth = fmt.Sprintf("Bearer %s", g.options.APIKey)
 	}
-	b, err := json.Marshal(createAnnotation(ao))
+	b, err := json.Marshal(createAnnotation(&createAnnotationOptions))
 	if err != nil {
 		return nil, err
 	}
@@ -195,8 +174,12 @@ func toRFC3339Nano(ts string) int64 {
 	return time.Now().UnixMilli()
 }
 
-func (g *Grafana) GetCustomAnnotations(options GrafanaOptions) ([]byte, error) {
-	u, err := url.Parse(options.URL)
+func (g Grafana) CreateAnnotation(options GrafanaCreateAnnotationOptions) ([]byte, error) {
+	return g.CustomCreateAnnotation(g.options, options)
+}
+
+func (g *Grafana) CustomGetAnnotations(grafanaOptions GrafanaOptions, getAnnotationsOptions GrafanaGetAnnotationsOptions) ([]byte, error) {
+	u, err := url.Parse(grafanaOptions.URL)
 	if err != nil {
 		return nil, err
 	}
@@ -204,44 +187,48 @@ func (g *Grafana) GetCustomAnnotations(options GrafanaOptions) ([]byte, error) {
 	u.Path = path.Join(u.Path, "api/annotations")
 
 	var params = make(url.Values)
-	for _, tag := range strings.Split(options.GetAnnotationsOptions.Tags, ",") {
+	for _, tag := range strings.Split(getAnnotationsOptions.Tags, ",") {
 		if !utils.IsEmpty(tag) {
 			params.Add("tags", tag)
 		}
 	}
-	if !utils.IsEmpty(options.OrgID) {
-		params.Add("orgId", options.OrgID)
+	if !utils.IsEmpty(grafanaOptions.OrgID) {
+		params.Add("orgId", grafanaOptions.OrgID)
 	}
-	if !utils.IsEmpty(options.GetAnnotationsOptions.From) {
-		params.Add("from", toRFC3339NanoStr(options.GetAnnotationsOptions.From))
+	if !utils.IsEmpty(getAnnotationsOptions.From) {
+		params.Add("from", toRFC3339NanoStr(getAnnotationsOptions.From))
 	}
-	if !utils.IsEmpty(options.GetAnnotationsOptions.To) {
-		params.Add("to", toRFC3339NanoStr(options.GetAnnotationsOptions.To))
+	if !utils.IsEmpty(getAnnotationsOptions.To) {
+		params.Add("to", toRFC3339NanoStr(getAnnotationsOptions.To))
 	}
-	if options.GetAnnotationsOptions.Type == "alert" || options.GetAnnotationsOptions.Type == "annotation" {
-		params.Add("type", options.GetAnnotationsOptions.Type)
+	if getAnnotationsOptions.Type == "alert" || getAnnotationsOptions.Type == "annotation" {
+		params.Add("type", getAnnotationsOptions.Type)
 	}
-	if options.GetAnnotationsOptions.Limit > 0 {
-		params.Add("limit", strconv.Itoa(options.GetAnnotationsOptions.Limit))
+	if getAnnotationsOptions.Limit > 0 {
+		params.Add("limit", strconv.Itoa(getAnnotationsOptions.Limit))
 	}
-	if options.GetAnnotationsOptions.AlertID > 0 {
-		params.Add("alertId", strconv.Itoa(options.GetAnnotationsOptions.AlertID))
+	if getAnnotationsOptions.AlertID > 0 {
+		params.Add("alertId", strconv.Itoa(getAnnotationsOptions.AlertID))
 	}
-	if options.GetAnnotationsOptions.DashboardID > 0 {
-		params.Add("dashboardId", strconv.Itoa(options.GetAnnotationsOptions.DashboardID))
+	if getAnnotationsOptions.DashboardID > 0 {
+		params.Add("dashboardId", strconv.Itoa(getAnnotationsOptions.DashboardID))
 	}
-	if options.GetAnnotationsOptions.PanelID > 0 {
-		params.Add("panelId", strconv.Itoa(options.GetAnnotationsOptions.PanelID))
+	if getAnnotationsOptions.PanelID > 0 {
+		params.Add("panelId", strconv.Itoa(getAnnotationsOptions.PanelID))
 	}
 	params.Add("tz", "UTC")
 
 	u.RawQuery = params.Encode()
 
 	auth := ""
-	if !utils.IsEmpty(options.APIKey) {
-		auth = fmt.Sprintf("Bearer %s", options.APIKey)
+	if !utils.IsEmpty(grafanaOptions.APIKey) {
+		auth = fmt.Sprintf("Bearer %s", grafanaOptions.APIKey)
 	}
 	return common.HttpGetRaw(g.client, u.String(), "", auth)
+}
+
+func (g *Grafana) GetAnnotations(options GrafanaGetAnnotationsOptions) ([]byte, error) {
+	return g.CustomGetAnnotations(g.options, options)
 }
 
 func NewGrafana(options GrafanaOptions) *Grafana {
