@@ -2,11 +2,12 @@ package cmd
 
 import (
 	"github.com/devopsext/tools/common"
+	"github.com/devopsext/tools/render"
 	"github.com/devopsext/utils"
 	"github.com/spf13/cobra"
 )
 
-var templateOptions = common.TemplateOptions{
+var templateOptions = render.TemplateOptions{
 	Name:       envGet("TEMPLATE_NAME", "").(string),
 	Content:    envGet("TEMPLATE_CONTENT", "").(string),
 	Object:     envGet("TEMPLATE_OBJECT", "").(string),
@@ -18,7 +19,7 @@ var templateOutput = common.OutputOptions{
 	Query:  envGet("TEMPLATE_OUTPUT_QUERY", "").(string),
 }
 
-func textTemplateNew(stdout *common.Stdout) *common.TextTemplate {
+func textTemplateNew(stdout *common.Stdout) *render.TextTemplate {
 
 	common.Debug("Template", templateOutput, stdout)
 
@@ -34,14 +35,14 @@ func textTemplateNew(stdout *common.Stdout) *common.TextTemplate {
 	}
 	templateOptions.Object = string(objectBytes)
 
-	template := common.NewTextTemplate(templateOptions, stdout)
+	template := render.NewTextTemplate(templateOptions, stdout)
 	if template == nil {
 		stdout.Panic("No text template")
 	}
 	return template
 }
 
-func htmlTemplateNew(stdout *common.Stdout) *common.HtmlTemplate {
+func htmlTemplateNew(stdout *common.Stdout) *render.HtmlTemplate {
 
 	common.Debug("Template", templateOutput, stdout)
 
@@ -57,7 +58,7 @@ func htmlTemplateNew(stdout *common.Stdout) *common.HtmlTemplate {
 	}
 	templateOptions.Object = string(objectBytes)
 
-	template := common.NewHtmlTemplate(templateOptions, stdout)
+	template := render.NewHtmlTemplate(templateOptions, stdout)
 	if template == nil {
 		stdout.Panic("No html template")
 	}

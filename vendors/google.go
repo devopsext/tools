@@ -111,9 +111,9 @@ func (g *Google) getCustomAccessToken(opts GoogleOptions) (string, error) {
 	return r.AccessToken, nil
 }
 
-func (g *Google) CustomCalendarGetEvents(googleOpts GoogleOptions, calendarOpts GoogleCalendarOptions) ([]byte, error) {
+func (g *Google) CustomCalendarGetEvents(googleOptions GoogleOptions, calendarOptions GoogleCalendarOptions) ([]byte, error) {
 
-	accessToken, err := g.getCustomAccessToken(googleOpts)
+	accessToken, err := g.getCustomAccessToken(googleOptions)
 	if err != nil {
 		return nil, err
 	}
@@ -121,20 +121,20 @@ func (g *Google) CustomCalendarGetEvents(googleOpts GoogleOptions, calendarOpts 
 
 	params := make(url.Values)
 	params.Add("access_token", accessToken)
-	if !utils.IsEmpty(calendarOpts.TimeMin) {
-		params.Add("timeMin", calendarOpts.TimeMin)
+	if !utils.IsEmpty(calendarOptions.TimeMin) {
+		params.Add("timeMin", calendarOptions.TimeMin)
 	}
-	if !utils.IsEmpty(calendarOpts.TimeMax) {
-		params.Add("timeMax", calendarOpts.TimeMax)
+	if !utils.IsEmpty(calendarOptions.TimeMax) {
+		params.Add("timeMax", calendarOptions.TimeMax)
 	}
-	params.Add("alwaysIncludeEmail", strconv.FormatBool(calendarOpts.AlwaysIncludeEmail))
+	params.Add("alwaysIncludeEmail", strconv.FormatBool(calendarOptions.AlwaysIncludeEmail))
 
 	u, err := url.Parse(googleCalendarURL)
 	if err != nil {
 		return nil, err
 	}
 
-	u.Path = path.Join(u.Path, fmt.Sprintf("/calendars/%s/events", calendarOpts.ID))
+	u.Path = path.Join(u.Path, fmt.Sprintf("/calendars/%s/events", calendarOptions.ID))
 	if params != nil {
 		u.RawQuery = params.Encode()
 	}

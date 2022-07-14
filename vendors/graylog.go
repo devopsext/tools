@@ -106,9 +106,7 @@ func (g *Graylog) searchAbsolute(URL, streams, query, sort string, from, to stri
 	}
 
 	u.Path = path.Join(u.Path, "/api/search/universal/absolute")
-	if params != nil {
-		u.RawQuery = params.Encode()
-	}
+	u.RawQuery = params.Encode()
 	return g.get(u.String())
 }
 

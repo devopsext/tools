@@ -1,4 +1,4 @@
-package common
+package render
 
 import (
 	"bytes"
@@ -20,6 +20,8 @@ import (
 	"github.com/tidwall/gjson"
 
 	"github.com/Masterminds/sprig/v3"
+	"github.com/devopsext/tools/common"
+	"github.com/devopsext/tools/vendors"
 	utils "github.com/devopsext/utils"
 )
 
@@ -32,7 +34,7 @@ type TemplateOptions struct {
 
 type Template struct {
 	options TemplateOptions
-	stdout  *Stdout
+	stdout  *common.Stdout
 }
 
 type TextTemplate struct {
@@ -187,18 +189,36 @@ func (tpl *Template) fJsonata(data interface{}, query string) (string, error) {
 		return "", err
 	}
 
+	s, ok := data.(string) // possibly json as string
+	if ok {
+		var v interface{}
+		err = json.Unmarshal([]byte(s), &v)
+		if err == nil {
+			data = v
+		}
+	}
+
 	m, err := e.Eval(data)
 	if err != nil {
 		tpl.stdout.Error(err)
 		return "", err
 	}
 
-	b, err := jsonMarshal(m)
-	if err != nil {
-		tpl.stdout.Error(err)
-		return "", err
+	ret := ""
+
+	_, ok = m.(map[string]interface{}) // could be as object
+	if ok {
+		b, err := common.JsonMarshal(m)
+		if err != nil {
+			tpl.stdout.Error(err)
+			return "", err
+		}
+		ret = strings.TrimSpace(string(b)) // issue with adding new line
+	} else {
+		ret = fmt.Sprintf("%v", m)
 	}
-	return string(b), nil
+
+	return ret, nil
 }
 
 func (tpl *Template) fGjson(obj interface{}, path string) (string, error) {
@@ -215,7 +235,7 @@ func (tpl *Template) fGjson(obj interface{}, path string) (string, error) {
 		return "", err
 	}
 
-	bytes, err := jsonMarshal(obj)
+	bytes, err := common.JsonMarshal(obj)
 	if err != nil {
 		return "", err
 	}
@@ -266,6 +286,37 @@ func (tpl *Template) fURLWait(url string, status, timeout int, size int64) (bool
 	return false, nil
 }
 
+func (tpl *Template) fGitlabPipelineVars(URL string, token string, projectID int, query string) (string, error) {
+
+	gitlabOptions := vendors.GitlabOptions{
+		Timeout:  30,
+		Insecure: false,
+		URL:      URL,
+		Token:    token,
+	}
+
+	gitlab := vendors.NewGitlab(gitlabOptions)
+	if gitlab == nil {
+		return "", errors.New("gitlab is not defined")
+	}
+
+	pipelineOptions := vendors.GitlabPipelineOptions{
+		ProjectID: projectID,
+		Scope:     "finished",
+		Status:    "success",
+		OrderBy:   "updated_at",
+		Sort:      "desc",
+		Limit:     1,
+	}
+
+	pipelineGetVariablesOptions := vendors.GitlabPipelineGetVariablesOptions{
+		Query: strings.Split(query, ","),
+	}
+
+	b, err := gitlab.PipelineGetVariables(pipelineOptions, pipelineGetVariablesOptions)
+	return string(b), err
+}
+
 func (tpl *Template) setTemplateFuncs(funcs map[string]interface{}) {
 
 	funcs["regexReplaceAll"] = tpl.fRegexReplaceAll
@@ -290,6 +341,7 @@ func (tpl *Template) setTemplateFuncs(funcs map[string]interface{}) {
 	funcs["ifDef"] = tpl.fIfDef
 	funcs["content"] = tpl.fContent
 	funcs["urlWait"] = tpl.fURLWait
+	funcs["gitlabPipelineVars"] = tpl.fGitlabPipelineVars
 }
 
 func (tpl *TextTemplate) RenderCustomText(opts TemplateOptions) ([]byte, error) {
@@ -319,7 +371,7 @@ func (tpl *TextTemplate) RenderText() ([]byte, error) {
 	return tpl.RenderCustomText(tpl.options)
 }
 
-func NewTextTemplate(options TemplateOptions, stdout *Stdout) *TextTemplate {
+func NewTextTemplate(options TemplateOptions, stdout *common.Stdout) *TextTemplate {
 
 	if utils.IsEmpty(options.Content) {
 		stdout.Warn("Template %s is empty.", options.Name)
@@ -370,7 +422,7 @@ func (tpl *HtmlTemplate) RenderHtml() ([]byte, error) {
 	return tpl.RenderCustomHtml(tpl.options)
 }
 
-func NewHtmlTemplate(options TemplateOptions, stdout *Stdout) *HtmlTemplate {
+func NewHtmlTemplate(options TemplateOptions, stdout *common.Stdout) *HtmlTemplate {
 
 	if utils.IsEmpty(options.Content) {
 		stdout.Warn("Template %s is empty.", options.Name)

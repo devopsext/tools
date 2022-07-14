@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"strings"
 
 	"github.com/blues/jsonata-go"
 	"github.com/devopsext/utils"
@@ -17,7 +18,7 @@ type OutputOptions struct {
 }
 
 // we need custom json marshal due to no html escaption
-func jsonMarshal(t interface{}) ([]byte, error) {
+func JsonMarshal(t interface{}) ([]byte, error) {
 	buffer := &bytes.Buffer{}
 	encoder := json.NewEncoder(buffer)
 	encoder.SetEscapeHTML(false)
@@ -26,7 +27,7 @@ func jsonMarshal(t interface{}) ([]byte, error) {
 }
 
 func interfaceToMap(prefix string, i interface{}) (map[string]interface{}, error) {
-	data, err := jsonMarshal(i)
+	data, err := JsonMarshal(i)
 	if err != nil {
 		return nil, err
 	}
@@ -41,6 +42,10 @@ func interfaceToMap(prefix string, i interface{}) (map[string]interface{}, error
 		r[k] = v
 	}
 	return r, nil
+}
+
+func JsonataPrepare() {
+
 }
 
 func Output(query, to string, prefix string, opts []interface{}, bytes []byte, stdout *Stdout) {
@@ -70,11 +75,17 @@ func Output(query, to string, prefix string, opts []interface{}, bytes []byte, s
 		if err != nil {
 			stdout.Panic(err)
 		}
-		b, err = jsonMarshal(v)
-		if err != nil {
-			output = fmt.Sprintf("%v", v)
+
+		_, ok := v.(map[string]interface{})
+		if ok {
+			b, err = JsonMarshal(v)
+			if err != nil {
+				output = fmt.Sprintf("%v", v)
+			} else {
+				output = strings.TrimSpace(string(b))
+			}
 		} else {
-			output = string(b)
+			output = fmt.Sprintf("%v", v)
 		}
 	}
 
