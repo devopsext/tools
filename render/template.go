@@ -30,7 +30,6 @@ type TemplateOptions struct {
 	Object     string
 	Content    string
 	TimeFormat string
-	object     interface{}
 }
 
 type Template struct {
@@ -346,15 +345,15 @@ func (tpl *Template) setTemplateFuncs(funcs map[string]interface{}) {
 	funcs["gitlabPipelineVars"] = tpl.fGitlabPipelineVars
 }
 
-func (tpl *TextTemplate) CustomRender(name string, obj interface{}) ([]byte, error) {
+func (tpl *TextTemplate) customRender(name string, obj interface{}) ([]byte, error) {
 
 	var b bytes.Buffer
 	var err error
 
-	if empty, _ := tpl.fIsEmpty(tpl.options.Name); empty {
+	if empty, _ := tpl.fIsEmpty(name); empty {
 		err = tpl.template.Execute(&b, obj)
 	} else {
-		err = tpl.template.ExecuteTemplate(&b, tpl.options.Name, obj)
+		err = tpl.template.ExecuteTemplate(&b, name, obj)
 	}
 	if err != nil {
 		return nil, err
@@ -371,11 +370,15 @@ func (tpl *TextTemplate) CustomRenderWithOptions(opts TemplateOptions) ([]byte, 
 			return nil, err
 		}
 	}
-	return tpl.CustomRender(tpl.options.Name, obj)
+	return tpl.customRender(tpl.options.Name, obj)
 }
 
 func (tpl *TextTemplate) Render() ([]byte, error) {
 	return tpl.CustomRenderWithOptions(tpl.options)
+}
+
+func (tpl *TextTemplate) RenderObject(obj interface{}) ([]byte, error) {
+	return tpl.customRender(tpl.options.Name, obj)
 }
 
 func NewTextTemplate(options TemplateOptions) *TextTemplate {
@@ -399,15 +402,15 @@ func NewTextTemplate(options TemplateOptions) *TextTemplate {
 	return &tpl
 }
 
-func (tpl *HtmlTemplate) CustomRender(name string, obj interface{}) ([]byte, error) {
+func (tpl *HtmlTemplate) customRender(name string, obj interface{}) ([]byte, error) {
 
 	var b bytes.Buffer
 	var err error
 
-	if empty, _ := tpl.fIsEmpty(tpl.options.Name); empty {
+	if empty, _ := tpl.fIsEmpty(name); empty {
 		err = tpl.template.Execute(&b, obj)
 	} else {
-		err = tpl.template.ExecuteTemplate(&b, tpl.options.Name, obj)
+		err = tpl.template.ExecuteTemplate(&b, name, obj)
 	}
 	if err != nil {
 		return nil, err
@@ -424,11 +427,15 @@ func (tpl *HtmlTemplate) CustomRenderWithOptions(opts TemplateOptions) ([]byte, 
 			return nil, err
 		}
 	}
-	return tpl.CustomRender(tpl.options.Name, obj)
+	return tpl.customRender(tpl.options.Name, obj)
 }
 
 func (tpl *HtmlTemplate) Render() ([]byte, error) {
 	return tpl.CustomRenderWithOptions(tpl.options)
+}
+
+func (tpl *HtmlTemplate) RenderObject(obj interface{}) ([]byte, error) {
+	return tpl.customRender(tpl.options.Name, obj)
 }
 
 func NewHtmlTemplate(options TemplateOptions) *HtmlTemplate {
