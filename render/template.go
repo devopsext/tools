@@ -30,6 +30,7 @@ type TemplateOptions struct {
 	Object     string
 	Content    string
 	TimeFormat string
+	object     interface{}
 }
 
 type Template struct {
@@ -345,17 +346,10 @@ func (tpl *Template) setTemplateFuncs(funcs map[string]interface{}) {
 	funcs["gitlabPipelineVars"] = tpl.fGitlabPipelineVars
 }
 
-func (tpl *TextTemplate) CustomRenderText(opts TemplateOptions) ([]byte, error) {
+func (tpl *TextTemplate) CustomRender(name string, obj interface{}) ([]byte, error) {
+
 	var b bytes.Buffer
 	var err error
-
-	var obj interface{}
-	if !utils.IsEmpty(opts.Object) {
-		err = json.Unmarshal([]byte(opts.Object), &obj)
-		if err != nil {
-			return nil, err
-		}
-	}
 
 	if empty, _ := tpl.fIsEmpty(tpl.options.Name); empty {
 		err = tpl.template.Execute(&b, obj)
@@ -368,8 +362,20 @@ func (tpl *TextTemplate) CustomRenderText(opts TemplateOptions) ([]byte, error) 
 	return b.Bytes(), nil
 }
 
-func (tpl *TextTemplate) RenderText() ([]byte, error) {
-	return tpl.CustomRenderText(tpl.options)
+func (tpl *TextTemplate) CustomRenderWithOptions(opts TemplateOptions) ([]byte, error) {
+
+	var obj interface{}
+	if !utils.IsEmpty(opts.Object) {
+		err := json.Unmarshal([]byte(opts.Object), &obj)
+		if err != nil {
+			return nil, err
+		}
+	}
+	return tpl.CustomRender(tpl.options.Name, obj)
+}
+
+func (tpl *TextTemplate) Render() ([]byte, error) {
+	return tpl.CustomRenderWithOptions(tpl.options)
 }
 
 func NewTextTemplate(options TemplateOptions) *TextTemplate {
@@ -393,17 +399,10 @@ func NewTextTemplate(options TemplateOptions) *TextTemplate {
 	return &tpl
 }
 
-func (tpl *HtmlTemplate) CustomRenderHtml(opts TemplateOptions) ([]byte, error) {
+func (tpl *HtmlTemplate) CustomRender(name string, obj interface{}) ([]byte, error) {
+
 	var b bytes.Buffer
 	var err error
-
-	var obj interface{}
-	if !utils.IsEmpty(opts.Object) {
-		err = json.Unmarshal([]byte(opts.Object), &obj)
-		if err != nil {
-			return nil, err
-		}
-	}
 
 	if empty, _ := tpl.fIsEmpty(tpl.options.Name); empty {
 		err = tpl.template.Execute(&b, obj)
@@ -416,8 +415,20 @@ func (tpl *HtmlTemplate) CustomRenderHtml(opts TemplateOptions) ([]byte, error) 
 	return b.Bytes(), nil
 }
 
-func (tpl *HtmlTemplate) RenderHtml() ([]byte, error) {
-	return tpl.CustomRenderHtml(tpl.options)
+func (tpl *HtmlTemplate) CustomRenderWithOptions(opts TemplateOptions) ([]byte, error) {
+
+	var obj interface{}
+	if !utils.IsEmpty(opts.Object) {
+		err := json.Unmarshal([]byte(opts.Object), &obj)
+		if err != nil {
+			return nil, err
+		}
+	}
+	return tpl.CustomRender(tpl.options.Name, obj)
+}
+
+func (tpl *HtmlTemplate) Render() ([]byte, error) {
+	return tpl.CustomRenderWithOptions(tpl.options)
 }
 
 func NewHtmlTemplate(options TemplateOptions) *HtmlTemplate {

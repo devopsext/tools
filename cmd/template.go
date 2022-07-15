@@ -86,7 +86,7 @@ func NewTemplateCommand() *cobra.Command {
 
 			stdout.Debug("Template text rendering...")
 
-			bytes, err := textTemplateNew(stdout).RenderText()
+			bytes, err := textTemplateNew(stdout).Render()
 			if err != nil {
 				stdout.Error(err)
 				return
@@ -102,7 +102,7 @@ func NewTemplateCommand() *cobra.Command {
 
 			stdout.Debug("Template html rendering...")
 
-			bytes, err := htmlTemplateNew(stdout).RenderHtml()
+			bytes, err := htmlTemplateNew(stdout).Render()
 			if err != nil {
 				stdout.Error(err)
 				return
