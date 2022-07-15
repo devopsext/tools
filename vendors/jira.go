@@ -251,10 +251,11 @@ func (j *Jira) IssueUpdate(options JiraIssueOptions) ([]byte, error) {
 	return j.CustomIssueUpdate(j.options, options)
 }
 
-func NewJira(options JiraOptions) *Jira {
+func NewJira(options JiraOptions) (*Jira, error) {
 
-	return &Jira{
+	jira := &Jira{
 		client:  utils.NewHttpClient(options.Timeout, options.Insecure),
 		options: options,
 	}
+	return jira, nil
 }

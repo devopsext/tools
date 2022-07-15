@@ -39,9 +39,9 @@ func graylogNew(stdout *common.Stdout) *vendors.Graylog {
 	}
 	graylogOptions.Query = string(queryBytes)
 
-	graylog := vendors.NewGraylog(graylogOptions)
-	if graylog == nil {
-		stdout.Panic("No graylog")
+	graylog, err := vendors.NewGraylog(graylogOptions)
+	if err != nil {
+		stdout.Panic(err)
 	}
 	return graylog
 }

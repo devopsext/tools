@@ -48,9 +48,9 @@ func slackNew(stdout *common.Stdout) *vendors.Slack {
 	}
 	slackOptions.File = string(fileBytes)
 
-	slack := vendors.NewSlack(slackOptions)
-	if slack == nil {
-		stdout.Panic("No slack")
+	slack, err := vendors.NewSlack(slackOptions)
+	if err != nil {
+		stdout.Panic(err)
 	}
 	return slack
 }

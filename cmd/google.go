@@ -32,9 +32,9 @@ func googleNew(stdout *common.Stdout) *vendors.Google {
 	common.Debug("Google", googleOptions, stdout)
 	common.Debug("Google", googleOutput, stdout)
 
-	google := vendors.NewGoogle(googleOptions, stdout)
-	if google == nil {
-		stdout.Panic("No google")
+	google, err := vendors.NewGoogle(googleOptions, stdout)
+	if err != nil {
+		stdout.Panic(err)
 	}
 	return google
 }

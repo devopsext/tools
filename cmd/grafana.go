@@ -51,9 +51,9 @@ func grafanaNew(stdout *common.Stdout) *vendors.Grafana {
 	common.Debug("Grafana", grafanaOptions, stdout)
 	common.Debug("Grafana", grafanaOutput, stdout)
 
-	grafana := vendors.NewGrafana(grafanaOptions)
-	if grafana == nil {
-		stdout.Panic("No grafana")
+	grafana, err := vendors.NewGrafana(grafanaOptions)
+	if err != nil {
+		stdout.Panic(err)
 	}
 	return grafana
 }

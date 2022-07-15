@@ -35,9 +35,9 @@ func textTemplateNew(stdout *common.Stdout) *render.TextTemplate {
 	}
 	templateOptions.Object = string(objectBytes)
 
-	template := render.NewTextTemplate(templateOptions)
-	if template == nil {
-		stdout.Panic("No text template")
+	template, err := render.NewTextTemplate(templateOptions)
+	if err != nil {
+		stdout.Panic(err)
 	}
 	return template
 }
@@ -58,9 +58,9 @@ func htmlTemplateNew(stdout *common.Stdout) *render.HtmlTemplate {
 	}
 	templateOptions.Object = string(objectBytes)
 
-	template := render.NewHtmlTemplate(templateOptions)
-	if template == nil {
-		stdout.Panic("No html template")
+	template, err := render.NewHtmlTemplate(templateOptions)
+	if err != nil {
+		stdout.Panic(err)
 	}
 	return template
 }

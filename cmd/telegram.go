@@ -45,9 +45,9 @@ func telegramNew(stdout *common.Stdout) *vendors.Telegram {
 	common.Debug("Telegram", telegramOptions, stdout)
 	common.Debug("Telegram", telegramOutput, stdout)
 
-	telegram := vendors.NewTelegram(telegramOptions)
-	if telegram == nil {
-		stdout.Panic("No telegram")
+	telegram, err := vendors.NewTelegram(telegramOptions)
+	if err != nil {
+		stdout.Panic(err)
 	}
 	return telegram
 }

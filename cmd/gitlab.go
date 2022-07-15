@@ -39,9 +39,9 @@ func gitlabNew(stdout *common.Stdout) *vendors.Gitlab {
 	common.Debug("Gitlab", gitlabOptions, stdout)
 	common.Debug("Gitlab", gitlabOutput, stdout)
 
-	gitlab := vendors.NewGitlab(gitlabOptions)
-	if gitlab == nil {
-		stdout.Panic("No gitlab")
+	gitlab, err := vendors.NewGitlab(gitlabOptions)
+	if err != nil {
+		stdout.Panic(err)
 	}
 	return gitlab
 }

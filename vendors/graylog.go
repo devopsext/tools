@@ -122,10 +122,11 @@ func (g *Graylog) GetLogs() ([]byte, error) {
 	}
 }
 
-func NewGraylog(options GraylogOptions) *Graylog {
+func NewGraylog(options GraylogOptions) (*Graylog, error) {
 
-	return &Graylog{
+	graylog := &Graylog{
 		client:  utils.NewHttpClient(options.Timeout, options.Insecure),
 		options: options,
 	}
+	return graylog, nil
 }

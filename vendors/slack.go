@@ -4,14 +4,15 @@ import (
 	"bytes"
 	_ "embed"
 	"errors"
-	"github.com/devopsext/tools/common"
-	"github.com/devopsext/utils"
 	"io/ioutil"
 	"mime/multipart"
 	"net/http"
 	"net/url"
 	"strings"
 	"text/template"
+
+	"github.com/devopsext/tools/common"
+	"github.com/devopsext/utils"
 )
 
 //go:embed slack.tmpl
@@ -254,9 +255,11 @@ func (s *Slack) apiURL(cmd string) string {
 	return baseURL + cmd
 }
 
-func NewSlack(options SlackOptions) *Slack {
-	return &Slack{
+func NewSlack(options SlackOptions) (*Slack, error) {
+
+	slack := &Slack{
 		client:  utils.NewHttpClient(options.Timeout, options.Insecure),
 		options: options,
 	}
+	return slack, nil
 }

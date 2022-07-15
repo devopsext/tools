@@ -295,9 +295,9 @@ func (tpl *Template) fGitlabPipelineVars(URL string, token string, projectID int
 		Token:    token,
 	}
 
-	gitlab := vendors.NewGitlab(gitlabOptions)
-	if gitlab == nil {
-		return "", errors.New("gitlab is not defined")
+	gitlab, err := vendors.NewGitlab(gitlabOptions)
+	if err != nil {
+		return "", err
 	}
 
 	pipelineOptions := vendors.GitlabPipelineOptions{
@@ -381,10 +381,10 @@ func (tpl *TextTemplate) RenderObject(obj interface{}) ([]byte, error) {
 	return tpl.customRender(tpl.options.Name, obj)
 }
 
-func NewTextTemplate(options TemplateOptions) *TextTemplate {
+func NewTextTemplate(options TemplateOptions) (*TextTemplate, error) {
 
 	if utils.IsEmpty(options.Content) {
-		return nil
+		return nil, errors.New("no content")
 	}
 
 	var tpl = TextTemplate{}
@@ -394,12 +394,12 @@ func NewTextTemplate(options TemplateOptions) *TextTemplate {
 	tpl.setTemplateFuncs(funcs)
 	t, err := txtTemplate.New(options.Name).Funcs(funcs).Parse(options.Content)
 	if err != nil {
-		return nil
+		return nil, err
 	}
 
 	tpl.template = t
 	tpl.options = options
-	return &tpl
+	return &tpl, nil
 }
 
 func (tpl *HtmlTemplate) customRender(name string, obj interface{}) ([]byte, error) {
@@ -438,10 +438,10 @@ func (tpl *HtmlTemplate) RenderObject(obj interface{}) ([]byte, error) {
 	return tpl.customRender(tpl.options.Name, obj)
 }
 
-func NewHtmlTemplate(options TemplateOptions) *HtmlTemplate {
+func NewHtmlTemplate(options TemplateOptions) (*HtmlTemplate, error) {
 
 	if utils.IsEmpty(options.Content) {
-		return nil
+		return nil, errors.New("no content")
 	}
 
 	var tpl = HtmlTemplate{}
@@ -450,12 +450,11 @@ func NewHtmlTemplate(options TemplateOptions) *HtmlTemplate {
 	funcs := sprig.HtmlFuncMap()
 	tpl.setTemplateFuncs(funcs)
 	t, err := htmlTemplate.New(options.Name).Funcs(funcs).Parse(options.Content)
-
 	if err != nil {
-		return nil
+		return nil, err
 	}
 
 	tpl.template = t
 	tpl.options = options
-	return &tpl
+	return &tpl, nil
 }

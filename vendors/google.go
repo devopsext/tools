@@ -145,10 +145,12 @@ func (g *Google) CalendarGetEvents(options GoogleCalendarOptions) ([]byte, error
 	return g.CustomCalendarGetEvents(g.options, options)
 }
 
-func NewGoogle(options GoogleOptions, stdout *common.Stdout) *Google {
-	return &Google{
+func NewGoogle(options GoogleOptions, stdout *common.Stdout) (*Google, error) {
+
+	google := &Google{
 		client:  utils.NewHttpClient(options.Timeout, options.Insecure),
 		options: options,
 		stdout:  stdout,
 	}
+	return google, nil
 }

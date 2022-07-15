@@ -190,10 +190,11 @@ func (t *Telegram) SendDocument(options TelegramDocumentOptions) ([]byte, error)
 	return t.CustomSendDocument(t.options, options)
 }
 
-func NewTelegram(options TelegramOptions) *Telegram {
+func NewTelegram(options TelegramOptions) (*Telegram, error) {
 
-	return &Telegram{
+	telegram := &Telegram{
 		client:  utils.NewHttpClient(options.Timeout, options.Insecure),
 		options: options,
 	}
+	return telegram, nil
 }

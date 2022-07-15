@@ -2,6 +2,7 @@ package vendors
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -231,9 +232,16 @@ func (g *Grafana) GetAnnotations(options GrafanaGetAnnotationsOptions) ([]byte, 
 	return g.CustomGetAnnotations(g.options, options)
 }
 
-func NewGrafana(options GrafanaOptions) *Grafana {
-	return &Grafana{
-		client:  utils.NewHttpClient(options.Timeout, options.Insecure),
+func NewGrafana(options GrafanaOptions) (*Grafana, error) {
+
+	client := utils.NewHttpClient(options.Timeout, options.Insecure)
+	if client == nil {
+		return nil, errors.New("no http client")
+	}
+
+	grafana := &Grafana{
+		client:  client,
 		options: options,
 	}
+	return grafana, nil
 }

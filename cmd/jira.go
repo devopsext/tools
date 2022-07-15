@@ -52,9 +52,9 @@ func jiraNew(stdout *common.Stdout) *vendors.Jira {
 	common.Debug("Jira", jiraOptions, stdout)
 	common.Debug("Jira", jiraOutput, stdout)
 
-	jira := vendors.NewJira(jiraOptions)
-	if jira == nil {
-		stdout.Panic("No jira")
+	jira, err := vendors.NewJira(jiraOptions)
+	if err != nil {
+		stdout.Panic(err)
 	}
 	return jira
 }
