@@ -330,6 +330,7 @@ func (tpl *Template) setTemplateFuncs(funcs map[string]interface{}) {
 	funcs["join"] = tpl.fJoin
 	funcs["isEmpty"] = tpl.fIsEmpty
 	funcs["env"] = tpl.fEnv
+	funcs["getEnv"] = tpl.fEnv
 	funcs["timeFormat"] = tpl.fTimeFormat
 	funcs["timeNano"] = tpl.fTimeNano
 	funcs["jsonEscape"] = tpl.fJsonEscape
@@ -344,7 +345,7 @@ func (tpl *Template) setTemplateFuncs(funcs map[string]interface{}) {
 	funcs["gitlabPipelineVars"] = tpl.fGitlabPipelineVars
 }
 
-func (tpl *TextTemplate) RenderCustomText(opts TemplateOptions) ([]byte, error) {
+func (tpl *TextTemplate) CustomRenderText(opts TemplateOptions) ([]byte, error) {
 	var b bytes.Buffer
 	var err error
 
@@ -368,13 +369,12 @@ func (tpl *TextTemplate) RenderCustomText(opts TemplateOptions) ([]byte, error) 
 }
 
 func (tpl *TextTemplate) RenderText() ([]byte, error) {
-	return tpl.RenderCustomText(tpl.options)
+	return tpl.CustomRenderText(tpl.options)
 }
 
-func NewTextTemplate(options TemplateOptions, stdout *common.Stdout) *TextTemplate {
+func NewTextTemplate(options TemplateOptions) *TextTemplate {
 
 	if utils.IsEmpty(options.Content) {
-		stdout.Warn("Template %s is empty.", options.Name)
 		return nil
 	}
 
@@ -385,17 +385,15 @@ func NewTextTemplate(options TemplateOptions, stdout *common.Stdout) *TextTempla
 	tpl.setTemplateFuncs(funcs)
 	t, err := txtTemplate.New(options.Name).Funcs(funcs).Parse(options.Content)
 	if err != nil {
-		stdout.Error(err)
 		return nil
 	}
 
 	tpl.template = t
 	tpl.options = options
-	tpl.stdout = stdout
 	return &tpl
 }
 
-func (tpl *HtmlTemplate) RenderCustomHtml(opts TemplateOptions) ([]byte, error) {
+func (tpl *HtmlTemplate) CustomRenderHtml(opts TemplateOptions) ([]byte, error) {
 	var b bytes.Buffer
 	var err error
 
@@ -419,13 +417,12 @@ func (tpl *HtmlTemplate) RenderCustomHtml(opts TemplateOptions) ([]byte, error) 
 }
 
 func (tpl *HtmlTemplate) RenderHtml() ([]byte, error) {
-	return tpl.RenderCustomHtml(tpl.options)
+	return tpl.CustomRenderHtml(tpl.options)
 }
 
-func NewHtmlTemplate(options TemplateOptions, stdout *common.Stdout) *HtmlTemplate {
+func NewHtmlTemplate(options TemplateOptions) *HtmlTemplate {
 
 	if utils.IsEmpty(options.Content) {
-		stdout.Warn("Template %s is empty.", options.Name)
 		return nil
 	}
 
@@ -437,12 +434,10 @@ func NewHtmlTemplate(options TemplateOptions, stdout *common.Stdout) *HtmlTempla
 	t, err := htmlTemplate.New(options.Name).Funcs(funcs).Parse(options.Content)
 
 	if err != nil {
-		stdout.Error(err)
 		return nil
 	}
 
 	tpl.template = t
 	tpl.options = options
-	tpl.stdout = stdout
 	return &tpl
 }
