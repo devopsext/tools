@@ -104,9 +104,11 @@ func (s *Slack) SendCustomMessage(m SlackMessage) ([]byte, error) {
 }
 
 func (s *Slack) sendMessage(m SlackMessage) ([]byte, error) {
+
 	if m.Message == "" {
 		return nil, errors.New("slack message is empty")
 	}
+
 	if m.Title == "" {
 		// find the first nonempty line
 		lines := strings.Split(m.Message, "\n")

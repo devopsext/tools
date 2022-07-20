@@ -28,6 +28,7 @@ template.txt
 template.output
 template.query
 template.json
+datadog2slack.jsonata
 
 
 # Created by https://www.toptal.com/developers/gitignore/api/jetbrains

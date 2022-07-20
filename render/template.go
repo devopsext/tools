@@ -200,7 +200,6 @@ func (tpl *Template) fJsonata(data interface{}, query string) (string, error) {
 	}
 
 	if _, err := os.Stat(query); err == nil {
-
 		content, err := ioutil.ReadFile(query)
 		if err != nil {
 			return "", err
@@ -217,9 +216,10 @@ func (tpl *Template) fJsonata(data interface{}, query string) (string, error) {
 	if ok {
 		var v interface{}
 		err = json.Unmarshal([]byte(s), &v)
-		if err == nil {
-			data = v
+		if err != nil {
+			return "", err
 		}
+		data = v
 	}
 
 	m, err := e.Eval(data)
