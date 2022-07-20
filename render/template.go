@@ -47,6 +47,7 @@ type HtmlTemplate struct {
 	template *htmlTemplate.Template
 }
 
+// put errors to logger
 func (tpl *Template) fLogError(obj interface{}, args ...interface{}) (string, error) {
 	if tpl.logger == nil {
 		return "", nil
@@ -55,6 +56,7 @@ func (tpl *Template) fLogError(obj interface{}, args ...interface{}) (string, er
 	return "", nil
 }
 
+// put warnings to logger
 func (tpl *Template) fLogWarn(obj interface{}, args ...interface{}) (string, error) {
 	if tpl.logger == nil {
 		return "", nil
@@ -63,6 +65,7 @@ func (tpl *Template) fLogWarn(obj interface{}, args ...interface{}) (string, err
 	return "", nil
 }
 
+// put information to logger
 func (tpl *Template) fLogInfo(obj interface{}, args ...interface{}) (string, error) {
 	if tpl.logger == nil {
 		return "", nil
