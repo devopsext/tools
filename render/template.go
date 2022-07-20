@@ -34,7 +34,7 @@ type TemplateOptions struct {
 
 type Template struct {
 	options TemplateOptions
-	stdout  *common.Stdout
+	logger  common.Logger
 }
 
 type TextTemplate struct {
@@ -45,6 +45,30 @@ type TextTemplate struct {
 type HtmlTemplate struct {
 	Template
 	template *htmlTemplate.Template
+}
+
+func (tpl *Template) fLogError(obj interface{}, args ...interface{}) error {
+	if tpl.logger == nil {
+		return nil
+	}
+	tpl.logger.Error(obj, args...)
+	return nil
+}
+
+func (tpl *Template) fLogWarn(obj interface{}, args ...interface{}) error {
+	if tpl.logger == nil {
+		return nil
+	}
+	tpl.logger.Warn(obj, args...)
+	return nil
+}
+
+func (tpl *Template) fLogInfo(obj interface{}, args ...interface{}) error {
+	if tpl.logger == nil {
+		return nil
+	}
+	tpl.logger.Info(obj, args...)
+	return nil
 }
 
 // replaceAll replaces all occurrences of a value in a string with the given
@@ -169,7 +193,6 @@ func (tpl *Template) fUnescapeString(s string) (string, error) {
 func (tpl *Template) fJsonata(data interface{}, query string) (string, error) {
 
 	if utils.IsEmpty(query) {
-		tpl.stdout.Error("query is empty")
 		return "", errors.New("query is empty")
 	}
 
@@ -177,7 +200,6 @@ func (tpl *Template) fJsonata(data interface{}, query string) (string, error) {
 
 		content, err := ioutil.ReadFile(query)
 		if err != nil {
-			tpl.stdout.Error(err)
 			return "", err
 		}
 		query = string(content)
@@ -185,7 +207,6 @@ func (tpl *Template) fJsonata(data interface{}, query string) (string, error) {
 
 	e, err := jsonata.Compile(query)
 	if err != nil {
-		tpl.stdout.Error("fail to compile jsonata query", err)
 		return "", err
 	}
 
@@ -200,7 +221,6 @@ func (tpl *Template) fJsonata(data interface{}, query string) (string, error) {
 
 	m, err := e.Eval(data)
 	if err != nil {
-		tpl.stdout.Error(err)
 		return "", err
 	}
 
@@ -210,7 +230,6 @@ func (tpl *Template) fJsonata(data interface{}, query string) (string, error) {
 	if ok {
 		b, err := common.JsonMarshal(m)
 		if err != nil {
-			tpl.stdout.Error(err)
 			return "", err
 		}
 		ret = strings.TrimSpace(string(b)) // issue with adding new line
@@ -225,13 +244,11 @@ func (tpl *Template) fGjson(obj interface{}, path string) (string, error) {
 
 	if utils.IsEmpty(path) {
 		err := errors.New("path is empty")
-		tpl.stdout.Error(err)
 		return "", err
 	}
 
 	if obj == nil {
 		err := errors.New("object is not defined")
-		tpl.stdout.Error(err)
 		return "", err
 	}
 
@@ -286,7 +303,7 @@ func (tpl *Template) fURLWait(url string, status, timeout int, size int64) (bool
 	return false, nil
 }
 
-func (tpl *Template) fGitlabPipelineVars(URL string, token string, projectID int, query string) (string, error) {
+func (tpl *Template) fGitlabPipelineVars(URL string, token string, projectID int, query string, limit int) (string, error) {
 
 	gitlabOptions := vendors.GitlabOptions{
 		Timeout:  30,
@@ -300,13 +317,17 @@ func (tpl *Template) fGitlabPipelineVars(URL string, token string, projectID int
 		return "", err
 	}
 
+	if limit <= 0 {
+		limit = 100
+	}
+
 	pipelineOptions := vendors.GitlabPipelineOptions{
 		ProjectID: projectID,
 		Scope:     "finished",
 		Status:    "success",
 		OrderBy:   "updated_at",
 		Sort:      "desc",
-		Limit:     1,
+		Limit:     limit,
 	}
 
 	pipelineGetVariablesOptions := vendors.GitlabPipelineGetVariablesOptions{
@@ -318,6 +339,10 @@ func (tpl *Template) fGitlabPipelineVars(URL string, token string, projectID int
 }
 
 func (tpl *Template) setTemplateFuncs(funcs map[string]interface{}) {
+
+	funcs["logError"] = tpl.fLogError
+	funcs["logWarn"] = tpl.fLogWarn
+	funcs["logInfo"] = tpl.fLogInfo
 
 	funcs["regexReplaceAll"] = tpl.fRegexReplaceAll
 	funcs["regexMatch"] = tpl.fRegexMatch
@@ -381,7 +406,7 @@ func (tpl *TextTemplate) RenderObject(obj interface{}) ([]byte, error) {
 	return tpl.customRender(tpl.options.Name, obj)
 }
 
-func NewTextTemplate(options TemplateOptions) (*TextTemplate, error) {
+func NewTextTemplate(options TemplateOptions, logger common.Logger) (*TextTemplate, error) {
 
 	if utils.IsEmpty(options.Content) {
 		return nil, errors.New("no content")
@@ -399,6 +424,7 @@ func NewTextTemplate(options TemplateOptions) (*TextTemplate, error) {
 
 	tpl.template = t
 	tpl.options = options
+	tpl.logger = logger
 	return &tpl, nil
 }
 
@@ -438,7 +464,7 @@ func (tpl *HtmlTemplate) RenderObject(obj interface{}) ([]byte, error) {
 	return tpl.customRender(tpl.options.Name, obj)
 }
 
-func NewHtmlTemplate(options TemplateOptions) (*HtmlTemplate, error) {
+func NewHtmlTemplate(options TemplateOptions, logger common.Logger) (*HtmlTemplate, error) {
 
 	if utils.IsEmpty(options.Content) {
 		return nil, errors.New("no content")
@@ -456,5 +482,6 @@ func NewHtmlTemplate(options TemplateOptions) (*HtmlTemplate, error) {
 
 	tpl.template = t
 	tpl.options = options
+	tpl.logger = logger
 	return &tpl, nil
 }

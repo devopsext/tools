@@ -35,7 +35,7 @@ func textTemplateNew(stdout *common.Stdout) *render.TextTemplate {
 	}
 	templateOptions.Object = string(objectBytes)
 
-	template, err := render.NewTextTemplate(templateOptions)
+	template, err := render.NewTextTemplate(templateOptions, stdout)
 	if err != nil {
 		stdout.Panic(err)
 	}
@@ -58,7 +58,7 @@ func htmlTemplateNew(stdout *common.Stdout) *render.HtmlTemplate {
 	}
 	templateOptions.Object = string(objectBytes)
 
-	template, err := render.NewHtmlTemplate(templateOptions)
+	template, err := render.NewHtmlTemplate(templateOptions, stdout)
 	if err != nil {
 		stdout.Panic(err)
 	}
