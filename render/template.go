@@ -47,28 +47,28 @@ type HtmlTemplate struct {
 	template *htmlTemplate.Template
 }
 
-func (tpl *Template) fLogError(obj interface{}, args ...interface{}) error {
+func (tpl *Template) fLogError(obj interface{}, args ...interface{}) (string, error) {
 	if tpl.logger == nil {
-		return nil
+		return "", nil
 	}
 	tpl.logger.Error(obj, args...)
-	return nil
+	return "", nil
 }
 
-func (tpl *Template) fLogWarn(obj interface{}, args ...interface{}) error {
+func (tpl *Template) fLogWarn(obj interface{}, args ...interface{}) (string, error) {
 	if tpl.logger == nil {
-		return nil
+		return "", nil
 	}
 	tpl.logger.Warn(obj, args...)
-	return nil
+	return "", nil
 }
 
-func (tpl *Template) fLogInfo(obj interface{}, args ...interface{}) error {
+func (tpl *Template) fLogInfo(obj interface{}, args ...interface{}) (string, error) {
 	if tpl.logger == nil {
-		return nil
+		return "", nil
 	}
 	tpl.logger.Info(obj, args...)
-	return nil
+	return "", nil
 }
 
 // replaceAll replaces all occurrences of a value in a string with the given
