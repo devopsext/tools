@@ -50,7 +50,7 @@ func NewJSONCommand() *cobra.Command {
 		Use:   "get",
 		Short: "Get json from URL",
 		Run: func(cmd *cobra.Command, args []string) {
-			stdout.Debug("Getting JSON from URL…")
+			stdout.Debug("Getting JSON from URL...")
 			bytes, err := jsonNew(stdout).Get()
 			if err != nil {
 				stdout.Error(err)

@@ -65,6 +65,15 @@ func (tpl *Template) fLogWarn(obj interface{}, args ...interface{}) (string, err
 	return "", nil
 }
 
+// put warnings to logger
+func (tpl *Template) fLogDebug(obj interface{}, args ...interface{}) (string, error) {
+	if tpl.logger == nil {
+		return "", nil
+	}
+	tpl.logger.Debug(obj, args...)
+	return "", nil
+}
+
 // put information to logger
 func (tpl *Template) fLogInfo(obj interface{}, args ...interface{}) (string, error) {
 	if tpl.logger == nil {
@@ -345,6 +354,7 @@ func (tpl *Template) setTemplateFuncs(funcs map[string]interface{}) {
 
 	funcs["logError"] = tpl.fLogError
 	funcs["logWarn"] = tpl.fLogWarn
+	funcs["logDebug"] = tpl.fLogDebug
 	funcs["logInfo"] = tpl.fLogInfo
 
 	funcs["regexReplaceAll"] = tpl.fRegexReplaceAll

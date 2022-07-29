@@ -76,6 +76,7 @@ func Output(query, to string, prefix string, opts []interface{}, bytes []byte, s
 			stdout.Panic(err)
 		}
 
+		// v is json object
 		_, ok := v.(map[string]interface{})
 		if ok {
 			b, err = JsonMarshal(v)
@@ -85,6 +86,18 @@ func Output(query, to string, prefix string, opts []interface{}, bytes []byte, s
 				output = strings.TrimSpace(string(b))
 			}
 		} else {
+			// v is json array
+			_, ok = v.([]interface{})
+			if ok {
+				b, err = JsonMarshal(v)
+				if err != nil {
+					output = fmt.Sprintf("%v", v)
+				} else {
+					output = strings.TrimSpace(string(b))
+				}
+			}
+		}
+		if !ok {
 			output = fmt.Sprintf("%v", v)
 		}
 	}
