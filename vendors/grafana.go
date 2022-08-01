@@ -79,10 +79,10 @@ func (g *Grafana) CustomRenderImage(grafanaOptions GrafanaOptions, renderImageOp
 		params.Add("height", strconv.Itoa(renderImageOptions.Height))
 	}
 	if !utils.IsEmpty(renderImageOptions.From) {
-		params.Add("from", toRFC3339NanoStr(renderImageOptions.From))
+		params.Add("from", g.toRFC3339NanoStr(renderImageOptions.From))
 	}
 	if !utils.IsEmpty(renderImageOptions.To) {
-		params.Add("to", toRFC3339NanoStr(renderImageOptions.To))
+		params.Add("to", g.toRFC3339NanoStr(renderImageOptions.To))
 	}
 	params.Add("tz", "UTC")
 
@@ -136,16 +136,16 @@ func (g Grafana) CustomCreateAnnotation(grafanaOptions GrafanaOptions, createAnn
 	if !utils.IsEmpty(grafanaOptions.APIKey) {
 		auth = fmt.Sprintf("Bearer %s", g.options.APIKey)
 	}
-	b, err := json.Marshal(createAnnotation(&createAnnotationOptions))
+	b, err := json.Marshal(g.createAnnotation(&createAnnotationOptions))
 	if err != nil {
 		return nil, err
 	}
 	return common.HttpPostRaw(g.client, u.String(), "application/json", auth, b)
 }
 
-func createAnnotation(o *GrafanaCreateAnnotationOptions) *GrafanaAnnotation {
-	t := toRFC3339Nano(o.Time)
-	tEnd := toRFC3339Nano(o.TimeEnd)
+func (g *Grafana) createAnnotation(o *GrafanaCreateAnnotationOptions) *GrafanaAnnotation {
+	t := g.toRFC3339Nano(o.Time)
+	tEnd := g.toRFC3339Nano(o.TimeEnd)
 	if o.TimeEnd == "" {
 		tEnd = t
 	}
@@ -158,7 +158,7 @@ func createAnnotation(o *GrafanaCreateAnnotationOptions) *GrafanaAnnotation {
 	}
 }
 
-func toRFC3339NanoStr(ts string) string {
+func (g *Grafana) toRFC3339NanoStr(ts string) string {
 	res := ts
 	t, err := time.Parse(time.RFC3339Nano, ts)
 	if err == nil {
@@ -167,7 +167,7 @@ func toRFC3339NanoStr(ts string) string {
 	return res
 }
 
-func toRFC3339Nano(ts string) int64 {
+func (g *Grafana) toRFC3339Nano(ts string) int64 {
 	t, err := time.Parse(time.RFC3339Nano, ts)
 	if err == nil {
 		return t.UTC().UnixMilli()
@@ -175,7 +175,7 @@ func toRFC3339Nano(ts string) int64 {
 	return time.Now().UnixMilli()
 }
 
-func (g Grafana) CreateAnnotation(options GrafanaCreateAnnotationOptions) ([]byte, error) {
+func (g *Grafana) CreateAnnotation(options GrafanaCreateAnnotationOptions) ([]byte, error) {
 	return g.CustomCreateAnnotation(g.options, options)
 }
 
@@ -197,10 +197,10 @@ func (g *Grafana) CustomGetAnnotations(grafanaOptions GrafanaOptions, getAnnotat
 		params.Add("orgId", grafanaOptions.OrgID)
 	}
 	if !utils.IsEmpty(getAnnotationsOptions.From) {
-		params.Add("from", toRFC3339NanoStr(getAnnotationsOptions.From))
+		params.Add("from", g.toRFC3339NanoStr(getAnnotationsOptions.From))
 	}
 	if !utils.IsEmpty(getAnnotationsOptions.To) {
-		params.Add("to", toRFC3339NanoStr(getAnnotationsOptions.To))
+		params.Add("to", g.toRFC3339NanoStr(getAnnotationsOptions.To))
 	}
 	if getAnnotationsOptions.Type == "alert" || getAnnotationsOptions.Type == "annotation" {
 		params.Add("type", getAnnotationsOptions.Type)

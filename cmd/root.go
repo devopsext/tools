@@ -60,6 +60,7 @@ func Execute() {
 	rootCmd.AddCommand(NewJSONCommand())
 	rootCmd.AddCommand(NewGitlabCommand())
 	rootCmd.AddCommand(NewGoogleCommand())
+	rootCmd.AddCommand(NewPrometheusCommand())
 
 	rootCmd.AddCommand(NewTemplateCommand())
 

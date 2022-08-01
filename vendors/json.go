@@ -1,9 +1,10 @@
 package vendors
 
 import (
+	"net/http"
+
 	"github.com/devopsext/tools/common"
 	"github.com/devopsext/utils"
-	"net/http"
 )
 
 type JSONOptions struct {
@@ -21,7 +22,7 @@ type JSON struct {
 	options JSONOptions
 }
 
-func (c JSON) Get() ([]byte, error) {
+func (c *JSON) Get() ([]byte, error) {
 	return common.HttpGetRaw(c.client, c.options.URL, "", "")
 }
 

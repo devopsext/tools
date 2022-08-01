@@ -33,6 +33,8 @@ json.output
 json-component.query
 json-graph.query
 cmdb.json
+prometheus.query
+prometheus.output
 
 
 # Created by https://www.toptal.com/developers/gitignore/api/jetbrains
