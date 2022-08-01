@@ -11,12 +11,12 @@ import (
 )
 
 var jiraOptions = vendors.JiraOptions{
-	URL:                 envGet("JIRA_URL", "").(string),
-	Timeout:             envGet("JIRA_TIMEOUT", 30).(int),
-	Insecure:            envGet("JIRA_INSECURE", false).(bool),
-	User:                envGet("JIRA_USER", "").(string),
-	Password:            envGet("JIRA_PASSWORD", "").(string),
-	PersonalAccessToken: envGet("JIRA_PERSONAL_ACCESS_TOKEN", "").(string),
+	URL:         envGet("JIRA_URL", "").(string),
+	Timeout:     envGet("JIRA_TIMEOUT", 30).(int),
+	Insecure:    envGet("JIRA_INSECURE", false).(bool),
+	User:        envGet("JIRA_USER", "").(string),
+	Password:    envGet("JIRA_PASSWORD", "").(string),
+	AccessToken: envGet("JIRA_ACCESS_TOKEN", "").(string),
 }
 
 var jiraIssueCreateOptions = vendors.JiraIssueCreateOptions{
@@ -72,7 +72,7 @@ func NewJiraCommand() *cobra.Command {
 	flags.BoolVar(&jiraOptions.Insecure, "jira-insecure", jiraOptions.Insecure, "Jira insecure")
 	flags.StringVar(&jiraOptions.User, "jira-user", jiraOptions.User, "Jira user")
 	flags.StringVar(&jiraOptions.Password, "jira-password", jiraOptions.Password, "Jira password")
-	flags.StringVar(&jiraOptions.PersonalAccessToken, "jira-personal-access-token", jiraOptions.PersonalAccessToken, "Jira Personal Access Token")
+	flags.StringVar(&jiraOptions.AccessToken, "jira-access-token", jiraOptions.AccessToken, "Jira Personal Access Token")
 	flags.StringVar(&jiraOutput.Output, "jira-output", jiraOutput.Output, "Jira output")
 	flags.StringVar(&jiraOutput.Query, "jira-output-query", jiraOutput.Query, "Jira output query")
 

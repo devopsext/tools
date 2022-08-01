@@ -39,12 +39,12 @@ type JiraIssueAddAttachmentOptions struct {
 }
 
 type JiraOptions struct {
-	URL                 string
-	Timeout             int
-	Insecure            bool
-	User                string
-	Password            string
-	PersonalAccessToken string
+	URL         string
+	Timeout     int
+	Insecure    bool
+	User        string
+	Password    string
+	AccessToken string
 }
 
 type JiraIssueProject struct {
@@ -103,8 +103,8 @@ func (j *Jira) getAuth(opts JiraOptions) string {
 		auth = fmt.Sprintf("Basic %s", base64.StdEncoding.EncodeToString([]byte(userPass)))
 		return auth
 	}
-	if !utils.IsEmpty(opts.PersonalAccessToken) {
-		auth = fmt.Sprintf("Bearer %s", opts.PersonalAccessToken)
+	if !utils.IsEmpty(opts.AccessToken) {
+		auth = fmt.Sprintf("Bearer %s", opts.AccessToken)
 		return auth
 	}
 	return auth
