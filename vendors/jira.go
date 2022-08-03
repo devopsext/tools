@@ -23,10 +23,11 @@ type JiraIssueCreateOptions struct {
 }
 
 type JiraIssueOptions struct {
-	IdOrKey     string
-	Summary     string
-	Description string
-	Labels      []string
+	IdOrKey      string
+	Summary      string
+	Description  string
+	CustomFields string
+	Labels       []string
 }
 
 type JiraIssueAddCommentOptions struct {
@@ -48,46 +49,45 @@ type JiraOptions struct {
 }
 
 type JiraIssueProject struct {
-	Key string `json:"key"`
+	Key string `json:"key" structs:"key"`
 }
 
 type JiraIssueType struct {
-	Name string `json:"name"`
+	Name string `json:"name" structs:"name"`
 }
 
 type JiraIssuePriority struct {
-	Name string `json:"name"`
+	Name string `json:"name" structs:"name"`
 }
 
 type JiraIssueAssignee struct {
-	Name string `json:"name"`
+	Name string `json:"name" structs:"name"`
 }
 
 type JiraIssueReporter struct {
-	Name string `json:"name"`
+	Name string `json:"name" structs:"name"`
 }
-
 type JiraIssueFields struct {
-	Project     *JiraIssueProject  `json:"project,omitempty"`
-	IssueType   *JiraIssueType     `json:"issuetype,omitempty"`
-	Summary     string             `json:"summary,omitempty"`
-	Description string             `json:"description,omitempty"`
-	Labels      []string           `json:"labels,omitempty"`
-	Priority    *JiraIssuePriority `json:"priority,omitempty"`
-	Assignee    *JiraIssueAssignee `json:"assignee,omitempty"`
-	Reporter    *JiraIssueReporter `json:"reporter,omitempty"`
+	Project     *JiraIssueProject  `json:"project,omitempty" structs:"project,omitempty"`
+	IssueType   *JiraIssueType     `json:"issuetype,omitempty" structs:"issuetype,omitempty"`
+	Summary     string             `json:"summary,omitempty" structs:"summary,omitempty"`
+	Description string             `json:"description,omitempty" structs:"description,omitempty"`
+	Labels      []string           `json:"labels,omitempty" structs:"labels,omitempty"`
+	Priority    *JiraIssuePriority `json:"priority,omitempty" structs:"priority,omitempty"`
+	Assignee    *JiraIssueAssignee `json:"assignee,omitempty" structs:"assignee,omitempty"`
+	Reporter    *JiraIssueReporter `json:"reporter,omitempty" structs:"reporter,omitempty"`
 }
 
 type JiraIssueCreate struct {
-	Fields *JiraIssueFields `json:"fields"`
+	Fields *JiraIssueFields `json:"fields" structs:"fields"`
 }
 
 type JiraIssueUpdate struct {
-	Fields *JiraIssueFields `json:"fields"`
+	Fields *JiraIssueFields `json:"fields" structs:"fields"`
 }
 
 type JiraIssueAddComment struct {
-	Body string `json:"body"`
+	Body string `json:"body" structs:"body"`
 }
 
 type Jira struct {
@@ -144,7 +144,17 @@ func (j *Jira) CustomIssueCreate(jiraOptions JiraOptions, issueOptions JiraIssue
 		}
 	}
 
-	req, err := json.Marshal(&issue)
+	cf := make(map[string]interface{})
+
+	if !utils.IsEmpty(issueOptions.CustomFields) {
+		var err error
+		cf, err = common.ReadAndMarshal(issueOptions.CustomFields)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	req, err := common.JsonJiraMarshal(&issue, cf)
 	if err != nil {
 		return nil, err
 	}

@@ -6,6 +6,7 @@ require (
 	github.com/Masterminds/sprig/v3 v3.2.2
 	github.com/blues/jsonata-go v1.5.4
 	github.com/devopsext/utils v0.1.7
+	github.com/fatih/structs v1.1.0
 	github.com/sirupsen/logrus v1.8.1
 	github.com/spf13/cobra v1.4.0
 	github.com/tidwall/gjson v1.14.1

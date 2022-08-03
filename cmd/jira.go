@@ -28,10 +28,11 @@ var jiraIssueCreateOptions = vendors.JiraIssueCreateOptions{
 }
 
 var jiraIssueOptions = vendors.JiraIssueOptions{
-	IdOrKey:     envGet("JIRA_ISSUE_ID_OR_KEY", "").(string),
-	Summary:     envGet("JIRA_ISSUE_SUMMARY", "").(string),
-	Description: envGet("JIRA_ISSUE_DESCRIPTION", "").(string),
-	Labels:      strings.Split(envGet("JIRA_ISSUE_LABELS", "").(string), ","),
+	IdOrKey:      envGet("JIRA_ISSUE_ID_OR_KEY", "").(string),
+	Summary:      envGet("JIRA_ISSUE_SUMMARY", "").(string),
+	Description:  envGet("JIRA_ISSUE_DESCRIPTION", "").(string),
+	CustomFields: envGet("JIRA_ISSUE_CUSTOM_FIELDS", "").(string),
+	Labels:       strings.Split(envGet("JIRA_ISSUE_LABELS", "").(string), ","),
 }
 
 var jiraIssueAddCommentOptions = vendors.JiraIssueAddCommentOptions{
@@ -84,6 +85,7 @@ func NewJiraCommand() *cobra.Command {
 	flags.StringVar(&jiraIssueOptions.IdOrKey, "jira-issue-id-or-key", jiraIssueOptions.IdOrKey, "Jira issue ID or key")
 	flags.StringVar(&jiraIssueOptions.Summary, "jira-issue-summary", jiraIssueOptions.Summary, "Jira issue summary")
 	flags.StringVar(&jiraIssueOptions.Description, "jira-issue-description", jiraIssueOptions.Description, "Jira issue description")
+	flags.StringVar(&jiraIssueOptions.CustomFields, "jira-issue-custom-fields", jiraIssueOptions.CustomFields, "Jira issue custom fields file")
 	flags.StringSliceVar(&jiraIssueOptions.Labels, "jira-issue-labels", jiraIssueOptions.Labels, "Jira issue labels")
 	jiraCmd.AddCommand(issueCmd)
 

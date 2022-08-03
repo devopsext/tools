@@ -6,10 +6,12 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"os"
 	"strings"
 
 	"github.com/blues/jsonata-go"
 	"github.com/devopsext/utils"
+	"github.com/fatih/structs"
 )
 
 type OutputOptions struct {
@@ -24,6 +26,21 @@ func JsonMarshal(t interface{}) ([]byte, error) {
 	encoder.SetEscapeHTML(false)
 	err := encoder.Encode(t)
 	return buffer.Bytes(), err
+}
+
+// we need custom json marshal for Jira due to possible using of custom fields
+func JsonJiraMarshal(issue interface{}, cf map[string]interface{}) ([]byte, error) {
+	m := structs.Map(issue)
+	if len(cf) > 0 {
+		for key, value := range m {
+			if key == "fields" {
+				for k, v := range cf {
+					value.(map[string]interface{})[k] = v
+				}
+			}
+		}
+	}
+	return json.Marshal(m)
 }
 
 func interfaceToMap(prefix string, i interface{}) (map[string]interface{}, error) {
@@ -165,7 +182,8 @@ func HttpRequestRawWithHeaders(client *http.Client, method, URL string, headers 
 	defer resp.Body.Close()
 
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		return nil, fmt.Errorf(resp.Status)
+		b, _ := ioutil.ReadAll(resp.Body)
+		return nil, fmt.Errorf("response status is %q with the error: %q", resp.Status, string(b))
 	}
 
 	b, err := ioutil.ReadAll(resp.Body)
@@ -228,7 +246,8 @@ func HttpGetRawWithHeaders(client *http.Client, URL string, headers map[string]s
 	defer resp.Body.Close()
 
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		return nil, fmt.Errorf(resp.Status)
+		b, _ := ioutil.ReadAll(resp.Body)
+		return nil, fmt.Errorf("response status is %q with the error: %q", resp.Status, string(b))
 	}
 
 	b, err := ioutil.ReadAll(resp.Body)
@@ -265,4 +284,19 @@ func TruncateString(str string, length int) string {
 		}
 	}
 	return truncated
+}
+
+func ReadAndMarshal(path string) (map[string]interface{}, error) {
+	var result map[string]interface{}
+
+	dat, err := os.ReadFile(path)
+	if err != nil {
+		return nil, err
+	}
+	err = json.Unmarshal(dat, &result)
+	if err != nil {
+		return nil, err
+	}
+
+	return result, nil
 }
