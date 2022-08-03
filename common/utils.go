@@ -6,9 +6,11 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"os"
 	"strings"
 
 	"github.com/blues/jsonata-go"
+	"github.com/blues/jsonata-go/jtypes"
 	"github.com/devopsext/utils"
 )
 
@@ -44,10 +46,6 @@ func interfaceToMap(prefix string, i interface{}) (map[string]interface{}, error
 	return r, nil
 }
 
-func JsonataPrepare() {
-
-}
-
 func Output(query, to string, prefix string, opts []interface{}, bytes []byte, stdout *Stdout) {
 	b, err := utils.Content(query)
 	if err != nil {
@@ -63,6 +61,14 @@ func Output(query, to string, prefix string, opts []interface{}, bytes []byte, s
 				jsonata.RegisterVars(vars)
 			}
 		}
+
+		exts := make(map[string]jsonata.Extension)
+		exts["env"] = jsonata.Extension{
+			Func:               os.Getenv,
+			UndefinedHandler:   jtypes.ArgUndefined(0),
+			EvalContextHandler: jtypes.ArgCountEquals(0),
+		}
+		jsonata.RegisterExts(exts)
 
 		expr := jsonata.MustCompile(query)
 

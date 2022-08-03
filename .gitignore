@@ -35,6 +35,9 @@ json-graph.query
 cmdb.json
 prometheus.query
 prometheus.output
+sre-on-call.meet
+sre-on-call.json
+thanos.json
 
 
 # Created by https://www.toptal.com/developers/gitignore/api/jetbrains
