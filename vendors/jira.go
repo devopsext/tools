@@ -49,45 +49,45 @@ type JiraOptions struct {
 }
 
 type JiraIssueProject struct {
-	Key string `json:"key" structs:"key"`
+	Key string `json:"key"`
 }
 
 type JiraIssueType struct {
-	Name string `json:"name" structs:"name"`
+	Name string `json:"name"`
 }
 
 type JiraIssuePriority struct {
-	Name string `json:"name" structs:"name"`
+	Name string `json:"name"`
 }
 
 type JiraIssueAssignee struct {
-	Name string `json:"name" structs:"name"`
+	Name string `json:"name"`
 }
 
 type JiraIssueReporter struct {
-	Name string `json:"name" structs:"name"`
+	Name string `json:"name"`
 }
 type JiraIssueFields struct {
-	Project     *JiraIssueProject  `json:"project,omitempty" structs:"project,omitempty"`
-	IssueType   *JiraIssueType     `json:"issuetype,omitempty" structs:"issuetype,omitempty"`
-	Summary     string             `json:"summary,omitempty" structs:"summary,omitempty"`
-	Description string             `json:"description,omitempty" structs:"description,omitempty"`
-	Labels      []string           `json:"labels,omitempty" structs:"labels,omitempty"`
-	Priority    *JiraIssuePriority `json:"priority,omitempty" structs:"priority,omitempty"`
-	Assignee    *JiraIssueAssignee `json:"assignee,omitempty" structs:"assignee,omitempty"`
-	Reporter    *JiraIssueReporter `json:"reporter,omitempty" structs:"reporter,omitempty"`
+	Project     *JiraIssueProject  `json:"project,omitempty"`
+	IssueType   *JiraIssueType     `json:"issuetype,omitempty"`
+	Summary     string             `json:"summary,omitempty"`
+	Description string             `json:"description,omitempty"`
+	Labels      []string           `json:"labels,omitempty"`
+	Priority    *JiraIssuePriority `json:"priority,omitempty"`
+	Assignee    *JiraIssueAssignee `json:"assignee,omitempty"`
+	Reporter    *JiraIssueReporter `json:"reporter,omitempty"`
 }
 
 type JiraIssueCreate struct {
-	Fields *JiraIssueFields `json:"fields" structs:"fields"`
+	Fields *JiraIssueFields `json:"fields"`
 }
 
 type JiraIssueUpdate struct {
-	Fields *JiraIssueFields `json:"fields" structs:"fields"`
+	Fields *JiraIssueFields `json:"fields"`
 }
 
 type JiraIssueAddComment struct {
-	Body string `json:"body" structs:"body"`
+	Body string `json:"body"`
 }
 
 type Jira struct {
