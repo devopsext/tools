@@ -11,7 +11,6 @@ import (
 
 	"github.com/blues/jsonata-go"
 	"github.com/devopsext/utils"
-	"github.com/fatih/structs"
 )
 
 type OutputOptions struct {
@@ -26,21 +25,6 @@ func JsonMarshal(t interface{}) ([]byte, error) {
 	encoder.SetEscapeHTML(false)
 	err := encoder.Encode(t)
 	return buffer.Bytes(), err
-}
-
-// we need custom json marshal for Jira due to possible using of custom fields
-func JsonJiraMarshal(issue interface{}, cf map[string]interface{}) ([]byte, error) {
-	m := structs.Map(issue)
-	if len(cf) > 0 {
-		for key, value := range m {
-			if key == "fields" {
-				for k, v := range cf {
-					value.(map[string]interface{})[k] = v
-				}
-			}
-		}
-	}
-	return json.Marshal(m)
 }
 
 func interfaceToMap(prefix string, i interface{}) (map[string]interface{}, error) {
@@ -59,6 +43,25 @@ func interfaceToMap(prefix string, i interface{}) (map[string]interface{}, error
 		r[k] = v
 	}
 	return r, nil
+}
+
+// we need custom json marshal for Jira due to possible using of custom fields
+func JsonJiraMarshal(issue interface{}, cf map[string]interface{}) ([]byte, error) {
+	m, err := interfaceToMap("", issue)
+	if err != nil {
+		return nil, err
+	}
+	if len(cf) > 0 {
+		value, err := interfaceToMap("", m["fields"])
+		if err != nil {
+			return nil, err
+		}
+		for k, v := range cf {
+			value[k] = v
+		}
+		m["fields"] = value
+	}
+	return json.Marshal(m)
 }
 
 func JsonataPrepare() {

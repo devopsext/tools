@@ -250,7 +250,17 @@ func (j *Jira) CustomIssueUpdate(jiraOptions JiraOptions, issueOptions JiraIssue
 		}
 	}
 
-	req, err := json.Marshal(&issue)
+	cf := make(map[string]interface{})
+
+	if !utils.IsEmpty(issueOptions.CustomFields) {
+		var err error
+		cf, err = common.ReadAndMarshal(issueOptions.CustomFields)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	req, err := common.JsonJiraMarshal(&issue, cf)
 	if err != nil {
 		return nil, err
 	}
