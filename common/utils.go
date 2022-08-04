@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"github.com/blues/jsonata-go"
+	"github.com/blues/jsonata-go/jtypes"
 	"github.com/devopsext/utils"
 )
 
@@ -64,10 +65,6 @@ func JsonJiraMarshal(issue interface{}, cf map[string]interface{}) ([]byte, erro
 	return json.Marshal(m)
 }
 
-func JsonataPrepare() {
-
-}
-
 func Output(query, to string, prefix string, opts []interface{}, bytes []byte, stdout *Stdout) {
 	b, err := utils.Content(query)
 	if err != nil {
@@ -83,6 +80,14 @@ func Output(query, to string, prefix string, opts []interface{}, bytes []byte, s
 				jsonata.RegisterVars(vars)
 			}
 		}
+
+		exts := make(map[string]jsonata.Extension)
+		exts["env"] = jsonata.Extension{
+			Func:               os.Getenv,
+			UndefinedHandler:   jtypes.ArgUndefined(0),
+			EvalContextHandler: jtypes.ArgCountEquals(0),
+		}
+		jsonata.RegisterExts(exts)
 
 		expr := jsonata.MustCompile(query)
 

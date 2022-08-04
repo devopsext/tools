@@ -28,9 +28,11 @@ func prometheusNew(stdout *common.Stdout) *vendors.Prometheus {
 	common.Debug("Prometheus", prometheusOptions, stdout)
 	common.Debug("Prometheus", prometheusOutput, stdout)
 
-	if utils.IsEmpty(prometheusOptions.URL) {
-		stdout.Panic("No JSON URL")
+	queryBytes, err := utils.Content(prometheusOptions.Query)
+	if err != nil {
+		stdout.Panic(err)
 	}
+	prometheusOptions.Query = string(queryBytes)
 
 	prometheus := vendors.NewPrometheus(prometheusOptions)
 	if prometheus == nil {

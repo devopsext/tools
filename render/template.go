@@ -29,7 +29,9 @@ type TemplateOptions struct {
 	Name       string
 	Object     string
 	Content    string
+	Files      []string
 	TimeFormat string
+	Pattern    string
 }
 
 type Template struct {
@@ -350,6 +352,48 @@ func (tpl *Template) fGitlabPipelineVars(URL string, token string, projectID int
 	return string(b), err
 }
 
+func (tpl *Template) fTagExists(s, key string) (bool, error) {
+
+	// DataDog tags
+	tags := strings.Split(s, ",")
+	if len(tags) > 0 {
+		for _, tag := range tags {
+			kv := strings.Split(tag, ":")
+			k := ""
+			if len(kv) > 0 {
+				k = kv[0]
+			}
+			if strings.TrimSpace(k) == strings.TrimSpace(key) {
+				return true, nil
+			}
+		}
+	}
+	return false, nil
+}
+
+func (tpl *Template) fTagValue(s, key string) (string, error) {
+
+	// DataDog tags
+	tags := strings.Split(s, ",")
+	if len(tags) > 0 {
+		for _, tag := range tags {
+			kv := strings.Split(tag, ":")
+			k := ""
+			v := ""
+			if len(kv) > 0 {
+				k = kv[0]
+			}
+			if len(kv) > 1 {
+				v = kv[1]
+			}
+			if strings.TrimSpace(k) == strings.TrimSpace(key) {
+				return v, nil
+			}
+		}
+	}
+	return s, nil
+}
+
 func (tpl *Template) setTemplateFuncs(funcs map[string]interface{}) {
 
 	funcs["logError"] = tpl.fLogError
@@ -381,6 +425,8 @@ func (tpl *Template) setTemplateFuncs(funcs map[string]interface{}) {
 	funcs["content"] = tpl.fContent
 	funcs["urlWait"] = tpl.fURLWait
 	funcs["gitlabPipelineVars"] = tpl.fGitlabPipelineVars
+	funcs["tagExists"] = tpl.fTagExists
+	funcs["tagValue"] = tpl.fTagValue
 }
 
 func (tpl *TextTemplate) customRender(name string, obj interface{}) ([]byte, error) {
@@ -433,6 +479,20 @@ func NewTextTemplate(options TemplateOptions, logger common.Logger) (*TextTempla
 	t, err := txtTemplate.New(options.Name).Funcs(funcs).Parse(options.Content)
 	if err != nil {
 		return nil, err
+	}
+
+	if !utils.IsEmpty(options.Files) {
+		t, err = t.ParseFiles(options.Files...)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	if !utils.IsEmpty(options.Pattern) {
+		t, err = t.ParseGlob(options.Pattern)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	tpl.template = t
@@ -491,6 +551,20 @@ func NewHtmlTemplate(options TemplateOptions, logger common.Logger) (*HtmlTempla
 	t, err := htmlTemplate.New(options.Name).Funcs(funcs).Parse(options.Content)
 	if err != nil {
 		return nil, err
+	}
+
+	if !utils.IsEmpty(options.Files) {
+		t, err = t.ParseFiles(options.Files...)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	if !utils.IsEmpty(options.Pattern) {
+		t, err = t.ParseGlob(options.Pattern)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	tpl.template = t
