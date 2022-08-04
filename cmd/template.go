@@ -1,6 +1,8 @@
 package cmd
 
 import (
+	"strings"
+
 	"github.com/devopsext/tools/common"
 	"github.com/devopsext/tools/render"
 	"github.com/devopsext/utils"
@@ -10,8 +12,10 @@ import (
 var templateOptions = render.TemplateOptions{
 	Name:       envGet("TEMPLATE_NAME", "").(string),
 	Content:    envGet("TEMPLATE_CONTENT", "").(string),
+	Files:      strings.Split(envGet("TEMPLATE_FILES", "").(string), ","),
 	Object:     envGet("TEMPLATE_OBJECT", "").(string),
 	TimeFormat: envGet("TEMPLATE_TIME_FORMAT", "").(string),
+	Pattern:    envGet("TEMPLATE_PATTERN", "").(string),
 }
 
 var templateOutput = common.OutputOptions{
@@ -74,8 +78,10 @@ func NewTemplateCommand() *cobra.Command {
 	flags := templateCmd.PersistentFlags()
 	flags.StringVar(&templateOptions.Name, "template-name", templateOptions.Name, "Template name")
 	flags.StringVar(&templateOptions.Content, "template-content", templateOptions.Content, "Template content")
+	flags.StringSliceVar(&templateOptions.Files, "template-files", templateOptions.Files, "Template files")
 	flags.StringVar(&templateOptions.Object, "template-object", templateOptions.Object, "Template object: json")
 	flags.StringVar(&templateOptions.TimeFormat, "template-time-format", templateOptions.TimeFormat, "Template time format")
+	flags.StringVar(&templateOptions.Pattern, "template-pattern", templateOptions.Pattern, "Template pattern")
 	flags.StringVar(&templateOutput.Output, "template-output", templateOutput.Output, "Template output")
 	flags.StringVar(&templateOutput.Query, "template-output-query", templateOutput.Query, "Template output query")
 

@@ -38,6 +38,9 @@ prometheus.output
 sre-on-call.meet
 sre-on-call.json
 thanos.json
+meet.txt
+*.template
+jira-new-task.url
 
 
 # Created by https://www.toptal.com/developers/gitignore/api/jetbrains

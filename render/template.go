@@ -29,7 +29,9 @@ type TemplateOptions struct {
 	Name       string
 	Object     string
 	Content    string
+	Files      []string
 	TimeFormat string
+	Pattern    string
 }
 
 type Template struct {
@@ -479,6 +481,20 @@ func NewTextTemplate(options TemplateOptions, logger common.Logger) (*TextTempla
 		return nil, err
 	}
 
+	if !utils.IsEmpty(options.Files) {
+		t, err = t.ParseFiles(options.Files...)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	if !utils.IsEmpty(options.Pattern) {
+		t, err = t.ParseGlob(options.Pattern)
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	tpl.template = t
 	tpl.options = options
 	tpl.logger = logger
@@ -535,6 +551,20 @@ func NewHtmlTemplate(options TemplateOptions, logger common.Logger) (*HtmlTempla
 	t, err := htmlTemplate.New(options.Name).Funcs(funcs).Parse(options.Content)
 	if err != nil {
 		return nil, err
+	}
+
+	if !utils.IsEmpty(options.Files) {
+		t, err = t.ParseFiles(options.Files...)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	if !utils.IsEmpty(options.Pattern) {
+		t, err = t.ParseGlob(options.Pattern)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	tpl.template = t
