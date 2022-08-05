@@ -23,10 +23,11 @@ type JiraIssueCreateOptions struct {
 }
 
 type JiraIssueOptions struct {
-	IdOrKey     string
-	Summary     string
-	Description string
-	Labels      []string
+	IdOrKey      string
+	Summary      string
+	Description  string
+	CustomFields string
+	Labels       []string
 }
 
 type JiraIssueAddCommentOptions struct {
@@ -66,7 +67,6 @@ type JiraIssueAssignee struct {
 type JiraIssueReporter struct {
 	Name string `json:"name"`
 }
-
 type JiraIssueFields struct {
 	Project     *JiraIssueProject  `json:"project,omitempty"`
 	IssueType   *JiraIssueType     `json:"issuetype,omitempty"`
@@ -93,6 +93,25 @@ type JiraIssueAddComment struct {
 type Jira struct {
 	client  *http.Client
 	options JiraOptions
+}
+
+// we need custom json marshal for Jira due to possible using of custom fields
+func jsonJiraMarshal(issue interface{}, cf map[string]interface{}) ([]byte, error) {
+	m, err := common.InterfaceToMap("", issue)
+	if err != nil {
+		return nil, err
+	}
+	if len(cf) > 0 {
+		value, err := common.InterfaceToMap("", m["fields"])
+		if err != nil {
+			return nil, err
+		}
+		for k, v := range cf {
+			value[k] = v
+		}
+		m["fields"] = value
+	}
+	return json.Marshal(m)
 }
 
 func (j *Jira) getAuth(opts JiraOptions) string {
@@ -144,7 +163,17 @@ func (j *Jira) CustomIssueCreate(jiraOptions JiraOptions, issueOptions JiraIssue
 		}
 	}
 
-	req, err := json.Marshal(&issue)
+	cf := make(map[string]interface{})
+
+	if !utils.IsEmpty(issueOptions.CustomFields) {
+		var err error
+		cf, err = common.ReadAndMarshal(issueOptions.CustomFields)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	req, err := jsonJiraMarshal(&issue, cf)
 	if err != nil {
 		return nil, err
 	}
@@ -240,7 +269,17 @@ func (j *Jira) CustomIssueUpdate(jiraOptions JiraOptions, issueOptions JiraIssue
 		}
 	}
 
-	req, err := json.Marshal(&issue)
+	cf := make(map[string]interface{})
+
+	if !utils.IsEmpty(issueOptions.CustomFields) {
+		var err error
+		cf, err = common.ReadAndMarshal(issueOptions.CustomFields)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	req, err := jsonJiraMarshal(&issue, cf)
 	if err != nil {
 		return nil, err
 	}

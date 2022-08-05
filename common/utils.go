@@ -28,7 +28,7 @@ func JsonMarshal(t interface{}) ([]byte, error) {
 	return buffer.Bytes(), err
 }
 
-func interfaceToMap(prefix string, i interface{}) (map[string]interface{}, error) {
+func InterfaceToMap(prefix string, i interface{}) (map[string]interface{}, error) {
 	data, err := JsonMarshal(i)
 	if err != nil {
 		return nil, err
@@ -56,7 +56,7 @@ func Output(query, to string, prefix string, opts []interface{}, bytes []byte, s
 	output := string(bytes)
 	if !utils.IsEmpty(query) {
 		for _, v := range opts {
-			vars, err := interfaceToMap(prefix, v)
+			vars, err := InterfaceToMap(prefix, v)
 			if err == nil {
 				jsonata.RegisterVars(vars)
 			}
@@ -137,7 +137,7 @@ func OutputRaw(output string, bytes []byte, stdout *Stdout) {
 }
 
 func Debug(prefix string, obj interface{}, stdout *Stdout) {
-	vars, err := interfaceToMap(prefix, obj)
+	vars, err := InterfaceToMap(prefix, obj)
 	if err != nil {
 		stdout.Panic(err)
 	}
@@ -271,4 +271,19 @@ func TruncateString(str string, length int) string {
 		}
 	}
 	return truncated
+}
+
+func ReadAndMarshal(path string) (map[string]interface{}, error) {
+	var result map[string]interface{}
+
+	dat, err := os.ReadFile(path)
+	if err != nil {
+		return nil, err
+	}
+	err = json.Unmarshal(dat, &result)
+	if err != nil {
+		return nil, err
+	}
+
+	return result, nil
 }
