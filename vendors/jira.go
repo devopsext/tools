@@ -95,6 +95,25 @@ type Jira struct {
 	options JiraOptions
 }
 
+// we need custom json marshal for Jira due to possible using of custom fields
+func jsonJiraMarshal(issue interface{}, cf map[string]interface{}) ([]byte, error) {
+	m, err := common.InterfaceToMap("", issue)
+	if err != nil {
+		return nil, err
+	}
+	if len(cf) > 0 {
+		value, err := common.InterfaceToMap("", m["fields"])
+		if err != nil {
+			return nil, err
+		}
+		for k, v := range cf {
+			value[k] = v
+		}
+		m["fields"] = value
+	}
+	return json.Marshal(m)
+}
+
 func (j *Jira) getAuth(opts JiraOptions) string {
 
 	auth := ""
@@ -154,7 +173,7 @@ func (j *Jira) CustomIssueCreate(jiraOptions JiraOptions, issueOptions JiraIssue
 		}
 	}
 
-	req, err := common.JsonJiraMarshal(&issue, cf)
+	req, err := jsonJiraMarshal(&issue, cf)
 	if err != nil {
 		return nil, err
 	}
@@ -260,7 +279,7 @@ func (j *Jira) CustomIssueUpdate(jiraOptions JiraOptions, issueOptions JiraIssue
 		}
 	}
 
-	req, err := common.JsonJiraMarshal(&issue, cf)
+	req, err := jsonJiraMarshal(&issue, cf)
 	if err != nil {
 		return nil, err
 	}

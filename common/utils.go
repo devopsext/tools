@@ -28,7 +28,7 @@ func JsonMarshal(t interface{}) ([]byte, error) {
 	return buffer.Bytes(), err
 }
 
-func interfaceToMap(prefix string, i interface{}) (map[string]interface{}, error) {
+func InterfaceToMap(prefix string, i interface{}) (map[string]interface{}, error) {
 	data, err := JsonMarshal(i)
 	if err != nil {
 		return nil, err
@@ -46,25 +46,6 @@ func interfaceToMap(prefix string, i interface{}) (map[string]interface{}, error
 	return r, nil
 }
 
-// we need custom json marshal for Jira due to possible using of custom fields
-func JsonJiraMarshal(issue interface{}, cf map[string]interface{}) ([]byte, error) {
-	m, err := interfaceToMap("", issue)
-	if err != nil {
-		return nil, err
-	}
-	if len(cf) > 0 {
-		value, err := interfaceToMap("", m["fields"])
-		if err != nil {
-			return nil, err
-		}
-		for k, v := range cf {
-			value[k] = v
-		}
-		m["fields"] = value
-	}
-	return json.Marshal(m)
-}
-
 func Output(query, to string, prefix string, opts []interface{}, bytes []byte, stdout *Stdout) {
 	b, err := utils.Content(query)
 	if err != nil {
@@ -75,7 +56,7 @@ func Output(query, to string, prefix string, opts []interface{}, bytes []byte, s
 	output := string(bytes)
 	if !utils.IsEmpty(query) {
 		for _, v := range opts {
-			vars, err := interfaceToMap(prefix, v)
+			vars, err := InterfaceToMap(prefix, v)
 			if err == nil {
 				jsonata.RegisterVars(vars)
 			}
@@ -156,7 +137,7 @@ func OutputRaw(output string, bytes []byte, stdout *Stdout) {
 }
 
 func Debug(prefix string, obj interface{}, stdout *Stdout) {
-	vars, err := interfaceToMap(prefix, obj)
+	vars, err := InterfaceToMap(prefix, obj)
 	if err != nil {
 		stdout.Panic(err)
 	}
@@ -190,8 +171,7 @@ func HttpRequestRawWithHeaders(client *http.Client, method, URL string, headers 
 	defer resp.Body.Close()
 
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		b, _ := ioutil.ReadAll(resp.Body)
-		return nil, fmt.Errorf("response status is %q with the error: %q", resp.Status, string(b))
+		return nil, fmt.Errorf(resp.Status)
 	}
 
 	b, err := ioutil.ReadAll(resp.Body)
@@ -254,8 +234,7 @@ func HttpGetRawWithHeaders(client *http.Client, URL string, headers map[string]s
 	defer resp.Body.Close()
 
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		b, _ := ioutil.ReadAll(resp.Body)
-		return nil, fmt.Errorf("response status is %q with the error: %q", resp.Status, string(b))
+		return nil, fmt.Errorf(resp.Status)
 	}
 
 	b, err := ioutil.ReadAll(resp.Body)
