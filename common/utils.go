@@ -77,34 +77,34 @@ func Output(query, to string, prefix string, opts []interface{}, bytes []byte, s
 		if err != nil {
 			stdout.Panic(err)
 		}
-		v, err = expr.Eval(v)
+		v1, err := expr.Eval(v)
 		if err != nil {
 			stdout.Panic(err)
 		}
 
-		// v is json object
-		_, ok := v.(map[string]interface{})
+		// v1 is json object
+		_, ok := v1.(map[string]interface{})
 		if ok {
-			b, err = JsonMarshal(v)
+			b, err = JsonMarshal(v1)
 			if err != nil {
-				output = fmt.Sprintf("%v", v)
+				output = fmt.Sprintf("%v", v1)
 			} else {
 				output = strings.TrimSpace(string(b))
 			}
 		} else {
-			// v is json array
-			_, ok = v.([]interface{})
+			// v1 is json array
+			_, ok = v1.([]interface{})
 			if ok {
-				b, err = JsonMarshal(v)
+				b, err = JsonMarshal(v1)
 				if err != nil {
-					output = fmt.Sprintf("%v", v)
+					output = fmt.Sprintf("%v", v1)
 				} else {
 					output = strings.TrimSpace(string(b))
 				}
 			}
 		}
 		if !ok {
-			output = fmt.Sprintf("%v", v)
+			output = fmt.Sprintf("%v", v1)
 		}
 	}
 
