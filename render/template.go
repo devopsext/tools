@@ -296,25 +296,34 @@ func (tpl *Template) fContent(s string) (string, error) {
 	return string(bytes), nil
 }
 
-func (tpl *Template) fURLWait(url string, status, timeout int, size int64) (bool, error) {
+func (tpl *Template) fURLWait(url string, status, timeout int, size int64) []byte {
 
 	if utils.IsEmpty(url) {
-		return false, nil
+		return nil
 	}
 
 	for i := 0; i < timeout; i++ {
+
 		resp, err := http.Get(url)
 		if err != nil || resp.StatusCode != status {
 			continue
 		}
-		if size <= 0 {
+		defer resp.Body.Close()
+
+		data, err := ioutil.ReadAll(resp.Body)
+		if err != nil {
 			continue
-		} else if resp.ContentLength >= size {
-			return true, nil
+		}
+
+		l := int64(len(data))
+		if l <= 0 {
+			continue
+		} else if l >= size {
+			return data
 		}
 		time.Sleep(time.Second)
 	}
-	return false, nil
+	return nil
 }
 
 func (tpl *Template) fGitlabPipelineVars(URL string, token string, projectID int, query string, limit int) (string, error) {
