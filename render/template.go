@@ -308,7 +308,7 @@ func (tpl *Template) fURLWait(url string, status, timeout int, size int64) (bool
 			continue
 		}
 		if size <= 0 {
-			return true, nil
+			continue
 		} else if resp.ContentLength >= size {
 			return true, nil
 		}
