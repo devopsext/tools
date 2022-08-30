@@ -302,26 +302,39 @@ func (tpl *Template) fURLWait(url string, status, timeout int, size int64) []byt
 		return nil
 	}
 
+	tpl.fLogDebug("fURLWait url => %s [%d, %d, %d]", url, status, timeout, size)
+
 	for i := 0; i < timeout; i++ {
 
 		resp, err := http.Get(url)
-		if err != nil || resp.StatusCode != status {
+		if err != nil {
+			tpl.fLogError("fURLWait get err => %s", err.Error())
+			time.Sleep(time.Second)
 			continue
 		}
 		defer resp.Body.Close()
 
+		if resp.StatusCode != status {
+			tpl.fLogDebug("fURLWait status code => %d", resp.StatusCode)
+			time.Sleep(time.Second)
+			continue
+		}
+
 		data, err := ioutil.ReadAll(resp.Body)
 		if err != nil {
+			tpl.fLogError("fURLWait readAll => %s", err.Error())
+			time.Sleep(time.Second)
 			continue
 		}
 
 		l := int64(len(data))
 		if l <= 0 {
+			tpl.fLogDebug("fURLWait len(data) < 0")
+			time.Sleep(time.Second)
 			continue
 		} else if l >= size {
 			return data
 		}
-		time.Sleep(time.Second)
 	}
 	return nil
 }
