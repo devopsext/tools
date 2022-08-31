@@ -307,7 +307,7 @@ func (tpl *Template) tryToWaitUntil(t time.Time, timeout time.Duration) {
 	}
 }
 
-func (tpl *Template) fURLWait(url string, status, timeout, retry int, size int64) []byte {
+func (tpl *Template) fURLWait(url string, timeout, retry int, size int64) []byte {
 
 	if utils.IsEmpty(url) {
 		return nil
@@ -317,7 +317,7 @@ func (tpl *Template) fURLWait(url string, status, timeout, retry int, size int64
 		retry = 1
 	}
 
-	tpl.fLogInfo("fURLWait url => %s [%d, %d, %d, %d]", url, status, timeout, retry, size)
+	tpl.fLogInfo("fURLWait url => %s [%d, %d, %d]", url, timeout, retry, size)
 
 	var transport = &http.Transport{
 		Dial:                (&net.Dialer{Timeout: time.Duration(timeout) * time.Second}).Dial,
@@ -336,37 +336,20 @@ func (tpl *Template) fURLWait(url string, status, timeout, retry int, size int64
 
 		tpl.fLogInfo("fURLWait(%d) get %s...", i, url)
 
-		resp, err := client.Get(url)
+		data, err := common.HttpGetRaw(&client, url, "", "")
 		if err != nil {
 			tpl.fLogInfo("fURLWait(%d) get %s err => %s", i, url, err.Error())
-		}
-
-		if resp == nil {
-			tpl.tryToWaitUntil(t1, client.Timeout)
-			continue
-		}
-
-		if resp.StatusCode != status {
-			tpl.fLogInfo("fURLWait(%d) %s status code => %d", i, url, resp.StatusCode)
-			tpl.tryToWaitUntil(t1, client.Timeout)
-			continue
-		}
-
-		defer resp.Body.Close()
-		data, err := ioutil.ReadAll(resp.Body)
-		if err != nil {
-			tpl.fLogInfo("fURLWait(%d) %s readAll => %s", i, url, err.Error())
 			tpl.tryToWaitUntil(t1, client.Timeout)
 			continue
 		}
 
 		l := int64(len(data))
+		tpl.fLogInfo("fURLWait(%d) %s len(data) = %d", i, url, l)
+
 		if l < size {
-			tpl.fLogInfo("fURLWait(%d) %s len(data) = %d", i, url, l)
 			tpl.tryToWaitUntil(t1, client.Timeout)
 			continue
 		} else if l >= size {
-			tpl.fLogInfo("fURLWait(%d) %s len(data) = %d", i, url, l)
 			return data
 		}
 	}
