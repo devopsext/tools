@@ -2,12 +2,14 @@ package render
 
 import (
 	"bytes"
+	"crypto/tls"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"html"
 	htmlTemplate "html/template"
 	"io/ioutil"
+	"net"
 	"net/http"
 	"os"
 	"regexp"
@@ -296,43 +298,67 @@ func (tpl *Template) fContent(s string) (string, error) {
 	return string(bytes), nil
 }
 
-func (tpl *Template) fURLWait(url string, status, timeout int, size int64) []byte {
+func (tpl *Template) fURLWait(url string, status, timeout, retry int, size int64) []byte {
 
 	if utils.IsEmpty(url) {
 		return nil
 	}
 
-	tpl.fLogInfo("fURLWait url => %s [%d, %d, %d]", url, status, timeout, size)
+	if retry <= 0 {
+		retry = 1
+	}
 
-	for i := 0; i < timeout; i++ {
+	tpl.fLogInfo("fURLWait url => %s [%d, %d, %d, %d]", url, status, timeout, retry, size)
 
-		resp, err := http.Get(url)
+	var transport = &http.Transport{
+		Dial:                (&net.Dialer{Timeout: time.Duration(timeout) * time.Second}).Dial,
+		TLSHandshakeTimeout: time.Duration(timeout) * time.Second,
+		TLSClientConfig:     &tls.Config{InsecureSkipVerify: true},
+	}
+
+	client := http.Client{
+		Timeout:   time.Duration(timeout) * time.Second,
+		Transport: transport,
+	}
+
+	for i := 0; i < retry; i++ {
+
+		t1 := time.Now()
+
+		tpl.fLogInfo("fURLWait(%d) get %s...", i, url)
+
+		resp, err := client.Get(url)
 		if err != nil {
-			tpl.fLogInfo("fURLWait get err => %s", err.Error())
-			time.Sleep(time.Second)
+			tpl.fLogInfo("fURLWait(%d) get %s err => %s", i, url, err.Error())
+		}
+
+		if resp == nil {
+			t2 := time.Now()
+			diff := t2.Sub(t1)
+			if diff < client.Timeout {
+				time.Sleep(client.Timeout - diff)
+			}
 			continue
 		}
-		defer resp.Body.Close()
 
 		if resp.StatusCode != status {
-			tpl.fLogInfo("fURLWait status code => %d", resp.StatusCode)
-			time.Sleep(time.Second)
+			tpl.fLogInfo("fURLWait(%d) %s status code => %d", i, url, resp.StatusCode)
 			continue
 		}
 
+		defer resp.Body.Close()
 		data, err := ioutil.ReadAll(resp.Body)
 		if err != nil {
-			tpl.fLogInfo("fURLWait readAll => %s", err.Error())
-			time.Sleep(time.Second)
+			tpl.fLogInfo("fURLWait(%d) %s readAll => %s", i, url, err.Error())
 			continue
 		}
 
 		l := int64(len(data))
-		if l <= 0 {
-			tpl.fLogInfo("fURLWait len(data) < 0")
-			time.Sleep(time.Second)
+		if l < size {
+			tpl.fLogInfo("fURLWait(%d) %s len(data) = %d", i, url, l)
 			continue
 		} else if l >= size {
+			tpl.fLogInfo("fURLWait(%d) %s len(data) = %d", i, url, l)
 			return data
 		}
 	}
