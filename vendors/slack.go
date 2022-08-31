@@ -4,7 +4,7 @@ import (
 	"bytes"
 	_ "embed"
 	"errors"
-	"io/ioutil"
+	"io"
 	"mime/multipart"
 	"net/http"
 	"net/url"
@@ -26,16 +26,17 @@ const (
 )
 
 type SlackOptions struct {
-	Timeout  int
-	Insecure bool
-	Token    string
-	Channel  string
-	Title    string
-	Message  string
-	FileName string
-	File     string // content or path to file
-	ImageURL string
-	ParentTS string
+	Timeout    int
+	Insecure   bool
+	Token      string
+	Channel    string
+	Title      string
+	Message    string
+	FileName   string
+	File       string // content or path to file
+	ImageURL   string
+	ParentTS   string
+	QuoteColor string
 }
 
 type SlackOutputOptions struct {
@@ -52,6 +53,7 @@ type SlackMessage struct {
 	ImageURL    string
 	FileName    string
 	FileContent string
+	QuoteColor  string
 }
 
 type Slack struct {
@@ -67,6 +69,7 @@ func (s *Slack) Send() ([]byte, error) {
 		Message:     s.options.Message,
 		FileContent: s.options.File,
 		ParentTS:    s.options.ParentTS,
+		QuoteColor:  s.options.QuoteColor,
 	}
 	return s.SendCustom(m)
 }
@@ -95,6 +98,7 @@ func (s *Slack) SendMessage() ([]byte, error) {
 		ImageURL:    s.options.ImageURL,
 		FileName:    s.options.FileName,
 		FileContent: s.options.File,
+		QuoteColor:  s.options.QuoteColor,
 	}
 	return s.sendMessage(m)
 }
@@ -246,7 +250,7 @@ func (s *Slack) post(token string, URL string, query url.Values, contentType str
 	}
 	defer resp.Body.Close()
 
-	b, err := ioutil.ReadAll(resp.Body)
+	b, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return nil, err
 	}

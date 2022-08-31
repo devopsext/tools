@@ -10,16 +10,17 @@ import (
 )
 
 var slackOptions = vendors.SlackOptions{
-	Timeout:  envGet("SLACK_TIMEOUT", 30).(int),
-	Insecure: envGet("SLACK_INSECURE", false).(bool),
-	Token:    envGet("SLACK_TOKEN", "").(string),
-	Channel:  envGet("SLACK_CHANNEL", "").(string),
-	Title:    envGet("SLACK_TITLE", "").(string),
-	Message:  envGet("SLACK_MESSAGE", "").(string),
-	ImageURL: envGet("SLACK_IMAGE_URL", "").(string),
-	FileName: envGet("SLACK_FILENAME", "").(string),
-	File:     envGet("SLACK_FILE", "").(string),
-	ParentTS: envGet("SLACK_THREAD", "").(string),
+	Timeout:    envGet("SLACK_TIMEOUT", 30).(int),
+	Insecure:   envGet("SLACK_INSECURE", false).(bool),
+	Token:      envGet("SLACK_TOKEN", "").(string),
+	Channel:    envGet("SLACK_CHANNEL", "").(string),
+	Title:      envGet("SLACK_TITLE", "").(string),
+	Message:    envGet("SLACK_MESSAGE", "").(string),
+	ImageURL:   envGet("SLACK_IMAGE_URL", "").(string),
+	FileName:   envGet("SLACK_FILENAME", "").(string),
+	File:       envGet("SLACK_FILE", "").(string),
+	ParentTS:   envGet("SLACK_THREAD", "").(string),
+	QuoteColor: envGet("SLACK_QUOTE_COLOR", "").(string),
 }
 
 var slackOutput = common.OutputOptions{
@@ -73,6 +74,7 @@ func NewSlackCommand() *cobra.Command {
 	flags.StringVar(&slackOptions.Token, "slack-token", slackOptions.Token, "Slack token")
 	flags.StringVar(&slackOptions.Channel, "slack-channel", slackOptions.Channel, "Slack channel")
 	flags.StringVar(&slackOptions.ParentTS, "slack-thread", slackOptions.ParentTS, "Slack thread")
+	flags.StringVar(&slackOptions.QuoteColor, "slack-quote-color", slackOptions.QuoteColor, "Slack quote color in hex format (#008000, no quote by default)")
 	flags.StringVar(&slackOutput.Output, "slack-output", slackOutput.Output, "Slack output")
 	flags.StringVar(&slackOutput.Query, "slack-output-query", slackOutput.Query, "Slack output query")
 

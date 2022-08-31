@@ -1,16 +1,29 @@
 {
     "channel": "{{.Channel}}",
     "as_user": true,
-    "blocks": [
+    "text": "{{ .Title }}"
+{{- if eq .QuoteColor ""}}
+    ,"blocks": [
         { "type": "section",
           "text": { "type": "mrkdwn", "text": "*{{ .Title}}*" }},
         { "type": "divider" },
         { "type": "section",
           "text": { "type": "mrkdwn", "text": "{{ .Message }}" }}
-{{- if ne .ImageURL ""}}
-    , {"type": "image", "image_url": "{{ .ImageURL }}", "alt_text": "{{ .ImageURL }}"}
-{{- end}}],
-    "text": "{{ .Title }}"
+    {{- if ne .ImageURL ""}}
+        , {"type": "image", "image_url": "{{ .ImageURL }}", "alt_text": "{{ .ImageURL }}"}
+    {{- end}}]
+{{- end}}
+{{- if ne .QuoteColor ""}}
+    ,"attachments": [
+        { "color": "{{ .QuoteColor }}",
+          "blocks": [
+            { "type": "section",
+              "text": { "type": "mrkdwn", "text": "{{ .Message }}" }}
+        {{- if ne .ImageURL ""}}
+            , {"type": "image", "image_url": "{{ .ImageURL }}", "alt_text": "{{ .ImageURL }}"}
+        {{- end}}]
+    }]
+{{- end}}
 {{- if ne .ParentTS ""}}
     , "thread_ts": "{{ .ParentTS }}"
 {{- end}}
