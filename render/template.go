@@ -298,6 +298,15 @@ func (tpl *Template) fContent(s string) (string, error) {
 	return string(bytes), nil
 }
 
+func (tpl *Template) tryToWaitUntil(t time.Time, timeout time.Duration) {
+
+	t2 := time.Now()
+	diff := t2.Sub(t)
+	if diff < timeout {
+		time.Sleep(timeout - diff)
+	}
+}
+
 func (tpl *Template) fURLWait(url string, status, timeout, retry int, size int64) []byte {
 
 	if utils.IsEmpty(url) {
@@ -333,16 +342,13 @@ func (tpl *Template) fURLWait(url string, status, timeout, retry int, size int64
 		}
 
 		if resp == nil {
-			t2 := time.Now()
-			diff := t2.Sub(t1)
-			if diff < client.Timeout {
-				time.Sleep(client.Timeout - diff)
-			}
+			tpl.tryToWaitUntil(t1, client.Timeout)
 			continue
 		}
 
 		if resp.StatusCode != status {
 			tpl.fLogInfo("fURLWait(%d) %s status code => %d", i, url, resp.StatusCode)
+			tpl.tryToWaitUntil(t1, client.Timeout)
 			continue
 		}
 
@@ -350,12 +356,14 @@ func (tpl *Template) fURLWait(url string, status, timeout, retry int, size int64
 		data, err := ioutil.ReadAll(resp.Body)
 		if err != nil {
 			tpl.fLogInfo("fURLWait(%d) %s readAll => %s", i, url, err.Error())
+			tpl.tryToWaitUntil(t1, client.Timeout)
 			continue
 		}
 
 		l := int64(len(data))
 		if l < size {
 			tpl.fLogInfo("fURLWait(%d) %s len(data) = %d", i, url, l)
+			tpl.tryToWaitUntil(t1, client.Timeout)
 			continue
 		} else if l >= size {
 			tpl.fLogInfo("fURLWait(%d) %s len(data) = %d", i, url, l)
