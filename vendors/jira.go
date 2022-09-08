@@ -73,6 +73,11 @@ type JiraTransition struct {
 	ID string `json:"id"`
 }
 
+type JiraStatus struct {
+	Name string
+	ID   string
+}
+
 type JiraIssueFields struct {
 	Project     *JiraIssueProject  `json:"project,omitempty"`
 	IssueType   *JiraIssueType     `json:"issuetype,omitempty"`
@@ -308,8 +313,24 @@ func (j *Jira) IssueUpdate(options JiraIssueOptions) ([]byte, error) {
 
 func (j *Jira) CustomIssueChangeTransitions(jiraOptions JiraOptions, issueOptions JiraIssueOptions, issueCreateOptions JiraIssueCreateOptions) ([]byte, error) {
 
-	transition := &JiraIssueTransition{
-		Transition: &JiraTransition{ID: issueOptions.Status},
+	var transition *JiraIssueTransition
+	var status = make(map[string]string)
+	if issueCreateOptions.ProjectKey == "SRE" {
+
+		status["Backlog"] = "11"
+		status["In Progress"] = "31"
+		status["Done"] = "41"
+
+	} else if issueCreateOptions.ProjectKey == "INCI" {
+
+		status["Problem Fixed"] = "51"
+		status["Back to In Progress"] = "91"
+		status["Root Cause Found"] = "61"
+
+	}
+
+	transition = &JiraIssueTransition{
+		Transition: &JiraTransition{ID: status[issueOptions.Status]},
 	}
 
 	req, err := json.Marshal(transition)
