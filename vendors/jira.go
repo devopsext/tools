@@ -73,11 +73,6 @@ type JiraTransition struct {
 	ID string `json:"id"`
 }
 
-type JiraStatus struct {
-	Name string
-	ID   string
-}
-
 type JiraIssueFields struct {
 	Project     *JiraIssueProject  `json:"project,omitempty"`
 	IssueType   *JiraIssueType     `json:"issuetype,omitempty"`
