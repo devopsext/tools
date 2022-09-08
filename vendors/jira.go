@@ -27,6 +27,7 @@ type JiraIssueOptions struct {
 	Summary      string
 	Description  string
 	CustomFields string
+	Status       string
 	Labels       []string
 }
 
@@ -67,6 +68,15 @@ type JiraIssueAssignee struct {
 type JiraIssueReporter struct {
 	Name string `json:"name"`
 }
+
+type JiraTransition struct {
+	ID string `json:"id"`
+}
+
+type JiraIssueTransition struct {
+	Transition *JiraTransition `json:"transition"`
+}
+
 type JiraIssueFields struct {
 	Project     *JiraIssueProject  `json:"project,omitempty"`
 	IssueType   *JiraIssueType     `json:"issuetype,omitempty"`
@@ -294,6 +304,29 @@ func (j *Jira) CustomIssueUpdate(jiraOptions JiraOptions, issueOptions JiraIssue
 
 func (j *Jira) IssueUpdate(options JiraIssueOptions) ([]byte, error) {
 	return j.CustomIssueUpdate(j.options, options)
+}
+
+func (j *Jira) CustomIssueChangeTransitions(jiraOptions JiraOptions, issueOptions JiraIssueOptions) ([]byte, error) {
+
+	transition := &JiraIssueTransition{
+		Transition: &JiraTransition{ID: issueOptions.Status},
+	}
+
+	req, err := json.Marshal(transition)
+	if err != nil {
+		return nil, err
+	}
+
+	u, err := url.Parse(jiraOptions.URL)
+	if err != nil {
+		return nil, err
+	}
+	u.Path = path.Join(u.Path, fmt.Sprintf("/rest/api/2/issue/%s/transitions", issueOptions.IdOrKey))
+	return common.HttpPostRaw(j.client, u.String(), "application/json", j.getAuth(jiraOptions), req)
+}
+
+func (j *Jira) IssueChangeTransitions(options JiraIssueOptions) ([]byte, error) {
+	return j.CustomIssueChangeTransitions(j.options, options)
 }
 
 func NewJira(options JiraOptions) (*Jira, error) {
