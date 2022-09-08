@@ -222,7 +222,7 @@ func NewJiraCommand() *cobra.Command {
 			}
 			jiraIssueOptions.Status = string(statusBytes)
 
-			bytes, err := jiraNew(stdout).IssueChangeTransitions(jiraIssueOptions, jiraIssueCreateOptions)
+			bytes, err := jiraNew(stdout).IssueChangeTransitions(jiraIssueOptions)
 			if err != nil {
 				stdout.Error(err)
 				return

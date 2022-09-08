@@ -73,6 +73,10 @@ type JiraTransition struct {
 	ID string `json:"id"`
 }
 
+type JiraIssueTransition struct {
+	Transition *JiraTransition `json:"transition"`
+}
+
 type JiraIssueFields struct {
 	Project     *JiraIssueProject  `json:"project,omitempty"`
 	IssueType   *JiraIssueType     `json:"issuetype,omitempty"`
@@ -90,10 +94,6 @@ type JiraIssueCreate struct {
 
 type JiraIssueUpdate struct {
 	Fields *JiraIssueFields `json:"fields"`
-}
-
-type JiraIssueTransition struct {
-	Transition *JiraTransition `json:"transition"`
 }
 
 type JiraIssueAddComment struct {
@@ -306,26 +306,10 @@ func (j *Jira) IssueUpdate(options JiraIssueOptions) ([]byte, error) {
 	return j.CustomIssueUpdate(j.options, options)
 }
 
-func (j *Jira) CustomIssueChangeTransitions(jiraOptions JiraOptions, issueOptions JiraIssueOptions, issueCreateOptions JiraIssueCreateOptions) ([]byte, error) {
+func (j *Jira) CustomIssueChangeTransitions(jiraOptions JiraOptions, issueOptions JiraIssueOptions) ([]byte, error) {
 
-	var transition *JiraIssueTransition
-	var status = make(map[string]string)
-	if issueCreateOptions.ProjectKey == "SRE" {
-
-		status["Backlog"] = "11"
-		status["In Progress"] = "31"
-		status["Done"] = "41"
-
-	} else if issueCreateOptions.ProjectKey == "INCI" {
-
-		status["Problem Fixed"] = "51"
-		status["Back to In Progress"] = "91"
-		status["Root Cause Found"] = "61"
-
-	}
-
-	transition = &JiraIssueTransition{
-		Transition: &JiraTransition{ID: status[issueOptions.Status]},
+	transition := &JiraIssueTransition{
+		Transition: &JiraTransition{ID: issueOptions.Status},
 	}
 
 	req, err := json.Marshal(transition)
@@ -341,8 +325,8 @@ func (j *Jira) CustomIssueChangeTransitions(jiraOptions JiraOptions, issueOption
 	return common.HttpPostRaw(j.client, u.String(), "application/json", j.getAuth(jiraOptions), req)
 }
 
-func (j *Jira) IssueChangeTransitions(issueOptions JiraIssueOptions, issueCreateOptions JiraIssueCreateOptions) ([]byte, error) {
-	return j.CustomIssueChangeTransitions(j.options, issueOptions, issueCreateOptions)
+func (j *Jira) IssueChangeTransitions(options JiraIssueOptions) ([]byte, error) {
+	return j.CustomIssueChangeTransitions(j.options, options)
 }
 
 func NewJira(options JiraOptions) (*Jira, error) {
