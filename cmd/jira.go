@@ -33,6 +33,7 @@ var jiraIssueOptions = vendors.JiraIssueOptions{
 	Description:  envGet("JIRA_ISSUE_DESCRIPTION", "").(string),
 	CustomFields: envGet("JIRA_ISSUE_CUSTOM_FIELDS", "").(string),
 	Labels:       strings.Split(envGet("JIRA_ISSUE_LABELS", "").(string), ","),
+	Status:       envGet("JIRA_ISSUE_STATUS", "").(string),
 }
 
 var jiraIssueAddCommentOptions = vendors.JiraIssueAddCommentOptions{
@@ -206,6 +207,32 @@ func NewJiraCommand() *cobra.Command {
 		},
 	}
 	issueCmd.AddCommand(issueUpdateCmd)
+
+	// tools jira issue change-transitions --jira-params --issue-params
+	issueChangeTransitionsCmd := &cobra.Command{
+		Use:   "change-transitions",
+		Short: "Transitions change",
+		Run: func(cmd *cobra.Command, args []string) {
+			stdout.Debug("Jira issue updating...")
+			common.Debug("Jira", jiraIssueOptions, stdout)
+
+			statusBytes, err := utils.Content(jiraIssueOptions.Status)
+			if err != nil {
+				stdout.Panic(err)
+			}
+			jiraIssueOptions.Status = string(statusBytes)
+
+			bytes, err := jiraNew(stdout).IssueChangeTransitions(jiraIssueOptions, jiraIssueCreateOptions)
+			if err != nil {
+				stdout.Error(err)
+				return
+			}
+			common.OutputJson(jiraOutput, "Jira", []interface{}{jiraOptions, jiraIssueOptions}, bytes, stdout)
+		},
+	}
+	flags = issueChangeTransitionsCmd.PersistentFlags()
+	flags.StringVar(&jiraIssueOptions.Status, "jira-issue-status", jiraIssueOptions.Status, "Jira issue status")
+	issueCmd.AddCommand(issueChangeTransitionsCmd)
 
 	return &jiraCmd
 }
