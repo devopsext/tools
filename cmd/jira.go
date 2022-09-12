@@ -45,6 +45,10 @@ var jiraIssueAddAttachmentOptions = vendors.JiraIssueAddAttachmentOptions{
 	Name: envGet("JIRA_ISSUE_ATTACHMENT_NAME", "").(string),
 }
 
+var jiraIssueSearch = vendors.JiraIssueSearch{
+	SearchPattern: envGet("JIRA_ISSUE_SEARCH_PATTERN", "").(string),
+}
+
 var jiraOutput = common.OutputOptions{
 	Output: envGet("JIRA_OUTPUT", "").(string),
 	Query:  envGet("JIRA_OUTPUT_QUERY", "").(string),
@@ -233,6 +237,32 @@ func NewJiraCommand() *cobra.Command {
 	flags = issueChangeTransitionsCmd.PersistentFlags()
 	flags.StringVar(&jiraIssueOptions.Status, "jira-issue-status", jiraIssueOptions.Status, "Jira issue status")
 	issueCmd.AddCommand(issueChangeTransitionsCmd)
+
+	issueSearchCmd := &cobra.Command{
+		Use:   "search",
+		Short: "Search ossue",
+		Run: func(cmd *cobra.Command, args []string) {
+			stdout.Debug("Jira issue searching...")
+			common.Debug("Jira", jiraIssueOptions, stdout)
+
+			searchBytes, err := utils.Content(jiraIssueSearch.SearchPattern)
+			if err != nil {
+				stdout.Panic(err)
+			}
+			jiraIssueSearch.SearchPattern = string(searchBytes)
+
+			bytes, err := jiraNew(stdout).IssueSearch(jiraIssueSearch)
+			if err != nil {
+				stdout.Error(err)
+				return
+			}
+			common.OutputJson(jiraOutput, "Jira", []interface{}{jiraOptions, jiraIssueSearch}, bytes, stdout)
+
+		},
+	}
+	flags = issueSearchCmd.PersistentFlags()
+	flags.StringVar(&jiraIssueSearch.SearchPattern, "jira-issue-search-pattern", jiraIssueSearch.SearchPattern, "Jira issue search")
+	issueCmd.AddCommand((issueSearchCmd))
 
 	return &jiraCmd
 }

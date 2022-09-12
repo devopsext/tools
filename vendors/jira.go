@@ -100,6 +100,10 @@ type JiraIssueAddComment struct {
 	Body string `json:"body"`
 }
 
+type JiraIssueSearch struct {
+	SearchPattern string
+}
+
 type Jira struct {
 	client  *http.Client
 	options JiraOptions
@@ -327,6 +331,26 @@ func (j *Jira) CustomIssueChangeTransitions(jiraOptions JiraOptions, issueOption
 
 func (j *Jira) IssueChangeTransitions(options JiraIssueOptions) ([]byte, error) {
 	return j.CustomIssueChangeTransitions(j.options, options)
+}
+
+func (j *Jira) CustomIssueSearch(jiraOptions JiraOptions, issueSearch JiraIssueSearch) ([]byte, error) {
+
+	params := make(url.Values)
+	params.Add("jql", issueSearch.SearchPattern)
+
+	u, err := url.Parse(jiraOptions.URL)
+	if err != nil {
+		return nil, err
+	}
+
+	u.Path = path.Join(u.Path, "/rest/api/2/search")
+	u.RawQuery = params.Encode()
+
+	return common.HttpGetRaw(j.client, u.String(), "application/json", j.getAuth(jiraOptions))
+}
+
+func (j *Jira) IssueSearch(options JiraIssueSearch) ([]byte, error) {
+	return j.CustomIssueSearch(j.options, options)
 }
 
 func NewJira(options JiraOptions) (*Jira, error) {
