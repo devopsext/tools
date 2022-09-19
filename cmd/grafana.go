@@ -33,6 +33,7 @@ var grafanaGetAnnotationsOptions = vendors.GrafanaGetAnnotationsOptions{
 	AlertID:     envGet("GRAFANA_ANNOTATION_ALERT_ID", 0).(int),
 	DashboardID: envGet("GRAFANA_ANNOTATION_DASHBOARD_ID", 0).(int),
 	PanelID:     envGet("GRAFANA_ANNOTATION_PANEL_ID", 0).(int),
+	MatchAny:    envGet("GRAFANA_ANNOTATION_MATCH_ANY", false).(bool),
 }
 
 var grafanaCreateAnnotationOptions = vendors.GrafanaCreateAnnotationOptions{
@@ -136,14 +137,15 @@ func NewGrafanaCommand() *cobra.Command {
 
 	flags = getAnnotationsCmd.PersistentFlags()
 
-	flags.StringVar(&grafanaGetAnnotationsOptions.From, "grafana-annotation-from", grafanaGetAnnotationsOptions.From, "Grafana annotation from (optional)")
-	flags.StringVar(&grafanaGetAnnotationsOptions.To, "grafana-annotation-to", grafanaGetAnnotationsOptions.To, "Grafana annotation to (optional)")
+	flags.StringVar(&grafanaGetAnnotationsOptions.From, "grafana-annotation-from", grafanaGetAnnotationsOptions.From, "Grafana annotation date from")
+	flags.StringVar(&grafanaGetAnnotationsOptions.To, "grafana-annotation-to", grafanaGetAnnotationsOptions.To, "Grafana annotation date to")
 	flags.StringVar(&grafanaGetAnnotationsOptions.Tags, "grafana-annotation-tags", grafanaGetAnnotationsOptions.Tags, "Grafana annotations tags (comma separated, optional)")
-	flags.StringVar(&grafanaGetAnnotationsOptions.Type, "grafana-annotation-type", grafanaGetAnnotationsOptions.Type, "Grafana annotations type (alert|annotation, default both).")
-	flags.IntVar(&grafanaGetAnnotationsOptions.Limit, "grafana-annotation-limit", grafanaGetAnnotationsOptions.Limit, "Grafana annotations limit (default: 10).")
-	flags.IntVar(&grafanaGetAnnotationsOptions.AlertID, "grafana-annotation-alert", grafanaGetAnnotationsOptions.AlertID, "Grafana annotations alert (optional).")
-	flags.IntVar(&grafanaGetAnnotationsOptions.DashboardID, "grafana-annotation-dashboard", grafanaGetAnnotationsOptions.DashboardID, "Grafana annotations dashboard (optional).")
-	flags.IntVar(&grafanaGetAnnotationsOptions.PanelID, "grafana-annotation-panel", grafanaGetAnnotationsOptions.PanelID, "Grafana annotations panel (optional).")
+	flags.StringVar(&grafanaGetAnnotationsOptions.Type, "grafana-annotation-type", grafanaGetAnnotationsOptions.Type, "Grafana annotations type (alert|annotation, default both)")
+	flags.IntVar(&grafanaGetAnnotationsOptions.Limit, "grafana-annotation-limit", grafanaGetAnnotationsOptions.Limit, "Grafana annotations limit (default: 10)")
+	flags.IntVar(&grafanaGetAnnotationsOptions.AlertID, "grafana-annotation-alert", grafanaGetAnnotationsOptions.AlertID, "Grafana annotations alert")
+	flags.IntVar(&grafanaGetAnnotationsOptions.DashboardID, "grafana-annotation-dashboard", grafanaGetAnnotationsOptions.DashboardID, "Grafana annotations dashboard")
+	flags.IntVar(&grafanaGetAnnotationsOptions.PanelID, "grafana-annotation-panel", grafanaGetAnnotationsOptions.PanelID, "Grafana annotations panel")
+	flags.BoolVar(&grafanaGetAnnotationsOptions.MatchAny, "grafana-annotation-match-any", grafanaGetAnnotationsOptions.MatchAny, "Grafana annotations match any tag")
 
 	grafanaCmd.AddCommand(&getAnnotationsCmd)
 

@@ -10,6 +10,7 @@ tools
 slack.output
 slack.query
 slack-old.query
+slack.txt
 telegram.output
 telegram.query
 graylog.output
@@ -21,6 +22,7 @@ jira.description
 grafana.png
 grafana.output
 grafana.query
+grafana-annotations.query
 google.query
 google.output
 test.png
@@ -33,6 +35,7 @@ json.output
 json-component.query
 json-graph.query
 cmdb.json
+cmdb-wrong.json
 prometheus.query
 prometheus.output
 sre-on-call.meet
@@ -41,6 +44,7 @@ thanos.json
 meet.txt
 *.template
 jira-new-task.url
+
 
 
 # Created by https://www.toptal.com/developers/gitignore/api/jetbrains

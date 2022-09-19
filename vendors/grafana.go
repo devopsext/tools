@@ -32,6 +32,7 @@ type GrafanaGetAnnotationsOptions struct {
 	AlertID     int
 	DashboardID int
 	PanelID     int
+	MatchAny    bool
 }
 
 type GrafanaCreateAnnotationOptions struct {
@@ -216,6 +217,9 @@ func (g *Grafana) CustomGetAnnotations(grafanaOptions GrafanaOptions, getAnnotat
 	}
 	if getAnnotationsOptions.PanelID > 0 {
 		params.Add("panelId", strconv.Itoa(getAnnotationsOptions.PanelID))
+	}
+	if getAnnotationsOptions.MatchAny {
+		params.Add("matchAny", "true")
 	}
 	params.Add("tz", "UTC")
 
