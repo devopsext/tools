@@ -23,6 +23,7 @@ grafana.png
 grafana.output
 grafana.query
 grafana-annotations.query
+grafana.json
 google.query
 google.output
 test.png
