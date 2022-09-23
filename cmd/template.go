@@ -15,7 +15,7 @@ var templateOptions = render.TemplateOptions{
 	Content:    envGet("TEMPLATE_CONTENT", "").(string),
 	Files:      strings.Split(envGet("TEMPLATE_FILES", "").(string), ","),
 	Object:     envGet("TEMPLATE_OBJECT", "").(string),
-	TimeFormat: envGet("TEMPLATE_TIME_FORMAT", time.RFC3339).(string),
+	TimeFormat: envGet("TEMPLATE_TIME_FORMAT", time.RFC3339Nano).(string),
 	Pattern:    envGet("TEMPLATE_PATTERN", "").(string),
 }
 

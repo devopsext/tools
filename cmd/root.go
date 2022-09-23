@@ -63,6 +63,7 @@ func Execute() {
 	rootCmd.AddCommand(NewPrometheusCommand())
 
 	rootCmd.AddCommand(NewTemplateCommand())
+	rootCmd.AddCommand(NewDateCommand())
 
 	if err := rootCmd.Execute(); err != nil {
 		stdout.Error(err)
