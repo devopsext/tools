@@ -47,6 +47,9 @@ func InterfaceToMap(prefix string, i interface{}) (map[string]interface{}, error
 }
 
 func Output(query, to string, prefix string, opts []interface{}, bytes []byte, stdout *Stdout) {
+
+	stdout.Debug("Raw output => %s", string(bytes))
+
 	b, err := utils.Content(query)
 	if err != nil {
 		stdout.Panic(err)
@@ -124,6 +127,9 @@ func OutputJson(outputOpts OutputOptions, prefix string, opts []interface{}, byt
 }
 
 func OutputRaw(output string, bytes []byte, stdout *Stdout) {
+
+	stdout.Debug("Raw output => %s", string(bytes))
+
 	out := string(bytes)
 	if utils.IsEmpty(output) {
 		stdout.Info(out)
