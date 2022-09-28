@@ -19,6 +19,10 @@ type OutputOptions struct {
 	Query  string
 }
 
+type OutputCode struct {
+	Code int `json:"code"`
+}
+
 // we need custom json marshal due to no html escaption
 func JsonMarshal(t interface{}) ([]byte, error) {
 	buffer := &bytes.Buffer{}
@@ -201,6 +205,60 @@ func HttpPostRaw(client *http.Client, URL, contentType string, authorization str
 		headers["Authorization"] = authorization
 	}
 	return HttpPostRawWithHeaders(client, URL, headers, raw)
+}
+
+func HttpRequestRawWithHeadersOutCode(client *http.Client, method, URL string, headers map[string]string, raw []byte) ([]byte, error) {
+
+	reader := bytes.NewReader(raw)
+
+	req, err := http.NewRequest(method, URL, reader)
+	if err != nil {
+		return nil, err
+	}
+
+	for k, v := range headers {
+		if utils.IsEmpty(v) {
+			continue
+		}
+		req.Header.Set(k, v)
+	}
+
+	resp, err := client.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	q := &OutputCode{
+		Code: resp.StatusCode,
+	}
+
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		return nil, fmt.Errorf(resp.Status)
+	}
+
+	data, err := JsonMarshal(q)
+	if err != nil {
+		return nil, err
+	}
+
+	return data, nil
+}
+
+func HttpPostRawWithHeadersOutCode(client *http.Client, URL string, headers map[string]string, raw []byte) ([]byte, error) {
+	return HttpRequestRawWithHeadersOutCode(client, "POST", URL, headers, raw)
+}
+
+func HttpPostRawOutCode(client *http.Client, URL, contentType string, authorization string, raw []byte) ([]byte, error) {
+
+	headers := make(map[string]string)
+	if !utils.IsEmpty(contentType) {
+		headers["Content-Type"] = contentType
+	}
+	if !utils.IsEmpty(authorization) {
+		headers["Authorization"] = authorization
+	}
+	return HttpPostRawWithHeadersOutCode(client, URL, headers, raw)
 }
 
 func HttpPutRawWithHeaders(client *http.Client, URL string, headers map[string]string, raw []byte) ([]byte, error) {
