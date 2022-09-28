@@ -326,7 +326,7 @@ func (j *Jira) CustomIssueChangeTransitions(jiraOptions JiraOptions, issueOption
 		return nil, err
 	}
 	u.Path = path.Join(u.Path, fmt.Sprintf("/rest/api/2/issue/%s/transitions", issueOptions.IdOrKey))
-	return common.HttpPostRaw(j.client, u.String(), "application/json", j.getAuth(jiraOptions), req)
+	return common.HttpPostRawOutCode(j.client, u.String(), "application/json", j.getAuth(jiraOptions), req)
 }
 
 func (j *Jira) IssueChangeTransitions(options JiraIssueOptions) ([]byte, error) {
