@@ -203,6 +203,56 @@ func HttpPostRaw(client *http.Client, URL, contentType string, authorization str
 	return HttpPostRawWithHeaders(client, URL, headers, raw)
 }
 
+func HttpRequestRawWithHeadersOutCode(client *http.Client, method, URL string, headers map[string]string, raw []byte) (body []byte, code int, err error) {
+
+	reader := bytes.NewReader(raw)
+
+	req, err := http.NewRequest(method, URL, reader)
+	if err != nil {
+		return nil, 0, err
+	}
+
+	for k, v := range headers {
+		if utils.IsEmpty(v) {
+			continue
+		}
+		req.Header.Set(k, v)
+	}
+
+	resp, err := client.Do(req)
+	if err != nil {
+		return nil, 0, err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		return nil, 0, fmt.Errorf(resp.Status)
+	}
+
+	b, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return nil, 0, err
+	}
+
+	return b, resp.StatusCode, nil
+}
+
+func HttpPostRawWithHeadersOutCode(client *http.Client, URL string, headers map[string]string, raw []byte) (body []byte, code int, err error) {
+	return HttpRequestRawWithHeadersOutCode(client, "POST", URL, headers, raw)
+}
+
+func HttpPostRawOutCode(client *http.Client, URL, contentType string, authorization string, raw []byte) (body []byte, code int, err error) {
+
+	headers := make(map[string]string)
+	if !utils.IsEmpty(contentType) {
+		headers["Content-Type"] = contentType
+	}
+	if !utils.IsEmpty(authorization) {
+		headers["Authorization"] = authorization
+	}
+	return HttpPostRawWithHeadersOutCode(client, URL, headers, raw)
+}
+
 func HttpPutRawWithHeaders(client *http.Client, URL string, headers map[string]string, raw []byte) ([]byte, error) {
 	return HttpRequestRawWithHeaders(client, "PUT", URL, headers, raw)
 }

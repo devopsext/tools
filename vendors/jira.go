@@ -109,6 +109,10 @@ type Jira struct {
 	options JiraOptions
 }
 
+type OutputCode struct {
+	Code int `json:"code"`
+}
+
 // we need custom json marshal for Jira due to possible using of custom fields
 func jsonJiraMarshal(issue interface{}, cf map[string]interface{}) ([]byte, error) {
 	m, err := common.InterfaceToMap("", issue)
@@ -326,7 +330,20 @@ func (j *Jira) CustomIssueChangeTransitions(jiraOptions JiraOptions, issueOption
 		return nil, err
 	}
 	u.Path = path.Join(u.Path, fmt.Sprintf("/rest/api/2/issue/%s/transitions", issueOptions.IdOrKey))
-	return common.HttpPostRaw(j.client, u.String(), "application/json", j.getAuth(jiraOptions), req)
+
+	_, c, err := common.HttpPostRawOutCode(j.client, u.String(), "application/json", j.getAuth(jiraOptions), req)
+	if err != nil {
+		return nil, err
+	}
+
+	code, err := common.JsonMarshal(&OutputCode{
+		Code: c,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return code, nil
 }
 
 func (j *Jira) IssueChangeTransitions(options JiraIssueOptions) ([]byte, error) {
