@@ -4,6 +4,7 @@ import (
 	"bytes"
 	_ "embed"
 	"errors"
+	"fmt"
 	"io"
 	"mime/multipart"
 	"net/http"
@@ -23,6 +24,7 @@ const baseURL = "https://slack.com/api/"
 const (
 	filesUpload     = "files.upload"
 	chatPostMessage = "chat.postMessage"
+	reactionsAdd    = "reactions.add"
 )
 
 type SlackOptions struct {
@@ -37,6 +39,10 @@ type SlackOptions struct {
 	ImageURL   string
 	ParentTS   string
 	QuoteColor string
+}
+
+type SlackReactionOptions struct {
+	Name string
 }
 
 type SlackOutputOptions struct {
@@ -143,6 +149,7 @@ func (s *Slack) sendMessage(m SlackMessage) ([]byte, error) {
 }
 
 func (s *Slack) SendCustom(m SlackMessage) ([]byte, error) {
+
 	var body bytes.Buffer
 	w := multipart.NewWriter(&body)
 	defer func() {
@@ -172,6 +179,7 @@ func (s *Slack) SendCustom(m SlackMessage) ([]byte, error) {
 }
 
 func (s *Slack) SendCustomFile(m SlackMessage) ([]byte, error) {
+
 	var body bytes.Buffer
 	w := multipart.NewWriter(&body)
 	defer func() {
@@ -259,6 +267,46 @@ func (s *Slack) post(token string, URL string, query url.Values, contentType str
 
 func (s *Slack) apiURL(cmd string) string {
 	return baseURL + cmd
+}
+
+func (s *Slack) getAuth(opts SlackOptions) string {
+
+	auth := ""
+	if !utils.IsEmpty(opts.Token) {
+		auth = fmt.Sprintf("Bearer %s", opts.Token)
+		return auth
+	}
+	return auth
+}
+
+func (s *Slack) CustomAddReaction(slackOptions SlackOptions, reactionOptions SlackReactionOptions) ([]byte, error) {
+
+	var body bytes.Buffer
+	w := multipart.NewWriter(&body)
+	defer func() {
+		w.Close()
+	}()
+
+	if err := w.WriteField("channel", slackOptions.Channel); err != nil {
+		return nil, err
+	}
+
+	if err := w.WriteField("name", reactionOptions.Name); err != nil {
+		return nil, err
+	}
+
+	if err := w.WriteField("timestamp", slackOptions.ParentTS); err != nil {
+		return nil, err
+	}
+
+	if err := w.Close(); err != nil {
+		return nil, err
+	}
+	return common.HttpPostRaw(s.client, s.apiURL(reactionsAdd), w.FormDataContentType(), s.getAuth(slackOptions), body.Bytes())
+}
+
+func (s *Slack) AddReaction(options SlackReactionOptions) ([]byte, error) {
+	return s.CustomAddReaction(s.options, options)
 }
 
 func NewSlack(options SlackOptions) (*Slack, error) {

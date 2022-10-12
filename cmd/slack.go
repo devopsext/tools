@@ -23,6 +23,10 @@ var slackOptions = vendors.SlackOptions{
 	QuoteColor: envGet("SLACK_QUOTE_COLOR", "").(string),
 }
 
+var slackReactionOptions = vendors.SlackReactionOptions{
+	Name: envGet("SLACK_REACTION_NAME", "").(string),
+}
+
 var slackOutput = common.OutputOptions{
 	Output: envGet("SLACK_OUTPUT", "").(string),
 	Query:  envGet("SLACK_OUTPUT_QUERY", "").(string),
@@ -108,5 +112,26 @@ func NewSlackCommand() *cobra.Command {
 			common.OutputJson(slackOutput, "Slack", []interface{}{slackOptions}, bytes, stdout)
 		},
 	})
+
+	addReactionCmd := &cobra.Command{
+		Use:   "add-reaction",
+		Short: "Add reaction",
+		Run: func(cmd *cobra.Command, args []string) {
+
+			stdout.Debug("Slack add reaction...")
+			common.Debug("Slack", slackReactionOptions, stdout)
+
+			bytes, err := slackNew(stdout).AddReaction(slackReactionOptions)
+			if err != nil {
+				stdout.Error(err)
+				return
+			}
+			common.OutputJson(slackOutput, "Slack", []interface{}{slackOptions, slackReactionOptions}, bytes, stdout)
+		},
+	}
+	flags = addReactionCmd.PersistentFlags()
+	flags.StringVar(&slackReactionOptions.Name, "slack-reaction-name", slackReactionOptions.Name, "Slack reaction name")
+	slackCmd.AddCommand(addReactionCmd)
+
 	return slackCmd
 }

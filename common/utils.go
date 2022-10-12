@@ -177,7 +177,7 @@ func HttpRequestRawWithHeaders(client *http.Client, method, URL string, headers 
 	defer resp.Body.Close()
 
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		return nil, fmt.Errorf(resp.Status)
+		return nil, fmt.Errorf("response status code: %s", resp.Status)
 	}
 
 	b, err := ioutil.ReadAll(resp.Body)
