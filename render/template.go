@@ -356,7 +356,7 @@ func (tpl *Template) fURLWait(url string, timeout, retry int, size int64) []byte
 	return nil
 }
 
-func (tpl *Template) fGitlabPipelineVars(URL string, token string, projectID int, query string, limit int) (string, error) {
+func (tpl *Template) fGitlabPipelineVars(URL string, token string, projectID int, query string, limit int) string {
 
 	gitlabOptions := vendors.GitlabOptions{
 		Timeout:  30,
@@ -367,7 +367,8 @@ func (tpl *Template) fGitlabPipelineVars(URL string, token string, projectID int
 
 	gitlab, err := vendors.NewGitlab(gitlabOptions)
 	if err != nil {
-		return "", err
+		tpl.fLogInfo("fGitlabPipelineVars err => %s", err.Error())
+		return ""
 	}
 
 	if limit <= 0 {
@@ -388,7 +389,11 @@ func (tpl *Template) fGitlabPipelineVars(URL string, token string, projectID int
 	}
 
 	b, err := gitlab.PipelineGetVariables(pipelineOptions, pipelineGetVariablesOptions)
-	return string(b), err
+	if err != nil {
+		tpl.fLogInfo("fGitlabPipelineVars err => %s", err.Error())
+		return ""
+	}
+	return string(b)
 }
 
 func (tpl *Template) fTagExists(s, key string) (bool, error) {
