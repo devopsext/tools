@@ -378,7 +378,6 @@ func (tpl *Template) fGitlabPipelineVars(URL string, token string, projectID int
 	pipelineOptions := vendors.GitlabPipelineOptions{
 		ProjectID: projectID,
 		Scope:     "finished",
-		Status:    "success",
 		OrderBy:   "updated_at",
 		Sort:      "desc",
 		Limit:     limit,

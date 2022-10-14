@@ -23,7 +23,8 @@ var gitlabOutput = common.OutputOptions{
 var pipelineOptions = vendors.GitlabPipelineOptions{
 	ProjectID: envGet("GITLAB_PIPELINE_PROJECT_ID", 0).(int),
 	Scope:     envGet("GITLAB_PIPELINE_SCOPE", "finished").(string),
-	Status:    envGet("GITLAB_PIPELINE_STATUS", "success").(string),
+	Status:    envGet("GITLAB_PIPELINE_STATUS", "").(string),
+	Source:    envGet("GITLAB_PIPELINE_SOURCE", "").(string),
 	Ref:       envGet("GITLAB_PIPELINE_REF", "").(string),
 	OrderBy:   envGet("GITLAB_PIPELINE_OREDR_BY", "updated_at").(string),
 	Sort:      envGet("GITLAB_PIPELINE_SORT", "desc").(string),
@@ -68,6 +69,7 @@ func NewGitlabCommand() *cobra.Command {
 	flags.IntVar(&pipelineOptions.ProjectID, "gitlab-pipeline-project-id", pipelineOptions.ProjectID, "Gitlab pipeline project ID")
 	flags.StringVar(&pipelineOptions.Scope, "gitlab-pipeline-scope", pipelineOptions.Scope, "Gitlab pipeline scope")
 	flags.StringVar(&pipelineOptions.Status, "gitlab-pipeline-status", pipelineOptions.Status, "Gitlab pipeline status")
+	flags.StringVar(&pipelineOptions.Source, "gitlab-pipeline-source", pipelineOptions.Source, "Gitlab pipeline source")
 	flags.StringVar(&pipelineOptions.Ref, "gitlab-pipeline-ref", pipelineOptions.Ref, "Gitlab pipeline Ref")
 	flags.StringVar(&pipelineOptions.OrderBy, "gitlab-pipeline-order-by", pipelineOptions.OrderBy, "Gitlab pipeline order by")
 	flags.StringVar(&pipelineOptions.Sort, "gitlab-pipeline-sort", pipelineOptions.Sort, "Gitlab pipeline sort")

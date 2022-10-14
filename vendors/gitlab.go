@@ -31,6 +31,7 @@ type GitlabPipelineOptions struct {
 	ProjectID int
 	Scope     string
 	Status    string
+	Source    string
 	Ref       string
 	OrderBy   string
 	Sort      string
@@ -86,6 +87,7 @@ func (g *Gitlab) get(url string) ([]byte, error) {
 }
 
 func (g Gitlab) getLastPipeline(project int, ref string) (*GitlabPipelinesResp, error) {
+
 	u, err := url.Parse(g.options.URL)
 	if err != nil {
 		return nil, err
@@ -196,6 +198,9 @@ func (g *Gitlab) getPipelines(gitlabOptions GitlabOptions, pipelineOptions Gitla
 	}
 	if !utils.IsEmpty(pipelineOptions.Status) {
 		params.Add("status", pipelineOptions.Status)
+	}
+	if !utils.IsEmpty(pipelineOptions.Source) {
+		params.Add("source", pipelineOptions.Source)
 	}
 	if !utils.IsEmpty(pipelineOptions.Ref) {
 		params.Add("ref", pipelineOptions.Ref)
