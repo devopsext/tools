@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"net/url"
 	"path"
+	"strconv"
 
 	"github.com/devopsext/tools/common"
 	"github.com/devopsext/utils"
@@ -38,6 +39,11 @@ type JiraIssueAddCommentOptions struct {
 type JiraIssueAddAttachmentOptions struct {
 	File string
 	Name string
+}
+
+type JiraIssueSearchOptions struct {
+	SearchPattern string
+	MaxResults    int
 }
 
 type JiraOptions struct {
@@ -98,10 +104,6 @@ type JiraIssueUpdate struct {
 
 type JiraIssueAddComment struct {
 	Body string `json:"body"`
-}
-
-type JiraIssueSearch struct {
-	SearchPattern string
 }
 
 type Jira struct {
@@ -350,10 +352,12 @@ func (j *Jira) IssueChangeTransitions(options JiraIssueOptions) ([]byte, error) 
 	return j.CustomIssueChangeTransitions(j.options, options)
 }
 
-func (j *Jira) CustomIssueSearch(jiraOptions JiraOptions, issueSearch JiraIssueSearch) ([]byte, error) {
+func (j *Jira) CustomIssueSearch(jiraOptions JiraOptions, issueSearch JiraIssueSearchOptions) ([]byte, error) {
 
 	params := make(url.Values)
 	params.Add("jql", issueSearch.SearchPattern)
+	params.Add("maxResults", strconv.Itoa(issueSearch.MaxResults))
+	params.Add("validateQuery", "strict")
 
 	u, err := url.Parse(jiraOptions.URL)
 	if err != nil {
@@ -366,7 +370,7 @@ func (j *Jira) CustomIssueSearch(jiraOptions JiraOptions, issueSearch JiraIssueS
 	return common.HttpGetRaw(j.client, u.String(), "application/json", j.getAuth(jiraOptions))
 }
 
-func (j *Jira) IssueSearch(options JiraIssueSearch) ([]byte, error) {
+func (j *Jira) IssueSearch(options JiraIssueSearchOptions) ([]byte, error) {
 	return j.CustomIssueSearch(j.options, options)
 }
 

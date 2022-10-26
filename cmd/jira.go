@@ -45,8 +45,9 @@ var jiraIssueAddAttachmentOptions = vendors.JiraIssueAddAttachmentOptions{
 	Name: envGet("JIRA_ISSUE_ATTACHMENT_NAME", "").(string),
 }
 
-var jiraIssueSearch = vendors.JiraIssueSearch{
+var jiraIssueSearchOptions = vendors.JiraIssueSearchOptions{
 	SearchPattern: envGet("JIRA_ISSUE_SEARCH_PATTERN", "").(string),
+	MaxResults:    envGet("JIRA_ISSUE_SEARCH_MAX_RESULTS", 50).(int),
 }
 
 var jiraOutput = common.OutputOptions{
@@ -244,24 +245,25 @@ func NewJiraCommand() *cobra.Command {
 		Run: func(cmd *cobra.Command, args []string) {
 			stdout.Debug("Jira issue searching...")
 			common.Debug("Jira", jiraIssueOptions, stdout)
+			common.Debug("Jira", jiraIssueSearchOptions, stdout)
 
-			searchBytes, err := utils.Content(jiraIssueSearch.SearchPattern)
+			searchBytes, err := utils.Content(jiraIssueSearchOptions.SearchPattern)
 			if err != nil {
 				stdout.Panic(err)
 			}
-			jiraIssueSearch.SearchPattern = string(searchBytes)
+			jiraIssueSearchOptions.SearchPattern = string(searchBytes)
 
-			bytes, err := jiraNew(stdout).IssueSearch(jiraIssueSearch)
+			bytes, err := jiraNew(stdout).IssueSearch(jiraIssueSearchOptions)
 			if err != nil {
 				stdout.Error(err)
 				return
 			}
-			common.OutputJson(jiraOutput, "Jira", []interface{}{jiraOptions, jiraIssueSearch}, bytes, stdout)
-
+			common.OutputJson(jiraOutput, "Jira", []interface{}{jiraOptions, jiraIssueSearchOptions}, bytes, stdout)
 		},
 	}
 	flags = issueSearchCmd.PersistentFlags()
-	flags.StringVar(&jiraIssueSearch.SearchPattern, "jira-issue-search-pattern", jiraIssueSearch.SearchPattern, "Jira issue search")
+	flags.StringVar(&jiraIssueSearchOptions.SearchPattern, "jira-issue-search-pattern", jiraIssueSearchOptions.SearchPattern, "Jira issue search pattern")
+	flags.IntVar(&jiraIssueSearchOptions.MaxResults, "jira-issue-search-max-results", jiraIssueSearchOptions.MaxResults, "Jira issue search max results")
 	issueCmd.AddCommand((issueSearchCmd))
 
 	return &jiraCmd
