@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"net/url"
 	"path"
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -42,14 +43,63 @@ type GrafanaCreateAnnotationOptions struct {
 	Text    string
 }
 
+type GrafanaClonedDahboardOptions struct {
+	UID         string
+	Annotations []string
+	PanelIDs    []string
+}
+
+type GrafanaCreateDahboardOptions struct {
+	Title     string
+	FolderUID string
+	Tags      []string
+	From      string
+	To        string
+	Cloned    GrafanaClonedDahboardOptions
+}
+
 type GrafanaOptions struct {
-	URL      string
-	Timeout  int
-	Insecure bool
-	APIKey   string
-	OrgID    string
-	UID      string
-	Slug     string
+	URL               string
+	Timeout           int
+	Insecure          bool
+	APIKey            string
+	OrgID             string
+	DashboardUID      string
+	DashboardSlug     string
+	DashboardTimezone string
+}
+
+type GrafanaDashboardTime struct {
+	From string `json:"from"`
+	To   string `json:"to"`
+}
+
+type GrafanaDashboardAnnotations struct {
+	List         []interface{} `json:"list"`
+	GraphTooltip int           `json:"graphTooltip"`
+}
+
+type GrafanaDashboard struct {
+	ID            int      `json:"id"`
+	UID           string   `json:"uid"`
+	Title         string   `json:"title"`
+	Tags          []string `json:"tags"`
+	Timezone      string   `json:"timezone"`
+	SchemaVersion int      `json:"schemaVersion"`
+	Version       int      `json:"version"`
+	//Refresh       string                      `json:"refresh"`
+	GraphTooltip int                         `json:"graphTooltip"`
+	Time         GrafanaDashboardTime        `json:"time"`
+	Annotations  GrafanaDashboardAnnotations `json:"annotations"`
+	Panels       []interface{}               `json:"panels"`
+}
+
+type GrafanaBoard struct {
+	Dashboard GrafanaDashboard `json:"dashboard"`
+	FolderID  int              `json:"folderId"`
+	FolderUID string           `json:"folderUid"`
+	Message   string           `json:"message"`
+	Overwrite bool             `json:"overwrite"`
 }
 
 type GrafanaAnnotation struct {
@@ -64,7 +114,21 @@ type Grafana struct {
 	options GrafanaOptions
 }
 
+func (g *Grafana) getAuth(options GrafanaOptions) string {
+	auth := ""
+	if !utils.IsEmpty(options.APIKey) {
+		auth = fmt.Sprintf("Bearer %s", options.APIKey)
+	}
+	return auth
+}
+
 func (g *Grafana) CustomRenderImage(grafanaOptions GrafanaOptions, renderImageOptions GrafanaRenderImageOptions) ([]byte, error) {
+
+	u, err := url.Parse(grafanaOptions.URL)
+	if err != nil {
+		return nil, err
+	}
+	u.Path = path.Join(u.Path, fmt.Sprintf("/render/d-solo/%s/%s", grafanaOptions.DashboardUID, grafanaOptions.DashboardSlug))
 
 	var params = make(url.Values)
 	if !utils.IsEmpty(grafanaOptions.OrgID) {
@@ -85,21 +149,10 @@ func (g *Grafana) CustomRenderImage(grafanaOptions GrafanaOptions, renderImageOp
 	if !utils.IsEmpty(renderImageOptions.To) {
 		params.Add("to", g.toRFC3339NanoStr(renderImageOptions.To))
 	}
-	params.Add("tz", "UTC")
+	params.Add("tz", grafanaOptions.DashboardTimezone)
 
-	u, err := url.Parse(grafanaOptions.URL)
-	if err != nil {
-		return nil, err
-	}
-
-	u.Path = path.Join(u.Path, fmt.Sprintf("/render/d-solo/%s/%s", grafanaOptions.UID, grafanaOptions.Slug))
 	u.RawQuery = params.Encode()
-
-	auth := ""
-	if !utils.IsEmpty(grafanaOptions.APIKey) {
-		auth = fmt.Sprintf("Bearer %s", grafanaOptions.APIKey)
-	}
-	return common.HttpGetRaw(g.client, u.String(), "", auth)
+	return common.HttpGetRaw(g.client, u.String(), "", g.getAuth(grafanaOptions))
 }
 
 func (g *Grafana) RenderImage(options GrafanaRenderImageOptions) ([]byte, error) {
@@ -112,13 +165,8 @@ func (g *Grafana) CustomGetDashboards(grafanaOptions GrafanaOptions) ([]byte, er
 		return nil, err
 	}
 
-	u.Path = path.Join(u.Path, fmt.Sprintf("api/dashboards/uid/%s", grafanaOptions.UID))
-
-	auth := ""
-	if !utils.IsEmpty(grafanaOptions.APIKey) {
-		auth = fmt.Sprintf("Bearer %s", grafanaOptions.APIKey)
-	}
-	return common.HttpGetRaw(g.client, u.String(), "", auth)
+	u.Path = path.Join(u.Path, fmt.Sprintf("/api/dashboards/uid/%s", grafanaOptions.DashboardUID))
+	return common.HttpGetRaw(g.client, u.String(), "", g.getAuth(grafanaOptions))
 }
 
 func (g *Grafana) GetDashboards() ([]byte, error) {
@@ -131,17 +179,13 @@ func (g Grafana) CustomCreateAnnotation(grafanaOptions GrafanaOptions, createAnn
 		return nil, err
 	}
 
-	u.Path = path.Join(u.Path, "api/annotations")
+	u.Path = path.Join(u.Path, "/api/annotations")
 
-	auth := ""
-	if !utils.IsEmpty(grafanaOptions.APIKey) {
-		auth = fmt.Sprintf("Bearer %s", g.options.APIKey)
-	}
 	b, err := json.Marshal(g.createAnnotation(&createAnnotationOptions))
 	if err != nil {
 		return nil, err
 	}
-	return common.HttpPostRaw(g.client, u.String(), "application/json", auth, b)
+	return common.HttpPostRaw(g.client, u.String(), "application/json", g.getAuth(grafanaOptions), b)
 }
 
 func (g *Grafana) createAnnotation(o *GrafanaCreateAnnotationOptions) *GrafanaAnnotation {
@@ -186,7 +230,7 @@ func (g *Grafana) CustomGetAnnotations(grafanaOptions GrafanaOptions, getAnnotat
 		return nil, err
 	}
 
-	u.Path = path.Join(u.Path, "api/annotations")
+	u.Path = path.Join(u.Path, "/api/annotations")
 
 	var params = make(url.Values)
 	for _, tag := range strings.Split(getAnnotationsOptions.Tags, ",") {
@@ -221,19 +265,104 @@ func (g *Grafana) CustomGetAnnotations(grafanaOptions GrafanaOptions, getAnnotat
 	if getAnnotationsOptions.MatchAny {
 		params.Add("matchAny", "true")
 	}
-	params.Add("tz", "UTC")
+	params.Add("tz", grafanaOptions.DashboardTimezone)
 
 	u.RawQuery = params.Encode()
-
-	auth := ""
-	if !utils.IsEmpty(grafanaOptions.APIKey) {
-		auth = fmt.Sprintf("Bearer %s", grafanaOptions.APIKey)
-	}
-	return common.HttpGetRaw(g.client, u.String(), "", auth)
+	return common.HttpGetRaw(g.client, u.String(), "", g.getAuth(grafanaOptions))
 }
 
 func (g *Grafana) GetAnnotations(options GrafanaGetAnnotationsOptions) ([]byte, error) {
 	return g.CustomGetAnnotations(g.options, options)
+}
+
+/*
+- make dashboard by name if it's not exists yet
+- clone the panel to new dashboard (or existed one)
+- filter series in the pannel by name (regexp)
+- save dashboard with cloned panel
+- render panel to chart
+*/
+
+func (g Grafana) matchFilter(filter []string, value string) bool {
+
+	for _, v := range filter {
+		match, _ := regexp.MatchString(v, value)
+		if match {
+			return true
+		}
+	}
+	return false
+}
+
+func (g Grafana) copyRawAnnotations(source, dest *GrafanaDashboardAnnotations, filter []string) {
+
+	if len(source.List) <= 0 {
+		return
+	}
+
+	for _, v := range source.List {
+		m, ok := v.(map[string]interface{})
+		if ok {
+			name, ok := m["name"].(string)
+			if ok && g.matchFilter(filter, name) {
+				dest.List = append(dest.List, v)
+			}
+		}
+	}
+}
+
+func (g Grafana) CustomCreateDashboard(grafanaOptions GrafanaOptions, createDashboardOptions GrafanaCreateDahboardOptions) ([]byte, error) {
+
+	u, err := url.Parse(grafanaOptions.URL)
+	if err != nil {
+		return nil, err
+	}
+	u.Path = path.Join(u.Path, "/api/dashboards/db")
+
+	cloned := &GrafanaBoard{}
+	if !utils.IsEmpty(createDashboardOptions.Cloned.UID) {
+		clonedOpts := GrafanaOptions{
+			URL:          grafanaOptions.URL,
+			Timeout:      grafanaOptions.Timeout,
+			Insecure:     grafanaOptions.Insecure,
+			APIKey:       grafanaOptions.APIKey,
+			OrgID:        grafanaOptions.OrgID,
+			DashboardUID: createDashboardOptions.Cloned.UID,
+		}
+		b, err := g.CustomGetDashboards(clonedOpts)
+		if err != nil {
+			return nil, err
+		}
+		cloned = &GrafanaBoard{}
+		err = json.Unmarshal(b, cloned)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	req := &GrafanaBoard{
+		FolderID:  0,
+		FolderUID: createDashboardOptions.FolderUID,
+		Overwrite: false,
+	}
+	req.Dashboard.Title = createDashboardOptions.Title
+	req.Dashboard.Tags = createDashboardOptions.Tags
+	req.Dashboard.Timezone = grafanaOptions.DashboardTimezone
+	req.Dashboard.GraphTooltip = 1
+	req.Dashboard.Time.From = createDashboardOptions.From
+	req.Dashboard.Time.To = createDashboardOptions.To
+
+	g.copyRawAnnotations(&cloned.Dashboard.Annotations, &req.Dashboard.Annotations, createDashboardOptions.Cloned.Annotations)
+
+	b, err := json.Marshal(&req)
+	if err != nil {
+		return nil, err
+	}
+	return common.HttpPostRaw(g.client, u.String(), "application/json", g.getAuth(grafanaOptions), b)
+}
+
+func (g *Grafana) CreateDashboard(options GrafanaCreateDahboardOptions) ([]byte, error) {
+	return g.CustomCreateDashboard(g.options, options)
 }
 
 func NewGrafana(options GrafanaOptions) (*Grafana, error) {

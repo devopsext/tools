@@ -1,19 +1,35 @@
 package cmd
 
 import (
+	"strings"
+
 	"github.com/devopsext/tools/common"
 	"github.com/devopsext/tools/vendors"
 	"github.com/spf13/cobra"
 )
 
 var grafanaOptions = vendors.GrafanaOptions{
-	URL:      envGet("GRAFANA_URL", "").(string),
-	Timeout:  envGet("GRAFANA_TIMEOUT", 30).(int),
-	Insecure: envGet("GRAFANA_INSECURE", false).(bool),
-	APIKey:   envGet("GRAFANA_API_KEY", "").(string),
-	OrgID:    envGet("GRAFANA_ORG_ID", "1").(string),
-	UID:      envGet("GRAFANA_UID", "").(string),
-	Slug:     envGet("GRAFANA_SLUG", "").(string),
+	URL:               envGet("GRAFANA_URL", "").(string),
+	Timeout:           envGet("GRAFANA_TIMEOUT", 30).(int),
+	Insecure:          envGet("GRAFANA_INSECURE", false).(bool),
+	APIKey:            envGet("GRAFANA_API_KEY", "").(string),
+	OrgID:             envGet("GRAFANA_ORG_ID", "1").(string),
+	DashboardUID:      envGet("GRAFANA_DASHBOARD_UID", "").(string),
+	DashboardSlug:     envGet("GRAFANA_DASHBOARD_UID_SLUG", "").(string),
+	DashboardTimezone: envGet("GRAFANA_DASHBOARD_TIMEZONE", "UTC").(string),
+}
+
+var grafanaCreateDashboardOptions = vendors.GrafanaCreateDahboardOptions{
+	Title:     envGet("GRAFANA_DASHBOARD_TITLE", "").(string),
+	FolderUID: envGet("GRAFANA_DASHBOARD_FOLDER_UID", "").(string),
+	Tags:      strings.Split(envGet("GRAFANA_DASHBOARD_TAGS", "").(string), ","),
+	From:      envGet("GRAFANA_DASHBOARD_FROM", "now-1h").(string),
+	To:        envGet("GRAFANA_DASHBOARD_TO", "now").(string),
+	Cloned: vendors.GrafanaClonedDahboardOptions{
+		UID:         envGet("GRAFANA_DASHBOARD_CLONED_UID", "").(string),
+		Annotations: strings.Split(envGet("GRAFANA_DASHBOARD_CLONED_ANNOTATIONS", "").(string), ","),
+		PanelIDs:    strings.Split(envGet("GRAFANA_DASHBOARD_CLONED_PANEL_IDS", "").(string), ","),
+	},
 }
 
 var grafanaRenderImageOptions = vendors.GrafanaRenderImageOptions{
@@ -72,11 +88,38 @@ func NewGrafanaCommand() *cobra.Command {
 	flags.BoolVar(&grafanaOptions.Insecure, "grafana-insecure", grafanaOptions.Insecure, "Grafana insecure")
 	flags.StringVar(&grafanaOptions.APIKey, "grafana-api-key", grafanaOptions.APIKey, "Grafana api key")
 	flags.StringVar(&grafanaOptions.OrgID, "grafana-org-id", grafanaOptions.OrgID, "Grafana org id")
-	flags.StringVar(&grafanaOptions.UID, "grafana-uid", grafanaOptions.UID, "Grafana dashboard uid")
-	flags.StringVar(&grafanaOptions.Slug, "grafana-slug", grafanaOptions.Slug, "Grafana dashboard slug")
+	flags.StringVar(&grafanaOptions.DashboardUID, "grafana-dashboard-uid", grafanaOptions.DashboardUID, "Grafana dashboard uid")
+	flags.StringVar(&grafanaOptions.DashboardSlug, "grafana-dashboard-slug", grafanaOptions.DashboardSlug, "Grafana dashboard slug")
+	flags.StringVar(&grafanaOptions.DashboardTimezone, "grafana-dashboard-timezone", grafanaOptions.DashboardTimezone, "Grafana dashboard timezone")
 
 	flags.StringVar(&grafanaOutput.Output, "grafana-output", grafanaOutput.Output, "Grafana output")
 	flags.StringVar(&grafanaOutput.Query, "grafana-output-query", grafanaOutput.Query, "Grafana output query")
+
+	createDashboardCmd := cobra.Command{
+		Use:   "create-dashboard",
+		Short: "Create dashboard",
+		Run: func(cmd *cobra.Command, args []string) {
+			stdout.Debug("Grafana creating dashboard...")
+			common.Debug("Grafana", grafanaCreateDashboardOptions, stdout)
+
+			bytes, err := grafanaNew(stdout).CreateDashboard(grafanaCreateDashboardOptions)
+			if err != nil {
+				stdout.Error(err)
+				return
+			}
+			common.OutputRaw(grafanaOutput.Output, bytes, stdout)
+		},
+	}
+	flags = createDashboardCmd.PersistentFlags()
+	flags.StringVar(&grafanaCreateDashboardOptions.Title, "grafana-dashboard-title", grafanaCreateDashboardOptions.Title, "Grafana dashboard title")
+	flags.StringVar(&grafanaCreateDashboardOptions.FolderUID, "grafana-dashboard-folder-uid", grafanaCreateDashboardOptions.FolderUID, "Grafana dashboard folder uid")
+	flags.StringSliceVar(&grafanaCreateDashboardOptions.Tags, "grafana-dashboard-tags", grafanaCreateDashboardOptions.Tags, "Grafana dashboard tags")
+	flags.StringVar(&grafanaCreateDashboardOptions.From, "grafana-dashboard-from", grafanaCreateDashboardOptions.From, "Grafana dashboard time from")
+	flags.StringVar(&grafanaCreateDashboardOptions.To, "grafana-dashboard-to", grafanaCreateDashboardOptions.To, "Grafana dashboard time to")
+	flags.StringVar(&grafanaCreateDashboardOptions.Cloned.UID, "grafana-dashboard-cloned-uid", grafanaCreateDashboardOptions.Cloned.UID, "Grafana dashboard cloned uuid")
+	flags.StringSliceVar(&grafanaCreateDashboardOptions.Cloned.Annotations, "grafana-dashboard-cloned-annotations", grafanaCreateDashboardOptions.Cloned.Annotations, "Grafana dashboard cloned annotations")
+	flags.StringSliceVar(&grafanaCreateDashboardOptions.Cloned.PanelIDs, "grafana-dashboard-cloned-panel-ids", grafanaCreateDashboardOptions.Cloned.PanelIDs, "Grafana dashboard cloned panel ids")
+	grafanaCmd.AddCommand(&createDashboardCmd)
 
 	renderImageCmd := cobra.Command{
 		Use:   "render-image",
@@ -93,14 +136,12 @@ func NewGrafanaCommand() *cobra.Command {
 			common.OutputRaw(grafanaOutput.Output, bytes, stdout)
 		},
 	}
-
 	flags = renderImageCmd.PersistentFlags()
 	flags.StringVar(&grafanaRenderImageOptions.PanelID, "grafana-image-panel-id", grafanaRenderImageOptions.PanelID, "Grafana image panel id")
 	flags.StringVar(&grafanaRenderImageOptions.From, "grafana-image-from", grafanaRenderImageOptions.From, "Grafana image from")
 	flags.StringVar(&grafanaRenderImageOptions.To, "grafana-image-to", grafanaRenderImageOptions.To, "Grafana image to")
 	flags.IntVar(&grafanaRenderImageOptions.Width, "grafana-image-width", grafanaRenderImageOptions.Width, "Grafana image width")
 	flags.IntVar(&grafanaRenderImageOptions.Height, "grafana-image-height", grafanaRenderImageOptions.Height, "Grafana image height")
-
 	grafanaCmd.AddCommand(&renderImageCmd)
 
 	getDashboardCmd := cobra.Command{
@@ -134,9 +175,7 @@ func NewGrafanaCommand() *cobra.Command {
 			common.OutputJson(grafanaOutput, "Grafana", []interface{}{grafanaOptions, grafanaGetAnnotationsOptions}, bytes, stdout)
 		},
 	}
-
 	flags = getAnnotationsCmd.PersistentFlags()
-
 	flags.StringVar(&grafanaGetAnnotationsOptions.From, "grafana-annotation-from", grafanaGetAnnotationsOptions.From, "Grafana annotation date from")
 	flags.StringVar(&grafanaGetAnnotationsOptions.To, "grafana-annotation-to", grafanaGetAnnotationsOptions.To, "Grafana annotation date to")
 	flags.StringVar(&grafanaGetAnnotationsOptions.Tags, "grafana-annotation-tags", grafanaGetAnnotationsOptions.Tags, "Grafana annotations tags (comma separated, optional)")
@@ -146,7 +185,6 @@ func NewGrafanaCommand() *cobra.Command {
 	flags.IntVar(&grafanaGetAnnotationsOptions.DashboardID, "grafana-annotation-dashboard", grafanaGetAnnotationsOptions.DashboardID, "Grafana annotations dashboard")
 	flags.IntVar(&grafanaGetAnnotationsOptions.PanelID, "grafana-annotation-panel", grafanaGetAnnotationsOptions.PanelID, "Grafana annotations panel")
 	flags.BoolVar(&grafanaGetAnnotationsOptions.MatchAny, "grafana-annotation-match-any", grafanaGetAnnotationsOptions.MatchAny, "Grafana annotations match any tag")
-
 	grafanaCmd.AddCommand(&getAnnotationsCmd)
 
 	createAnnotationCmd := cobra.Command{
@@ -169,13 +207,11 @@ func NewGrafanaCommand() *cobra.Command {
 			common.OutputJson(grafanaOutput, "Grafana", []interface{}{grafanaOptions, grafanaCreateAnnotationOptions}, bytes, stdout)
 		},
 	}
-
 	flags = createAnnotationCmd.PersistentFlags()
 	flags.StringVar(&grafanaCreateAnnotationOptions.Text, "grafana-annotation-text", grafanaCreateAnnotationOptions.Text, "Grafana annotation text")
 	flags.StringVar(&grafanaCreateAnnotationOptions.Time, "grafana-annotation-time", grafanaCreateAnnotationOptions.Time, "Grafana annotation time")
 	flags.StringVar(&grafanaCreateAnnotationOptions.TimeEnd, "grafana-annotation-time-end", grafanaCreateAnnotationOptions.Tags, "Grafana annotation end time")
 	flags.StringVar(&grafanaCreateAnnotationOptions.Tags, "grafana-annotation-tags", grafanaCreateAnnotationOptions.Tags, "Grafana annotation tags (comma separated)")
-
 	grafanaCmd.AddCommand(&createAnnotationCmd)
 
 	return &grafanaCmd
