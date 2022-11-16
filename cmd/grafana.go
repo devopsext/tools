@@ -29,6 +29,7 @@ var grafanaCreateDashboardOptions = vendors.GrafanaCreateDahboardOptions{
 		UID:         envGet("GRAFANA_DASHBOARD_CLONED_UID", "").(string),
 		Annotations: strings.Split(envGet("GRAFANA_DASHBOARD_CLONED_ANNOTATIONS", "").(string), ","),
 		PanelIDs:    strings.Split(envGet("GRAFANA_DASHBOARD_CLONED_PANEL_IDS", "").(string), ","),
+		PanelSeries: strings.Split(envGet("GRAFANA_DASHBOARD_CLONED_PANEL_SERIES", "").(string), ","),
 	},
 }
 
@@ -119,6 +120,7 @@ func NewGrafanaCommand() *cobra.Command {
 	flags.StringVar(&grafanaCreateDashboardOptions.Cloned.UID, "grafana-dashboard-cloned-uid", grafanaCreateDashboardOptions.Cloned.UID, "Grafana dashboard cloned uuid")
 	flags.StringSliceVar(&grafanaCreateDashboardOptions.Cloned.Annotations, "grafana-dashboard-cloned-annotations", grafanaCreateDashboardOptions.Cloned.Annotations, "Grafana dashboard cloned annotations")
 	flags.StringSliceVar(&grafanaCreateDashboardOptions.Cloned.PanelIDs, "grafana-dashboard-cloned-panel-ids", grafanaCreateDashboardOptions.Cloned.PanelIDs, "Grafana dashboard cloned panel ids")
+	flags.StringSliceVar(&grafanaCreateDashboardOptions.Cloned.PanelSeries, "grafana-dashboard-cloned-panel-series", grafanaCreateDashboardOptions.Cloned.PanelSeries, "Grafana dashboard cloned panel series")
 	grafanaCmd.AddCommand(&createDashboardCmd)
 
 	renderImageCmd := cobra.Command{

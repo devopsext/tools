@@ -47,6 +47,7 @@ type GrafanaClonedDahboardOptions struct {
 	UID         string
 	Annotations []string
 	PanelIDs    []string
+	PanelSeries []string
 }
 
 type GrafanaCreateDahboardOptions struct {
@@ -80,18 +81,17 @@ type GrafanaDashboardAnnotations struct {
 }
 
 type GrafanaDashboard struct {
-	ID            int      `json:"id"`
-	UID           string   `json:"uid"`
-	Title         string   `json:"title"`
-	Tags          []string `json:"tags"`
-	Timezone      string   `json:"timezone"`
-	SchemaVersion int      `json:"schemaVersion"`
-	Version       int      `json:"version"`
-	//Refresh       string                      `json:"refresh"`
-	GraphTooltip int                         `json:"graphTooltip"`
-	Time         GrafanaDashboardTime        `json:"time"`
-	Annotations  GrafanaDashboardAnnotations `json:"annotations"`
-	Panels       []interface{}               `json:"panels"`
+	ID            int                         `json:"id"`
+	UID           string                      `json:"uid"`
+	Title         string                      `json:"title"`
+	Tags          []string                    `json:"tags"`
+	Timezone      string                      `json:"timezone"`
+	SchemaVersion int                         `json:"schemaVersion"`
+	Version       int                         `json:"version"`
+	GraphTooltip  int                         `json:"graphTooltip"`
+	Time          GrafanaDashboardTime        `json:"time"`
+	Annotations   GrafanaDashboardAnnotations `json:"annotations"`
+	Panels        []interface{}               `json:"panels"`
 }
 
 type GrafanaBoard struct {
@@ -294,7 +294,7 @@ func (g Grafana) matchFilter(filter []string, value string) bool {
 	return false
 }
 
-func (g Grafana) copyRawAnnotations(source, dest *GrafanaDashboardAnnotations, filter []string) {
+func (g Grafana) copyRawAnnotations(source, dest *GrafanaDashboardAnnotations, names []string) {
 
 	if len(source.List) <= 0 {
 		return
@@ -304,8 +304,82 @@ func (g Grafana) copyRawAnnotations(source, dest *GrafanaDashboardAnnotations, f
 		m, ok := v.(map[string]interface{})
 		if ok {
 			name, ok := m["name"].(string)
-			if ok && g.matchFilter(filter, name) {
+			if ok && g.matchFilter(names, name) {
 				dest.List = append(dest.List, v)
+			}
+		}
+	}
+}
+
+func (g Grafana) panelIsType(pm map[string]interface{}, types []string) bool {
+	t, ok := pm["type"].(string)
+	if !ok {
+		return false
+	}
+	return utils.Contains(types, t)
+}
+
+func (g Grafana) setLegend(pm map[string]interface{}) {
+
+	legend, okLegend := pm["legend"].(map[string]interface{})
+	if !okLegend {
+		return
+	}
+	_, okRS := legend["rightSide"].(bool)
+	if okRS {
+		legend["rightSide"] = false
+	}
+}
+
+func (g Grafana) setSeriesOverrides(pm map[string]interface{}, filter string) {
+
+	overrides, okOverrides := pm["seriesOverrides"].([]interface{})
+	if !okOverrides {
+		return
+	}
+
+	hide := make(map[string]interface{})
+	hide["alias"] = "/^.*/"
+	hide["legend"] = false
+	hide["lines"] = false
+	overrides = append(overrides, hide)
+
+	show := make(map[string]interface{})
+	show["alias"] = fmt.Sprintf("/%s/", filter)
+	show["legend"] = true
+	show["lines"] = true
+	overrides = append(overrides, show)
+
+	pm["seriesOverrides"] = overrides
+}
+
+func (g Grafana) copyRawPanels(source, dest *[]interface{}, IDs []string, series []string) {
+
+	if len(*source) <= 0 {
+		return
+	}
+
+	for _, p := range *source {
+		pm, ok := p.(map[string]interface{})
+		if ok {
+
+			id, okID := pm["id"].(float64)
+			if okID && g.panelIsType(pm, []string{"graph"}) {
+				idx := utils.Index(IDs, fmt.Sprintf("%.f", id))
+				if idx > -1 {
+					if (len(series) > idx) && !utils.IsEmpty(series[idx]) {
+						g.setLegend(pm)
+						g.setSeriesOverrides(pm, series[idx])
+					}
+					*dest = append(*dest, p)
+				}
+			}
+
+			if g.panelIsType(pm, []string{"row"}) {
+				pnls, okPnls := pm["panels"].([]interface{})
+				if okPnls {
+					g.copyRawPanels(&pnls, dest, IDs, series)
+				}
 			}
 		}
 	}
@@ -353,6 +427,7 @@ func (g Grafana) CustomCreateDashboard(grafanaOptions GrafanaOptions, createDash
 	req.Dashboard.Time.To = createDashboardOptions.To
 
 	g.copyRawAnnotations(&cloned.Dashboard.Annotations, &req.Dashboard.Annotations, createDashboardOptions.Cloned.Annotations)
+	g.copyRawPanels(&cloned.Dashboard.Panels, &req.Dashboard.Panels, createDashboardOptions.Cloned.PanelIDs, createDashboardOptions.Cloned.PanelSeries)
 
 	b, err := json.Marshal(&req)
 	if err != nil {
