@@ -331,15 +331,15 @@ func (g Grafana) setLegend(pm map[string]interface{}) {
 	}
 }
 
-func (g Grafana) setSeriesOverrides(pm map[string]interface{}, filter string) {
+/*func (g Grafana) setSeriesOverrides(pm map[string]interface{}, filter string) {
 
-	overrides, okOverrides := pm["seriesOverrides"].([]interface{})
-	if !okOverrides {
-		return
-	}
+overrides, okOverrides := pm["seriesOverrides"].([]interface{})
+if !okOverrides {
+	return
+}
 
-	hide := make(map[string]interface{})
-	hide["alias"] = "/^.*/"
+hide := make(map[string]interface{})
+hide["alias"] = "/^.*/ /*"
 	hide["legend"] = false
 	hide["lines"] = false
 	overrides = append(overrides, hide)
@@ -351,6 +351,28 @@ func (g Grafana) setSeriesOverrides(pm map[string]interface{}, filter string) {
 	overrides = append(overrides, show)
 
 	pm["seriesOverrides"] = overrides
+}*/
+
+func (g Grafana) setTransformations(pm map[string]interface{}, pattern string) {
+
+	transformations, okTransformations := pm["transformations"].([]interface{})
+	if !okTransformations {
+		transformations = []interface{}{}
+	}
+
+	transformation := make(map[string]interface{})
+	transformation["id"] = "filterFieldsByName"
+
+	options := make(map[string]interface{})
+	include := make(map[string]interface{})
+	names := []interface{}{"Time"}
+	include["names"] = names
+	include["pattern"] = pattern
+	options["include"] = include
+	transformation["options"] = options
+	transformations = append(transformations, transformation)
+
+	pm["transformations"] = transformations
 }
 
 func (g Grafana) copyRawPanels(source, dest *[]interface{}, IDs []string, series []string) {
@@ -364,21 +386,25 @@ func (g Grafana) copyRawPanels(source, dest *[]interface{}, IDs []string, series
 		if ok {
 
 			id, okID := pm["id"].(float64)
-			if okID && g.panelIsType(pm, []string{"graph"}) {
+			if okID {
+
 				idx := utils.Index(IDs, fmt.Sprintf("%.f", id))
 				if idx > -1 {
-					if (len(series) > idx) && !utils.IsEmpty(series[idx]) {
+					if !g.panelIsType(pm, []string{"row"}) &&
+						(len(series) > idx) && !utils.IsEmpty(series[idx]) {
+
 						g.setLegend(pm)
-						g.setSeriesOverrides(pm, series[idx])
+						//g.setSeriesOverrides(pm, series[idx])
+						g.setTransformations(pm, series[idx])
 					}
 					*dest = append(*dest, p)
 				}
-			}
 
-			if g.panelIsType(pm, []string{"row"}) {
-				pnls, okPnls := pm["panels"].([]interface{})
-				if okPnls {
-					g.copyRawPanels(&pnls, dest, IDs, series)
+				if g.panelIsType(pm, []string{"row"}) {
+					pnls, okPnls := pm["panels"].([]interface{})
+					if okPnls {
+						g.copyRawPanels(&pnls, dest, IDs, series)
+					}
 				}
 			}
 		}
