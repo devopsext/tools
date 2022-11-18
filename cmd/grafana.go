@@ -30,6 +30,7 @@ var grafanaCreateDashboardOptions = vendors.GrafanaCreateDahboardOptions{
 		Annotations: strings.Split(envGet("GRAFANA_DASHBOARD_CLONED_ANNOTATIONS", "").(string), ","),
 		PanelIDs:    strings.Split(envGet("GRAFANA_DASHBOARD_CLONED_PANEL_IDS", "").(string), ","),
 		PanelSeries: strings.Split(envGet("GRAFANA_DASHBOARD_CLONED_PANEL_SERIES", "").(string), ","),
+		LegendRight: envGet("GRAFANA_DASHBOARD_CLONED_LEGEND_RIGHT", false).(bool),
 		Arrange:     envGet("GRAFANA_DASHBOARD_CLONED_ARRANGE", false).(bool),
 		Count:       envGet("GRAFANA_DASHBOARD_CLONED_COUNT", 3).(int),
 		Width:       envGet("GRAFANA_DASHBOARD_CLONED_WIDTH", 6).(int),
@@ -125,6 +126,7 @@ func NewGrafanaCommand() *cobra.Command {
 	flags.StringSliceVar(&grafanaCreateDashboardOptions.Cloned.Annotations, "grafana-dashboard-cloned-annotations", grafanaCreateDashboardOptions.Cloned.Annotations, "Grafana dashboard cloned annotations")
 	flags.StringSliceVar(&grafanaCreateDashboardOptions.Cloned.PanelIDs, "grafana-dashboard-cloned-panel-ids", grafanaCreateDashboardOptions.Cloned.PanelIDs, "Grafana dashboard cloned panel ids")
 	flags.StringSliceVar(&grafanaCreateDashboardOptions.Cloned.PanelSeries, "grafana-dashboard-cloned-panel-series", grafanaCreateDashboardOptions.Cloned.PanelSeries, "Grafana dashboard cloned panel series")
+	flags.BoolVar(&grafanaCreateDashboardOptions.Cloned.LegendRight, "grafana-dashboard-cloned-legend-right", grafanaCreateDashboardOptions.Cloned.LegendRight, "Grafana dashboard cloned legend right")
 	flags.BoolVar(&grafanaCreateDashboardOptions.Cloned.Arrange, "grafana-dashboard-cloned-arrange", grafanaCreateDashboardOptions.Cloned.Arrange, "Grafana dashboard cloned arrange")
 	flags.IntVar(&grafanaCreateDashboardOptions.Cloned.Count, "grafana-dashboard-cloned-count", grafanaCreateDashboardOptions.Cloned.Count, "Grafana dashboard cloned count per line")
 	flags.IntVar(&grafanaCreateDashboardOptions.Cloned.Width, "grafana-dashboard-cloned-width", grafanaCreateDashboardOptions.Cloned.Width, "Grafana dashboard cloned width")

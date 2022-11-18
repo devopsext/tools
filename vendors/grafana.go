@@ -48,6 +48,7 @@ type GrafanaClonedDahboardOptions struct {
 	Annotations []string
 	PanelIDs    []string
 	PanelSeries []string
+	LegendRight bool
 	Arrange     bool
 	Count       int
 	Width       int
@@ -323,41 +324,16 @@ func (g Grafana) panelIsType(pm map[string]interface{}, typ string) bool {
 	return t == typ
 }
 
-/*func (g Grafana) setSeriesOverrides(pm map[string]interface{}, filter string) {
-
-overrides, okOverrides := pm["seriesOverrides"].([]interface{})
-if !okOverrides {
-	return
-}
-
-hide := make(map[string]interface{})
-hide["alias"] = "/^.*/ /*"
-	hide["legend"] = false
-	hide["lines"] = false
-	overrides = append(overrides, hide)
-
-	show := make(map[string]interface{})
-	show["alias"] = fmt.Sprintf("/%s/", filter)
-	show["legend"] = true
-	show["lines"] = true
-	overrides = append(overrides, show)
-
-	pm["seriesOverrides"] = overrides
-}*/
-
-func (g Grafana) setLegend(pm map[string]interface{}) {
+func (g Grafana) setLegend(pm map[string]interface{}, right bool) {
 
 	legend, okLegend := pm["legend"].(map[string]interface{})
 	if !okLegend {
-		return
+		legend = make(map[string]interface{})
 	}
-	_, okRS := legend["rightSide"].(bool)
-	if okRS {
-		legend["rightSide"] = false
-	}
+	legend["rightSide"] = right
 }
 
-func (g Grafana) setAlerts(pm map[string]interface{}) {
+func (g Grafana) deleteAlerts(pm map[string]interface{}) {
 
 	_, okAlert := pm["alert"].(map[string]interface{})
 	if !okAlert {
@@ -413,23 +389,26 @@ func (g Grafana) findPanel(source *[]interface{}, ID string) map[string]interfac
 	return nil
 }
 
-func (g Grafana) copyPanels(source, dest *[]interface{}, IDs []string, series []string) {
+func (g Grafana) copyPanels(source, dest *[]interface{}, clonedDashboardOptions GrafanaClonedDahboardOptions) {
 
 	if len(*source) <= 0 {
 		return
 	}
+
+	IDs := clonedDashboardOptions.PanelIDs
+	series := clonedDashboardOptions.PanelSeries
 
 	if !utils.IsEmpty(IDs) {
 		for idx, id := range IDs {
 
 			pm := g.findPanel(source, id)
 			if pm != nil {
-				if !g.panelIsType(pm, "row") &&
-					(len(series) > idx) && !utils.IsEmpty(series[idx]) {
-
-					g.setLegend(pm)
-					g.setAlerts(pm)
-					g.setTransformations(pm, series[idx])
+				if !g.panelIsType(pm, "row") {
+					g.setLegend(pm, clonedDashboardOptions.LegendRight)
+					g.deleteAlerts(pm)
+					if (len(series) > idx) && !utils.IsEmpty(series[idx]) {
+						g.setTransformations(pm, series[idx])
+					}
 				}
 				*dest = append(*dest, pm)
 			}
@@ -438,6 +417,10 @@ func (g Grafana) copyPanels(source, dest *[]interface{}, IDs []string, series []
 		for _, p := range *source {
 			pm, ok := p.(map[string]interface{})
 			if ok {
+				if !g.panelIsType(pm, "row") {
+					g.setLegend(pm, clonedDashboardOptions.LegendRight)
+					g.deleteAlerts(pm)
+				}
 				*dest = append(*dest, pm)
 			}
 		}
@@ -533,7 +516,7 @@ func (g Grafana) CustomCreateDashboard(grafanaOptions GrafanaOptions, createDash
 	req.Dashboard.Time.To = createDashboardOptions.To
 
 	g.copyAnnotations(&cloned.Dashboard.Annotations, &req.Dashboard.Annotations, createDashboardOptions.Cloned.Annotations)
-	g.copyPanels(&cloned.Dashboard.Panels, &req.Dashboard.Panels, createDashboardOptions.Cloned.PanelIDs, createDashboardOptions.Cloned.PanelSeries)
+	g.copyPanels(&cloned.Dashboard.Panels, &req.Dashboard.Panels, createDashboardOptions.Cloned)
 
 	if createDashboardOptions.Cloned.Arrange {
 		g.arrangePanels(&req.Dashboard.Panels, createDashboardOptions.Cloned)
