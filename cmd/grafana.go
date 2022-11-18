@@ -5,6 +5,7 @@ import (
 
 	"github.com/devopsext/tools/common"
 	"github.com/devopsext/tools/vendors"
+	"github.com/devopsext/utils"
 	"github.com/spf13/cobra"
 )
 
@@ -108,12 +109,17 @@ func NewGrafanaCommand() *cobra.Command {
 			stdout.Debug("Grafana creating dashboard...")
 			common.Debug("Grafana", grafanaCreateDashboardOptions, stdout)
 
+			if utils.IsEmpty(grafanaCreateDashboardOptions.Title) {
+				stdout.Error("Grafana create title is required")
+				return
+			}
+
 			bytes, err := grafanaNew(stdout).CreateDashboard(grafanaCreateDashboardOptions)
 			if err != nil {
 				stdout.Error(err)
 				return
 			}
-			common.OutputRaw(grafanaOutput.Output, bytes, stdout)
+			common.OutputJson(grafanaOutput, "Grafana", []interface{}{grafanaOptions, grafanaCreateDashboardOptions}, bytes, stdout)
 		},
 	}
 	flags = createDashboardCmd.PersistentFlags()
