@@ -15,7 +15,7 @@ var grafanaOptions = vendors.GrafanaOptions{
 	APIKey:            envGet("GRAFANA_API_KEY", "").(string),
 	OrgID:             envGet("GRAFANA_ORG_ID", "1").(string),
 	DashboardUID:      envGet("GRAFANA_DASHBOARD_UID", "").(string),
-	DashboardSlug:     envGet("GRAFANA_DASHBOARD_UID_SLUG", "").(string),
+	DashboardSlug:     envGet("GRAFANA_DASHBOARD_SLUG", "").(string),
 	DashboardTimezone: envGet("GRAFANA_DASHBOARD_TIMEZONE", "UTC").(string),
 }
 
