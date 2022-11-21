@@ -30,6 +30,7 @@ var grafanaCreateDashboardOptions = vendors.GrafanaCreateDahboardOptions{
 		UID:         envGet("GRAFANA_DASHBOARD_CLONED_UID", "").(string),
 		Annotations: strings.Split(envGet("GRAFANA_DASHBOARD_CLONED_ANNOTATIONS", "").(string), ","),
 		PanelIDs:    strings.Split(envGet("GRAFANA_DASHBOARD_CLONED_PANEL_IDS", "").(string), ","),
+		PanelTitles: strings.Split(envGet("GRAFANA_DASHBOARD_CLONED_PANEL_TITLES", "").(string), ","),
 		PanelSeries: strings.Split(envGet("GRAFANA_DASHBOARD_CLONED_PANEL_SERIES", "").(string), ","),
 		LegendRight: envGet("GRAFANA_DASHBOARD_CLONED_LEGEND_RIGHT", false).(bool),
 		Arrange:     envGet("GRAFANA_DASHBOARD_CLONED_ARRANGE", false).(bool),
@@ -131,6 +132,7 @@ func NewGrafanaCommand() *cobra.Command {
 	flags.StringVar(&grafanaCreateDashboardOptions.Cloned.UID, "grafana-dashboard-cloned-uid", grafanaCreateDashboardOptions.Cloned.UID, "Grafana dashboard cloned uuid")
 	flags.StringSliceVar(&grafanaCreateDashboardOptions.Cloned.Annotations, "grafana-dashboard-cloned-annotations", grafanaCreateDashboardOptions.Cloned.Annotations, "Grafana dashboard cloned annotations")
 	flags.StringSliceVar(&grafanaCreateDashboardOptions.Cloned.PanelIDs, "grafana-dashboard-cloned-panel-ids", grafanaCreateDashboardOptions.Cloned.PanelIDs, "Grafana dashboard cloned panel ids")
+	flags.StringSliceVar(&grafanaCreateDashboardOptions.Cloned.PanelTitles, "grafana-dashboard-cloned-panel-titles", grafanaCreateDashboardOptions.Cloned.PanelTitles, "Grafana dashboard cloned panel titles")
 	flags.StringSliceVar(&grafanaCreateDashboardOptions.Cloned.PanelSeries, "grafana-dashboard-cloned-panel-series", grafanaCreateDashboardOptions.Cloned.PanelSeries, "Grafana dashboard cloned panel series")
 	flags.BoolVar(&grafanaCreateDashboardOptions.Cloned.LegendRight, "grafana-dashboard-cloned-legend-right", grafanaCreateDashboardOptions.Cloned.LegendRight, "Grafana dashboard cloned legend right")
 	flags.BoolVar(&grafanaCreateDashboardOptions.Cloned.Arrange, "grafana-dashboard-cloned-arrange", grafanaCreateDashboardOptions.Cloned.Arrange, "Grafana dashboard cloned arrange")

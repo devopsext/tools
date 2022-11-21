@@ -47,6 +47,7 @@ type GrafanaClonedDahboardOptions struct {
 	UID         string
 	Annotations []string
 	PanelIDs    []string
+	PanelTitles []string
 	PanelSeries []string
 	LegendRight bool
 	Arrange     bool
@@ -364,7 +365,7 @@ func (g Grafana) setTransformations(pm map[string]interface{}, pattern string) {
 	pm["transformations"] = transformations
 }
 
-func (g Grafana) findPanel(source *[]interface{}, ID string) map[string]interface{} {
+func (g Grafana) findPanelByID(source *[]interface{}, ID string) map[string]interface{} {
 
 	for _, p := range *source {
 		pm, ok := p.(map[string]interface{})
@@ -377,7 +378,7 @@ func (g Grafana) findPanel(source *[]interface{}, ID string) map[string]interfac
 				} else if g.panelIsType(pm, "row") {
 					pnls, okPnls := pm["panels"].([]interface{})
 					if okPnls {
-						rp := g.findPanel(&pnls, ID)
+						rp := g.findPanelByID(&pnls, ID)
 						if rp != nil {
 							return rp
 						}
@@ -389,6 +390,28 @@ func (g Grafana) findPanel(source *[]interface{}, ID string) map[string]interfac
 	return nil
 }
 
+func (g Grafana) findPanelsByTitle(source *[]interface{}, title string, pms *[]map[string]interface{}) {
+
+	for _, p := range *source {
+		pm, ok := p.(map[string]interface{})
+		if ok {
+
+			t, okID := pm["title"].(string)
+			if okID {
+				match, _ := regexp.MatchString(title, t)
+				if match {
+					*pms = append(*pms, pm)
+				} else if g.panelIsType(pm, "row") {
+					pnls, okPnls := pm["panels"].([]interface{})
+					if okPnls {
+						g.findPanelsByTitle(&pnls, title, pms)
+					}
+				}
+			}
+		}
+	}
+}
+
 func (g Grafana) copyPanels(source, dest *[]interface{}, clonedDashboardOptions GrafanaClonedDahboardOptions) {
 
 	if len(*source) <= 0 {
@@ -396,12 +419,13 @@ func (g Grafana) copyPanels(source, dest *[]interface{}, clonedDashboardOptions 
 	}
 
 	IDs := clonedDashboardOptions.PanelIDs
+	titles := clonedDashboardOptions.PanelTitles
 	series := clonedDashboardOptions.PanelSeries
 
 	if !utils.IsEmpty(IDs) {
 		for idx, id := range IDs {
 
-			pm := g.findPanel(source, id)
+			pm := g.findPanelByID(source, id)
 			if pm != nil {
 				if !g.panelIsType(pm, "row") {
 					g.setLegend(pm, clonedDashboardOptions.LegendRight)
@@ -413,7 +437,41 @@ func (g Grafana) copyPanels(source, dest *[]interface{}, clonedDashboardOptions 
 				*dest = append(*dest, pm)
 			}
 		}
-	} else {
+	}
+
+	if !utils.IsEmpty(titles) {
+		for idx, title := range titles {
+
+			pms := [](map[string]interface{}){}
+			g.findPanelsByTitle(source, title, &pms)
+			for _, pm := range pms {
+				if !g.panelIsType(pm, "row") {
+					g.setLegend(pm, clonedDashboardOptions.LegendRight)
+					g.deleteAlerts(pm)
+					if (len(series) > idx) && !utils.IsEmpty(series[idx]) {
+						g.setTransformations(pm, series[idx])
+					}
+				} else {
+					pnls, okPnls := pm["panels"].([]interface{})
+					if okPnls {
+						for _, pm1 := range pnls {
+							pm2, ok := pm1.(map[string]interface{})
+							if ok {
+								g.setLegend(pm2, clonedDashboardOptions.LegendRight)
+								g.deleteAlerts(pm2)
+								if (len(series) > idx) && !utils.IsEmpty(series[idx]) {
+									g.setTransformations(pm2, series[idx])
+								}
+							}
+						}
+					}
+				}
+				*dest = append(*dest, pm)
+			}
+		}
+	}
+
+	if utils.IsEmpty(IDs) && utils.IsEmpty(titles) {
 		for _, p := range *source {
 			pm, ok := p.(map[string]interface{})
 			if ok {
