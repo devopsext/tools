@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"path/filepath"
+	"strings"
 
 	"github.com/devopsext/tools/common"
 	"github.com/devopsext/tools/vendors"
@@ -25,6 +26,15 @@ var slackOptions = vendors.SlackOptions{
 
 var slackReactionOptions = vendors.SlackReactionOptions{
 	Name: envGet("SLACK_REACTION_NAME", "").(string),
+}
+
+var slackUserEmail = vendors.SlackUserEmail{
+	Email: envGet("SLACK_USER_EMAIL", "").(string),
+}
+
+var slackUsergroupUsers = vendors.SlackUsergroupUsers{
+	Usergroup: envGet("SLACK_USERGROUP", "").(string),
+	Users:     strings.Split(envGet("SLACK_USERS", "").(string), " "),
 }
 
 var slackOutput = common.OutputOptions{
@@ -132,6 +142,45 @@ func NewSlackCommand() *cobra.Command {
 	flags = addReactionCmd.PersistentFlags()
 	flags.StringVar(&slackReactionOptions.Name, "slack-reaction-name", slackReactionOptions.Name, "Slack reaction name")
 	slackCmd.AddCommand(addReactionCmd)
+
+	lookupByEmailCmd := &cobra.Command{
+		Use:   "lookup-by-email",
+		Short: "Lookup by email",
+		Run: func(cmd *cobra.Command, args []string) {
+			stdout.Debug("Getting User...")
+			common.Debug("Slack", slackUserEmail, stdout)
+
+			bytes, err := slackNew(stdout).GetUser(slackUserEmail)
+			if err != nil {
+				stdout.Error(err)
+				return
+			}
+			common.OutputJson(slackOutput, "Slack", []interface{}{slackOptions, slackUserEmail}, bytes, stdout)
+		},
+	}
+	flags = lookupByEmailCmd.PersistentFlags()
+	flags.StringVar(&slackUserEmail.Email, "slack-user-email", slackUserEmail.Email, "Slack user email")
+	slackCmd.AddCommand(lookupByEmailCmd)
+
+	usergroupUpdateCmd := &cobra.Command{
+		Use:   "usergroup-update",
+		Short: "Usergroup update",
+		Run: func(cmd *cobra.Command, args []string) {
+			stdout.Debug("Updateing usergroup...")
+			common.Debug("Slack", slackUsergroupUsers, stdout)
+
+			bytes, err := slackNew(stdout).UpdateUsergroup(slackUsergroupUsers)
+			if err != nil {
+				stdout.Error(err)
+				return
+			}
+			common.OutputJson(slackOutput, "Slack", []interface{}{slackOptions, slackUsergroupUsers}, bytes, stdout)
+		},
+	}
+	flags = usergroupUpdateCmd.PersistentFlags()
+	flags.StringVar(&slackUsergroupUsers.Usergroup, "slack-usergroup", slackUsergroupUsers.Usergroup, "Slack usergroup")
+	flags.StringSliceVar(&slackUsergroupUsers.Users, "slack-users", slackUsergroupUsers.Users, "Slack usergroup")
+	slackCmd.AddCommand(usergroupUpdateCmd)
 
 	return slackCmd
 }
