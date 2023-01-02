@@ -3,6 +3,7 @@ package vendors
 import (
 	"bytes"
 	_ "embed"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -22,9 +23,11 @@ var msgTemplate string
 const baseURL = "https://slack.com/api/"
 
 const (
-	filesUpload     = "files.upload"
-	chatPostMessage = "chat.postMessage"
-	reactionsAdd    = "reactions.add"
+	filesUpload           = "files.upload"
+	chatPostMessage       = "chat.postMessage"
+	reactionsAdd          = "reactions.add"
+	usersLookupByEmail    = "users.lookupByEmail"
+	usergroupsUsersUpdate = "usergroups.users.update"
 )
 
 type SlackOptions struct {
@@ -60,6 +63,15 @@ type SlackMessage struct {
 	FileName    string
 	FileContent string
 	QuoteColor  string
+}
+
+type SlackUserEmail struct {
+	Email string
+}
+
+type SlackUsergroupUsers struct {
+	Usergroup string   `json:"usergroup"`
+	Users     []string `json:"users"`
 }
 
 type Slack struct {
@@ -316,4 +328,41 @@ func NewSlack(options SlackOptions) (*Slack, error) {
 		options: options,
 	}
 	return slack, nil
+}
+
+func (s *Slack) CustomGetUser(slackOptions SlackOptions, slackUser SlackUserEmail) ([]byte, error) {
+	params := make(url.Values)
+	params.Add("email", slackUser.Email)
+
+	u, err := url.Parse(s.apiURL(usersLookupByEmail))
+	if err != nil {
+		return nil, err
+	}
+
+	u.RawQuery = params.Encode()
+	return common.HttpGetRaw(s.client, u.String(), "application/x-www-form-urlencoded", s.getAuth(slackOptions))
+
+}
+
+func (s *Slack) GetUser(options SlackUserEmail) ([]byte, error) {
+	return s.CustomGetUser(s.options, options)
+}
+
+func (s *Slack) CustomUpdateUsergroup(slackOptions SlackOptions, slackUpdateUsergroup SlackUsergroupUsers) ([]byte, error) {
+
+	body := &SlackUsergroupUsers{
+		Usergroup: slackUpdateUsergroup.Usergroup,
+		Users:     slackUpdateUsergroup.Users,
+	}
+
+	req, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+
+	return common.HttpPostRaw(s.client, s.apiURL(usergroupsUsersUpdate), "application/json", s.getAuth(slackOptions), req)
+}
+
+func (s *Slack) UpdateUsergroup(options SlackUsergroupUsers) ([]byte, error) {
+	return s.CustomUpdateUsergroup(s.options, options)
 }
