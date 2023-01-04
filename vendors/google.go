@@ -142,6 +142,8 @@ func (g *Google) CustomCalendarGetEvents(googleOptions GoogleOptions, calendarOp
 				return nil, errors.New("if orderBy=startTime singleEvents must be true")
 			}
 
+		} else {
+			params.Add("orderBy", calendarOptions.OrderBy)
 		}
 	}
 	if !utils.IsEmpty(calendarOptions.Q) {
