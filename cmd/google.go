@@ -20,6 +20,9 @@ var googleCalendarOptions = vendors.GoogleCalendarOptions{
 	TimeMin:            envGet("GOOGLE_CALENDAR_TIME_MIN", "").(string),
 	TimeMax:            envGet("GOOGLE_CALENDAR_TIME_MAX", "").(string),
 	AlwaysIncludeEmail: envGet("GOOGLE_CALENDAR_ALWAYS_INCLUDE_EMAIL", true).(bool),
+	OrderBy:            envGet("GOOGLE_CALENDAR_ORDER_BY", "").(string),
+	Q:                  envGet("GOOGLE_CALENDAR_Q", "").(string),
+	SingleEvents:       envGet("GOOGLE_CALENDAR_SINGLE_EVENTS", false).(bool),
 }
 
 var googleOutput = common.OutputOptions{
@@ -82,7 +85,10 @@ func NewGoogleCommand() *cobra.Command {
 	flags = calendarEventsCmd.PersistentFlags()
 	flags.StringVar(&googleCalendarOptions.TimeMin, "google-calendar-time-min", googleCalendarOptions.TimeMin, "Google calendar time min")
 	flags.StringVar(&googleCalendarOptions.TimeMax, "google-calendar-time-max", googleCalendarOptions.TimeMax, "Google calendar time max")
+	flags.StringVar(&googleCalendarOptions.OrderBy, "google-calendar-oreder-by", googleCalendarOptions.OrderBy, "Google calendar oreder by")
+	flags.StringVar(&googleCalendarOptions.Q, "google-calendar-q", googleCalendarOptions.Q, "Google calendar q")
 	flags.BoolVar(&googleCalendarOptions.AlwaysIncludeEmail, "google-calendar-always-include-email", googleCalendarOptions.AlwaysIncludeEmail, "Google calendar always include email")
+	flags.BoolVar(&googleCalendarOptions.SingleEvents, "google-calendar-single-events", googleCalendarOptions.SingleEvents, "Google calendar single events")
 	calendarCmd.AddCommand(calendarEventsCmd)
 
 	return &googleCmd

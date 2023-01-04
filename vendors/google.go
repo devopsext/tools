@@ -19,6 +19,9 @@ type GoogleCalendarOptions struct {
 	TimeMin            string
 	TimeMax            string
 	AlwaysIncludeEmail bool
+	OrderBy            string
+	Q                  string
+	SingleEvents       bool
 }
 
 type GoogleOptions struct {
@@ -127,6 +130,15 @@ func (g *Google) CustomCalendarGetEvents(googleOptions GoogleOptions, calendarOp
 	if !utils.IsEmpty(calendarOptions.TimeMax) {
 		params.Add("timeMax", calendarOptions.TimeMax)
 	}
+	if !utils.IsEmpty(calendarOptions.OrderBy) {
+		params.Add("orderBy", calendarOptions.OrderBy)
+	}
+	if !utils.IsEmpty(calendarOptions.Q) {
+		params.Add("q", calendarOptions.Q)
+	}
+
+	params.Add("singleEvents", strconv.FormatBool(calendarOptions.SingleEvents))
+
 	params.Add("alwaysIncludeEmail", strconv.FormatBool(calendarOptions.AlwaysIncludeEmail))
 
 	u, err := url.Parse(googleCalendarURL)
