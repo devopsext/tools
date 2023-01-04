@@ -3,6 +3,7 @@ package vendors
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"mime/multipart"
 	"net/http"
@@ -130,14 +131,22 @@ func (g *Google) CustomCalendarGetEvents(googleOptions GoogleOptions, calendarOp
 	if !utils.IsEmpty(calendarOptions.TimeMax) {
 		params.Add("timeMax", calendarOptions.TimeMax)
 	}
+
+	params.Add("singleEvents", strconv.FormatBool(calendarOptions.SingleEvents))
+
 	if !utils.IsEmpty(calendarOptions.OrderBy) {
-		params.Add("orderBy", calendarOptions.OrderBy)
+		if calendarOptions.OrderBy == "startTime" {
+			if calendarOptions.SingleEvents {
+				params.Add("orderBy", calendarOptions.OrderBy)
+			} else {
+				return nil, errors.New("if orderBy=startTime singleEvents must be true")
+			}
+
+		}
 	}
 	if !utils.IsEmpty(calendarOptions.Q) {
 		params.Add("q", calendarOptions.Q)
 	}
-
-	params.Add("singleEvents", strconv.FormatBool(calendarOptions.SingleEvents))
 
 	params.Add("alwaysIncludeEmail", strconv.FormatBool(calendarOptions.AlwaysIncludeEmail))
 
