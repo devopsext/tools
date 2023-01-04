@@ -3,6 +3,7 @@ package vendors
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"mime/multipart"
 	"net/http"
@@ -19,6 +20,9 @@ type GoogleCalendarOptions struct {
 	TimeMin            string
 	TimeMax            string
 	AlwaysIncludeEmail bool
+	OrderBy            string
+	Q                  string
+	SingleEvents       bool
 }
 
 type GoogleOptions struct {
@@ -127,6 +131,25 @@ func (g *Google) CustomCalendarGetEvents(googleOptions GoogleOptions, calendarOp
 	if !utils.IsEmpty(calendarOptions.TimeMax) {
 		params.Add("timeMax", calendarOptions.TimeMax)
 	}
+
+	params.Add("singleEvents", strconv.FormatBool(calendarOptions.SingleEvents))
+
+	if !utils.IsEmpty(calendarOptions.OrderBy) {
+		if calendarOptions.OrderBy == "startTime" {
+			if calendarOptions.SingleEvents {
+				params.Add("orderBy", calendarOptions.OrderBy)
+			} else {
+				return nil, errors.New("if orderBy=startTime singleEvents must be true")
+			}
+
+		} else {
+			params.Add("orderBy", calendarOptions.OrderBy)
+		}
+	}
+	if !utils.IsEmpty(calendarOptions.Q) {
+		params.Add("q", calendarOptions.Q)
+	}
+
 	params.Add("alwaysIncludeEmail", strconv.FormatBool(calendarOptions.AlwaysIncludeEmail))
 
 	u, err := url.Parse(googleCalendarURL)
