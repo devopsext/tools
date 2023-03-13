@@ -51,8 +51,9 @@ func (p *Prometheus) CustomGet(options PrometheusOptions) ([]byte, error) {
 	if !utils.IsEmpty(options.To) {
 		params.Add("end", p.toPrometheusTimestamp(options.To))
 	}
-
-	params.Add("step", options.Step)
+	if !utils.IsEmpty(options.Step) {
+		params.Add("step", options.Step)
+	}
 
 	vls, err := url.ParseQuery(options.Params)
 	if err == nil {
@@ -68,7 +69,12 @@ func (p *Prometheus) CustomGet(options PrometheusOptions) ([]byte, error) {
 		return nil, err
 	}
 
-	u.Path = path.Join(u.Path, "/api/v1/query_range")
+	apiURL := "/api/v1/query_range"
+	if utils.IsEmpty(options.From) && utils.IsEmpty(options.To) {
+		apiURL = "/api/v1/query"
+	}
+
+	u.Path = path.Join(u.Path, apiURL)
 	u.RawQuery = params.Encode()
 
 	return common.HttpGetRaw(p.client, u.String(), "application/json", "")
