@@ -113,6 +113,11 @@ func (tpl *Template) fRegexMatch(re, s string) (bool, error) {
 	return compiled.MatchString(s), nil
 }
 
+func (tpl *Template) fRegexFindSubmatch(regex string, s string) []string {
+	r := regexp.MustCompile(regex)
+	return r.FindStringSubmatch(s)
+}
+
 // toLower converts the given string (usually by a pipe) to lowercase.
 func (tpl *Template) fToLower(s string) (string, error) {
 	return strings.ToLower(s), nil
@@ -285,6 +290,21 @@ func (tpl *Template) fIfDef(i interface{}, def string) (string, error) {
 	return tpl.fToString(i)
 }
 
+func (tpl *Template) fIfElse(o interface{}, vars []interface{}) interface{} {
+
+	if len(vars) == 0 {
+		return o
+	}
+	for k, v := range vars {
+		if k%2 == 0 {
+			if o == v && len(vars) > k+1 {
+				return vars[k+1]
+			}
+		}
+	}
+	return o
+}
+
 func (tpl *Template) fContent(s string) (string, error) {
 
 	if utils.IsEmpty(s) {
@@ -446,6 +466,8 @@ func (tpl *Template) setTemplateFuncs(funcs map[string]interface{}) {
 
 	funcs["regexReplaceAll"] = tpl.fRegexReplaceAll
 	funcs["regexMatch"] = tpl.fRegexMatch
+	funcs["regexFindSubmatch"] = tpl.fRegexFindSubmatch
+
 	funcs["replaceAll"] = tpl.fReplaceAll
 	funcs["toLower"] = tpl.fToLower
 	funcs["toTitle"] = tpl.fToTitle
@@ -465,6 +487,7 @@ func (tpl *Template) setTemplateFuncs(funcs map[string]interface{}) {
 	funcs["jsonata"] = tpl.fJsonata
 	funcs["gjson"] = tpl.fGjson
 	funcs["ifDef"] = tpl.fIfDef
+	funcs["ifElse"] = tpl.fIfElse
 	funcs["content"] = tpl.fContent
 	funcs["urlWait"] = tpl.fURLWait
 	funcs["gitlabPipelineVars"] = tpl.fGitlabPipelineVars
