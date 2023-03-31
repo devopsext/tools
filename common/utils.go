@@ -46,6 +46,25 @@ func InterfaceToMap(prefix string, i interface{}) (map[string]interface{}, error
 	return r, nil
 }
 
+func jsonataEnv(key string) string {
+	return os.Getenv(key)
+}
+
+func jsonantaHttpGet(URL, contentType string) interface{} {
+
+	var result interface{}
+
+	bytes, err := HttpGetRaw(http.DefaultClient, URL, contentType, "")
+	if err != nil {
+		return err
+	}
+	err = json.Unmarshal(bytes, &result)
+	if err != nil {
+		return err
+	}
+	return result
+}
+
 func Output(query, to string, prefix string, opts []interface{}, bytes []byte, stdout *Stdout) {
 
 	stdout.Debug("Raw output => %s", string(bytes))
@@ -67,7 +86,12 @@ func Output(query, to string, prefix string, opts []interface{}, bytes []byte, s
 
 		exts := make(map[string]jsonata.Extension)
 		exts["env"] = jsonata.Extension{
-			Func:               os.Getenv,
+			Func:               jsonataEnv,
+			UndefinedHandler:   jtypes.ArgUndefined(0),
+			EvalContextHandler: jtypes.ArgCountEquals(0),
+		}
+		exts["httpGet"] = jsonata.Extension{
+			Func:               jsonantaHttpGet,
 			UndefinedHandler:   jtypes.ArgUndefined(0),
 			EvalContextHandler: jtypes.ArgCountEquals(0),
 		}
