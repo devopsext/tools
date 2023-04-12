@@ -34,6 +34,7 @@ type TemplateOptions struct {
 	Files      []string
 	TimeFormat string
 	Pattern    string
+	Funcs      map[string]any
 }
 
 type Template struct {
@@ -457,7 +458,7 @@ func (tpl *Template) fTagValue(s, key string) (string, error) {
 	return s, nil
 }
 
-func (tpl *Template) setTemplateFuncs(funcs map[string]interface{}) {
+func (tpl *Template) setTemplateFuncs(funcs map[string]any) {
 
 	funcs["logError"] = tpl.fLogError
 	funcs["logWarn"] = tpl.fLogWarn
@@ -542,7 +543,8 @@ func NewTextTemplate(options TemplateOptions, logger common.Logger) (*TextTempla
 
 	funcs := sprig.TxtFuncMap()
 	tpl.setTemplateFuncs(funcs)
-	t, err := txtTemplate.New(options.Name).Funcs(funcs).Parse(options.Content)
+
+	t, err := txtTemplate.New(options.Name).Funcs(funcs).Funcs(options.Funcs).Parse(options.Content)
 	if err != nil {
 		return nil, err
 	}
@@ -614,7 +616,7 @@ func NewHtmlTemplate(options TemplateOptions, logger common.Logger) (*HtmlTempla
 
 	funcs := sprig.HtmlFuncMap()
 	tpl.setTemplateFuncs(funcs)
-	t, err := htmlTemplate.New(options.Name).Funcs(funcs).Parse(options.Content)
+	t, err := htmlTemplate.New(options.Name).Funcs(funcs).Funcs(options.Funcs).Parse(options.Content)
 	if err != nil {
 		return nil, err
 	}
