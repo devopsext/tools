@@ -233,6 +233,15 @@ func (tpl *Template) fJsonata(data interface{}, query string) (string, error) {
 
 	s, ok := data.(string) // possibly json as string
 	if ok {
+
+		if _, err := os.Stat(s); err == nil {
+			content, err := ioutil.ReadFile(s)
+			if err != nil {
+				return "", err
+			}
+			s = string(content)
+		}
+
 		var v interface{}
 		err = json.Unmarshal([]byte(s), &v)
 		if err != nil {
@@ -274,12 +283,32 @@ func (tpl *Template) fGjson(obj interface{}, path string) (string, error) {
 		return "", err
 	}
 
-	bytes, err := common.JsonMarshal(obj)
-	if err != nil {
+	json := ""
+	v, ok := obj.(string)
+	if ok {
+		if _, err := os.Stat(v); err == nil {
+			bytes, err := ioutil.ReadFile(v)
+			if err != nil {
+				return "", err
+			}
+			json = string(bytes)
+		}
+	}
+
+	if utils.IsEmpty(json) {
+		bytes, err := common.JsonMarshal(obj)
+		if err != nil {
+			return "", err
+		}
+		json = string(bytes)
+	}
+
+	if utils.IsEmpty(json) {
+		err := errors.New("json is empty")
 		return "", err
 	}
 
-	value := gjson.Get(string(bytes), path)
+	value := gjson.Get(json, path)
 	return value.String(), nil
 }
 
