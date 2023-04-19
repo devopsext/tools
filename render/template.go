@@ -18,7 +18,6 @@ import (
 	txtTemplate "text/template"
 	"time"
 
-	"github.com/blues/jsonata-go"
 	"github.com/tidwall/gjson"
 
 	"github.com/Masterminds/sprig/v3"
@@ -117,6 +116,43 @@ func (tpl *Template) fRegexMatch(re, s string) (bool, error) {
 func (tpl *Template) fRegexFindSubmatch(regex string, s string) []string {
 	r := regexp.MustCompile(regex)
 	return r.FindStringSubmatch(s)
+}
+
+func (tpl *Template) fRegexFindKeys(obj map[string]interface{}, field, value string) []interface{} {
+
+	var r []interface{}
+	if obj == nil || utils.IsEmpty(field) {
+		return r
+	}
+
+	for k, v := range obj {
+
+		m, ok := v.(map[string]interface{})
+		if !ok {
+			continue
+		}
+		if m[field] == nil {
+			continue
+		}
+		s, ok := m[field].(string)
+		if !ok {
+			continue
+		}
+		match, _ := regexp.MatchString(fmt.Sprintf("^%s", s), value)
+		if match {
+			r = append(r, k)
+		}
+	}
+	return r
+}
+
+func (tpl *Template) fRegexFindKey(obj map[string]interface{}, field, value string) interface{} {
+
+	keys := tpl.fRegexFindKeys(obj, field, value)
+	if len(keys) == 0 {
+		return value
+	}
+	return keys[0]
 }
 
 // toLower converts the given string (usually by a pipe) to lowercase.
@@ -226,11 +262,6 @@ func (tpl *Template) fJsonata(data interface{}, query string) (string, error) {
 		query = string(content)
 	}
 
-	e, err := jsonata.Compile(query)
-	if err != nil {
-		return "", err
-	}
-
 	s, ok := data.(string) // possibly json as string
 	if ok {
 
@@ -243,14 +274,15 @@ func (tpl *Template) fJsonata(data interface{}, query string) (string, error) {
 		}
 
 		var v interface{}
-		err = json.Unmarshal([]byte(s), &v)
+		err := json.Unmarshal([]byte(s), &v)
 		if err != nil {
 			return "", err
 		}
 		data = v
 	}
 
-	m, err := e.Eval(data)
+	jnata := common.NewJsonata(common.JsonataOptions{})
+	m, err := jnata.Eval(data, query)
 	if err != nil {
 		return "", err
 	}
@@ -497,6 +529,8 @@ func (tpl *Template) setTemplateFuncs(funcs map[string]any) {
 	funcs["regexReplaceAll"] = tpl.fRegexReplaceAll
 	funcs["regexMatch"] = tpl.fRegexMatch
 	funcs["regexFindSubmatch"] = tpl.fRegexFindSubmatch
+	funcs["regexFindKeys"] = tpl.fRegexFindKeys
+	funcs["regexFindKey"] = tpl.fRegexFindKey
 
 	funcs["replaceAll"] = tpl.fReplaceAll
 	funcs["toLower"] = tpl.fToLower

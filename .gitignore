@@ -35,6 +35,7 @@ template.query
 template.json
 datadog2slack.jsonata
 json.output
+_json.output
 json-component.query
 json-graph.query
 cmdb.json

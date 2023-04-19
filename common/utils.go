@@ -9,8 +9,6 @@ import (
 	"os"
 	"strings"
 
-	"github.com/blues/jsonata-go"
-	"github.com/blues/jsonata-go/jtypes"
 	"github.com/devopsext/utils"
 )
 
@@ -46,25 +44,6 @@ func InterfaceToMap(prefix string, i interface{}) (map[string]interface{}, error
 	return r, nil
 }
 
-func jsonataEnv(key string) string {
-	return os.Getenv(key)
-}
-
-func jsonantaHttpGet(URL, contentType string) interface{} {
-
-	var result interface{}
-
-	bytes, err := HttpGetRaw(http.DefaultClient, URL, contentType, "")
-	if err != nil {
-		return err
-	}
-	err = json.Unmarshal(bytes, &result)
-	if err != nil {
-		return err
-	}
-	return result
-}
-
 func Output(query, to string, prefix string, opts []interface{}, bytes []byte, stdout *Stdout) {
 
 	stdout.Debug("Raw output => %s", string(bytes))
@@ -77,34 +56,23 @@ func Output(query, to string, prefix string, opts []interface{}, bytes []byte, s
 
 	output := string(bytes)
 	if !utils.IsEmpty(query) {
+
+		jnata := NewJsonata(JsonataOptions{})
+
 		for _, v := range opts {
 			vars, err := InterfaceToMap(prefix, v)
 			if err == nil {
-				jsonata.RegisterVars(vars)
+				jnata.RegisterVars(vars)
 			}
 		}
-
-		exts := make(map[string]jsonata.Extension)
-		exts["env"] = jsonata.Extension{
-			Func:               jsonataEnv,
-			UndefinedHandler:   jtypes.ArgUndefined(0),
-			EvalContextHandler: jtypes.ArgCountEquals(0),
-		}
-		exts["httpGet"] = jsonata.Extension{
-			Func:               jsonantaHttpGet,
-			UndefinedHandler:   jtypes.ArgUndefined(0),
-			EvalContextHandler: jtypes.ArgCountEquals(0),
-		}
-		jsonata.RegisterExts(exts)
-
-		expr := jsonata.MustCompile(query)
 
 		var v interface{}
 		err = json.Unmarshal(bytes, &v)
 		if err != nil {
 			stdout.Panic(err)
 		}
-		v1, err := expr.Eval(v)
+
+		v1, err := jnata.Eval(v, query)
 		if err != nil {
 			stdout.Panic(err)
 		}
