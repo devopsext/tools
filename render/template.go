@@ -118,7 +118,7 @@ func (tpl *Template) fRegexFindSubmatch(regex string, s string) []string {
 	return r.FindStringSubmatch(s)
 }
 
-func (tpl *Template) fRegexFindKeys(obj map[string]interface{}, field, value string) []interface{} {
+func (tpl *Template) fRegexMatchObjectFields(obj map[string]interface{}, field, value string) []interface{} {
 
 	var r []interface{}
 	if obj == nil || utils.IsEmpty(field) {
@@ -146,9 +146,9 @@ func (tpl *Template) fRegexFindKeys(obj map[string]interface{}, field, value str
 	return r
 }
 
-func (tpl *Template) fRegexFindKey(obj map[string]interface{}, field, value string) interface{} {
+func (tpl *Template) fRegexMatchObjectField(obj map[string]interface{}, field, value string) interface{} {
 
-	keys := tpl.fRegexFindKeys(obj, field, value)
+	keys := tpl.fRegexMatchObjectFields(obj, field, value)
 	if len(keys) == 0 {
 		return value
 	}
@@ -529,8 +529,8 @@ func (tpl *Template) setTemplateFuncs(funcs map[string]any) {
 	funcs["regexReplaceAll"] = tpl.fRegexReplaceAll
 	funcs["regexMatch"] = tpl.fRegexMatch
 	funcs["regexFindSubmatch"] = tpl.fRegexFindSubmatch
-	funcs["regexFindKeys"] = tpl.fRegexFindKeys
-	funcs["regexFindKey"] = tpl.fRegexFindKey
+	funcs["regexMatchObjectFields"] = tpl.fRegexMatchObjectFields
+	funcs["regexMatchObjectField"] = tpl.fRegexMatchObjectField
 
 	funcs["replaceAll"] = tpl.fReplaceAll
 	funcs["toLower"] = tpl.fToLower
