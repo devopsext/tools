@@ -557,6 +557,7 @@ func (tpl *Template) setTemplateFuncs(funcs map[string]any) {
 	funcs["gitlabPipelineVars"] = tpl.fGitlabPipelineVars
 	funcs["tagExists"] = tpl.fTagExists
 	funcs["tagValue"] = tpl.fTagValue
+
 }
 
 func (tpl *TextTemplate) customRender(name string, obj interface{}) ([]byte, error) {
