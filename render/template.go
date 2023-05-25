@@ -118,7 +118,7 @@ func (tpl *Template) fRegexFindSubmatch(regex string, s string) []string {
 	return r.FindStringSubmatch(s)
 }
 
-func (tpl *Template) fRegexMatchObjectFields(obj map[string]interface{}, field, value string) []interface{} {
+func (tpl *Template) fRegexMatchObjectNamesByField(obj map[string]interface{}, field, value string) []interface{} {
 
 	var r []interface{}
 	if obj == nil || utils.IsEmpty(field) {
@@ -146,13 +146,26 @@ func (tpl *Template) fRegexMatchObjectFields(obj map[string]interface{}, field, 
 	return r
 }
 
-func (tpl *Template) fRegexMatchObjectField(obj map[string]interface{}, field, value string) interface{} {
+func (tpl *Template) fRegexMatchObjectNameByField(obj map[string]interface{}, field, value string) interface{} {
 
-	keys := tpl.fRegexMatchObjectFields(obj, field, value)
+	keys := tpl.fRegexMatchObjectNamesByField(obj, field, value)
 	if len(keys) == 0 {
 		return value
 	}
 	return keys[0]
+}
+
+func (tpl *Template) fRegexMatchObjectByField(obj map[string]interface{}, field, value string) interface{} {
+
+	key := tpl.fRegexMatchObjectNameByField(obj, field, value)
+	if obj == nil {
+		return nil
+	}
+	s, ok := key.(string)
+	if !ok {
+		return nil
+	}
+	return obj[s]
 }
 
 // toLower converts the given string (usually by a pipe) to lowercase.
@@ -529,8 +542,9 @@ func (tpl *Template) setTemplateFuncs(funcs map[string]any) {
 	funcs["regexReplaceAll"] = tpl.fRegexReplaceAll
 	funcs["regexMatch"] = tpl.fRegexMatch
 	funcs["regexFindSubmatch"] = tpl.fRegexFindSubmatch
-	funcs["regexMatchObjectFields"] = tpl.fRegexMatchObjectFields
-	funcs["regexMatchObjectField"] = tpl.fRegexMatchObjectField
+	funcs["regexMatchObjectNamesByField"] = tpl.fRegexMatchObjectNamesByField
+	funcs["regexMatchObjectNameByField"] = tpl.fRegexMatchObjectNameByField
+	funcs["regexMatchObjectByField"] = tpl.fRegexMatchObjectByField
 
 	funcs["replaceAll"] = tpl.fReplaceAll
 	funcs["toLower"] = tpl.fToLower
