@@ -571,7 +571,17 @@ func (tpl *Template) setTemplateFuncs(funcs map[string]any) {
 	funcs["gitlabPipelineVars"] = tpl.fGitlabPipelineVars
 	funcs["tagExists"] = tpl.fTagExists
 	funcs["tagValue"] = tpl.fTagValue
+}
 
+func (tpl *Template) filterFuncsByContent(funcs map[string]any, content string) map[string]any {
+
+	m := make(map[string]any)
+	for k, v := range funcs {
+		if strings.Contains(content, k) {
+			m[k] = v
+		}
+	}
+	return m
 }
 
 func (tpl *TextTemplate) customRender(name string, obj interface{}) ([]byte, error) {
@@ -621,8 +631,12 @@ func NewTextTemplate(options TemplateOptions, logger common.Logger) (*TextTempla
 
 	funcs := sprig.TxtFuncMap()
 	tpl.setTemplateFuncs(funcs)
+	for k, v := range options.Funcs {
+		funcs[k] = v
+	}
+	funcs = tpl.filterFuncsByContent(funcs, options.Content)
 
-	t, err := txtTemplate.New(options.Name).Funcs(funcs).Funcs(options.Funcs).Parse(options.Content)
+	t, err := txtTemplate.New(options.Name).Funcs(funcs).Parse(options.Content)
 	if err != nil {
 		return nil, err
 	}
@@ -694,7 +708,12 @@ func NewHtmlTemplate(options TemplateOptions, logger common.Logger) (*HtmlTempla
 
 	funcs := sprig.HtmlFuncMap()
 	tpl.setTemplateFuncs(funcs)
-	t, err := htmlTemplate.New(options.Name).Funcs(funcs).Funcs(options.Funcs).Parse(options.Content)
+	for k, v := range options.Funcs {
+		funcs[k] = v
+	}
+	funcs = tpl.filterFuncsByContent(funcs, options.Content)
+
+	t, err := htmlTemplate.New(options.Name).Funcs(funcs).Parse(options.Content)
 	if err != nil {
 		return nil, err
 	}

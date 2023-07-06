@@ -42,7 +42,7 @@ func (j *Jsonata) fHttpGet(URL, contentType string) interface{} {
 	return r
 }
 
-func (j *Jsonata) fRegexMatchObjectFields(obj map[string]interface{}, field, value string) []interface{} {
+func (j *Jsonata) fRegexMatchObjectByFields(obj map[string]interface{}, field, value string) []interface{} {
 
 	var r []interface{}
 	if obj == nil || utils.IsEmpty(field) {
@@ -70,9 +70,9 @@ func (j *Jsonata) fRegexMatchObjectFields(obj map[string]interface{}, field, val
 	return r
 }
 
-func (j *Jsonata) fRegexMatchObjectField(obj map[string]interface{}, field, value string) interface{} {
+func (j *Jsonata) fRegexMatchObjectByField(obj map[string]interface{}, field, value string) interface{} {
 
-	keys := j.fRegexMatchObjectFields(obj, field, value)
+	keys := j.fRegexMatchObjectByFields(obj, field, value)
 	if len(keys) == 0 {
 		return value
 	}
@@ -92,13 +92,13 @@ func (j *Jsonata) Eval(data interface{}, query string) (interface{}, error) {
 		UndefinedHandler:   jtypes.ArgUndefined(0),
 		EvalContextHandler: jtypes.ArgCountEquals(0),
 	}
-	exts["regexMatchObjectFields"] = jsonata.Extension{
-		Func:               j.fRegexMatchObjectFields,
+	exts["regexMatchObjectByFields"] = jsonata.Extension{
+		Func:               j.fRegexMatchObjectByFields,
 		UndefinedHandler:   jtypes.ArgUndefined(0),
 		EvalContextHandler: jtypes.ArgCountEquals(0),
 	}
-	exts["regexMatchObjectField"] = jsonata.Extension{
-		Func:               j.fRegexMatchObjectField,
+	exts["regexMatchObjectByField"] = jsonata.Extension{
+		Func:               j.fRegexMatchObjectByField,
 		UndefinedHandler:   jtypes.ArgUndefined(0),
 		EvalContextHandler: jtypes.ArgCountEquals(0),
 	}
