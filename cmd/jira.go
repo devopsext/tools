@@ -50,6 +50,11 @@ var jiraIssueSearchOptions = vendors.JiraIssueSearchOptions{
 	MaxResults:    envGet("JIRA_ISSUE_SEARCH_MAX_RESULTS", 50).(int),
 }
 
+var jiraAssetsSearchOptions = vendors.JiraAssetsSearchOptions{
+	SearchPattern: envGet("JIRA_ASSETS_SEARCH_PATTERN", "").(string),
+	ResultPerPage: envGet("JIRA_ASSETS_SEARCH_RESULT_PER_PAGE", 50).(int),
+}
+
 var jiraOutput = common.OutputOptions{
 	Output: envGet("JIRA_OUTPUT", "").(string),
 	Query:  envGet("JIRA_OUTPUT_QUERY", "").(string),
@@ -241,7 +246,7 @@ func NewJiraCommand() *cobra.Command {
 
 	issueSearchCmd := &cobra.Command{
 		Use:   "search",
-		Short: "Search ossue",
+		Short: "Search issue",
 		Run: func(cmd *cobra.Command, args []string) {
 			stdout.Debug("Jira issue searching...")
 			common.Debug("Jira", jiraIssueOptions, stdout)
@@ -265,6 +270,38 @@ func NewJiraCommand() *cobra.Command {
 	flags.StringVar(&jiraIssueSearchOptions.SearchPattern, "jira-issue-search-pattern", jiraIssueSearchOptions.SearchPattern, "Jira issue search pattern")
 	flags.IntVar(&jiraIssueSearchOptions.MaxResults, "jira-issue-search-max-results", jiraIssueSearchOptions.MaxResults, "Jira issue search max results")
 	issueCmd.AddCommand((issueSearchCmd))
+
+	assetsCmd := &cobra.Command{
+		Use:   "assets",
+		Short: "Assets methods",
+	}
+	flags = assetsCmd.PersistentFlags()
+	flags.StringVar(&jiraAssetsSearchOptions.SearchPattern, "jira-assets-search-pattern", jiraAssetsSearchOptions.SearchPattern, "Jira assets search pattern")
+	flags.IntVar(&jiraAssetsSearchOptions.ResultPerPage, "jira-assets-search-results-per-page", jiraAssetsSearchOptions.ResultPerPage, "Jira assets result per page")
+	jiraCmd.AddCommand(assetsCmd)
+
+	assetsSearchCmd := &cobra.Command{
+		Use:   "search",
+		Short: "Search assets",
+		Run: func(cmd *cobra.Command, args []string) {
+			stdout.Debug("Assets searching...")
+			common.Debug("Assets", jiraAssetsSearchOptions, stdout)
+
+			searchBytes, err := utils.Content(jiraAssetsSearchOptions.SearchPattern)
+			if err != nil {
+				stdout.Panic(err)
+			}
+			jiraAssetsSearchOptions.SearchPattern = string(searchBytes)
+
+			bytes, err := jiraNew(stdout).AssetsSearch(jiraAssetsSearchOptions)
+			if err != nil {
+				stdout.Error(err)
+				return
+			}
+			common.OutputJson(jiraOutput, "Jira", []interface{}{jiraOptions, jiraAssetsSearchOptions}, bytes, stdout)
+		},
+	}
+	assetsCmd.AddCommand(assetsSearchCmd)
 
 	return &jiraCmd
 }
