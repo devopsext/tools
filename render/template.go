@@ -380,6 +380,23 @@ func (tpl *Template) fIfElse(o interface{}, vars []interface{}) interface{} {
 	return o
 }
 
+func (tpl *Template) fIfIP(s string) bool {
+
+	a := net.ParseIP(s)
+	return a != nil
+}
+
+func (tpl *Template) fIfIPAndPort(s string) bool {
+
+	arr := strings.Split(s, ":")
+	if len(arr) > 0 {
+		s = strings.TrimSpace(arr[0])
+	} else {
+		return false
+	}
+	return tpl.fIfIP(s)
+}
+
 func (tpl *Template) fContent(s string) (string, error) {
 
 	if utils.IsEmpty(s) {
@@ -566,6 +583,8 @@ func (tpl *Template) setTemplateFuncs(funcs map[string]any) {
 	funcs["gjson"] = tpl.fGjson
 	funcs["ifDef"] = tpl.fIfDef
 	funcs["ifElse"] = tpl.fIfElse
+	funcs["ifIP"] = tpl.fIfIP
+	funcs["ifIPAndPort"] = tpl.fIfIPAndPort
 	funcs["content"] = tpl.fContent
 	funcs["urlWait"] = tpl.fURLWait
 	funcs["gitlabPipelineVars"] = tpl.fGitlabPipelineVars
