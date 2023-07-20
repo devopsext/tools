@@ -46,6 +46,11 @@ type JiraIssueSearchOptions struct {
 	MaxResults    int
 }
 
+type JiraAssetsSearchOptions struct {
+	SearchPattern string
+	ResultPerPage int
+}
+
 type JiraOptions struct {
 	URL         string
 	Timeout     int
@@ -132,6 +137,17 @@ func jsonJiraMarshal(issue interface{}, cf map[string]interface{}) ([]byte, erro
 		m["fields"] = value
 	}
 	return json.Marshal(m)
+}
+
+// we need custom json unmarshal for Jira Assets to support pagination
+func jsonJiraAssetsUnmarshal(a []byte) (map[string]interface{}, error) {
+	var assets interface{}
+	err := json.Unmarshal(a, &assets)
+	if err != nil {
+		return nil, err
+	}
+	m := assets.(map[string]interface{})
+	return m, nil
 }
 
 func (j *Jira) getAuth(opts JiraOptions) string {
@@ -372,6 +388,60 @@ func (j *Jira) CustomIssueSearch(jiraOptions JiraOptions, issueSearch JiraIssueS
 
 func (j *Jira) IssueSearch(options JiraIssueSearchOptions) ([]byte, error) {
 	return j.CustomIssueSearch(j.options, options)
+}
+
+func (j *Jira) AssetsCustomSearch(jiraOptions JiraOptions, assetsSearch JiraAssetsSearchOptions) ([]byte, error) {
+
+	params := make(url.Values)
+	params.Add("qlQuery", assetsSearch.SearchPattern)
+	params.Add("resultPerPage", strconv.Itoa(assetsSearch.ResultPerPage))
+
+	u, err := url.Parse(jiraOptions.URL)
+	if err != nil {
+		return nil, err
+	}
+
+	u.Path = path.Join(u.Path, "/rest/insight/1.0/aql/objects")
+	u.RawQuery = params.Encode()
+	a, err := common.HttpGetRaw(j.client, u.String(), "application/json", j.getAuth(jiraOptions))
+	if err != nil {
+		return nil, err
+	}
+
+	// We need to check if there is a pagination in the answer, if so we need to get all results
+	m, err := jsonJiraAssetsUnmarshal(a)
+	if err != nil {
+		return nil, err
+	}
+	assetsObj := m["objectEntries"].([]interface{})
+	objAttr := m["objectTypeAttributes"].([]interface{})
+	pageSize := m["pageSize"].(float64)
+	if pageSize > 1 {
+		for i := 2; i <= int(pageSize); i++ {
+			params.Set("page", strconv.Itoa(i))
+			u.RawQuery = params.Encode()
+			a, err := common.HttpGetRaw(j.client, u.String(), "application/json", j.getAuth(jiraOptions))
+			if err != nil {
+				return nil, err
+			}
+			m, err := jsonJiraAssetsUnmarshal(a)
+			if err != nil {
+				return nil, err
+			}
+			assetsObjPage := m["objectEntries"].([]interface{})
+			assetsObj = append(assetsObj, assetsObjPage...)
+		}
+
+	}
+	result := map[string]interface{}{
+		"objects":    assetsObj,
+		"attributes": objAttr,
+	}
+	return json.Marshal(result)
+}
+
+func (j *Jira) AssetsSearch(options JiraAssetsSearchOptions) ([]byte, error) {
+	return j.AssetsCustomSearch(j.options, options)
 }
 
 func NewJira(options JiraOptions) (*Jira, error) {
