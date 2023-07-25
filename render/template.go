@@ -653,7 +653,10 @@ func NewTextTemplate(options TemplateOptions, logger common.Logger) (*TextTempla
 	for k, v := range options.Funcs {
 		funcs[k] = v
 	}
-	funcs = tpl.filterFuncsByContent(funcs, options.Content)
+
+	if utils.IsEmpty(options.Files) && utils.IsEmpty(options.Pattern) {
+		funcs = tpl.filterFuncsByContent(funcs, options.Content)
+	}
 
 	t, err := txtTemplate.New(options.Name).Funcs(funcs).Parse(options.Content)
 	if err != nil {
@@ -730,7 +733,10 @@ func NewHtmlTemplate(options TemplateOptions, logger common.Logger) (*HtmlTempla
 	for k, v := range options.Funcs {
 		funcs[k] = v
 	}
-	funcs = tpl.filterFuncsByContent(funcs, options.Content)
+
+	if utils.IsEmpty(options.Files) && utils.IsEmpty(options.Pattern) {
+		funcs = tpl.filterFuncsByContent(funcs, options.Content)
+	}
 
 	t, err := htmlTemplate.New(options.Name).Funcs(funcs).Parse(options.Content)
 	if err != nil {
