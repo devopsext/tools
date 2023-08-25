@@ -118,7 +118,7 @@ func (tpl *Template) fRegexFindSubmatch(regex string, s string) []string {
 	return r.FindStringSubmatch(s)
 }
 
-func (tpl *Template) fRegexMatchObjectNamesByField(obj map[string]interface{}, field, value string) []interface{} {
+func (tpl *Template) RegexMatchObjectNamesByField(obj map[string]interface{}, field, value string) []interface{} {
 
 	var r []interface{}
 	if obj == nil || utils.IsEmpty(field) {
@@ -148,7 +148,7 @@ func (tpl *Template) fRegexMatchObjectNamesByField(obj map[string]interface{}, f
 
 func (tpl *Template) fRegexMatchObjectNameByField(obj map[string]interface{}, field, value string) interface{} {
 
-	keys := tpl.fRegexMatchObjectNamesByField(obj, field, value)
+	keys := tpl.RegexMatchObjectNamesByField(obj, field, value)
 	if len(keys) == 0 {
 		return value
 	}
@@ -268,7 +268,7 @@ func (tpl *Template) fJsonata(data interface{}, query string) (string, error) {
 	}
 
 	if _, err := os.Stat(query); err == nil {
-		content, err := ioutil.ReadFile(query)
+		content, err := os.ReadFile(query)
 		if err != nil {
 			return "", err
 		}
@@ -279,7 +279,7 @@ func (tpl *Template) fJsonata(data interface{}, query string) (string, error) {
 	if ok {
 
 		if _, err := os.Stat(s); err == nil {
-			content, err := ioutil.ReadFile(s)
+			content, err := os.ReadFile(s)
 			if err != nil {
 				return "", err
 			}
@@ -559,7 +559,7 @@ func (tpl *Template) setTemplateFuncs(funcs map[string]any) {
 	funcs["regexReplaceAll"] = tpl.fRegexReplaceAll
 	funcs["regexMatch"] = tpl.fRegexMatch
 	funcs["regexFindSubmatch"] = tpl.fRegexFindSubmatch
-	funcs["regexMatchObjectNamesByField"] = tpl.fRegexMatchObjectNamesByField
+	funcs["regexMatchObjectNamesByField"] = tpl.RegexMatchObjectNamesByField
 	funcs["regexMatchObjectNameByField"] = tpl.fRegexMatchObjectNameByField
 	funcs["regexMatchObjectByField"] = tpl.fRegexMatchObjectByField
 
