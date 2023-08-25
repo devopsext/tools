@@ -52,7 +52,7 @@ type HtmlTemplate struct {
 }
 
 // put errors to logger
-func (tpl *Template) fLogError(obj interface{}, args ...interface{}) (string, error) {
+func (tpl *Template) LogError(obj interface{}, args ...interface{}) (string, error) {
 	if tpl.logger == nil {
 		return "", nil
 	}
@@ -61,7 +61,7 @@ func (tpl *Template) fLogError(obj interface{}, args ...interface{}) (string, er
 }
 
 // put warnings to logger
-func (tpl *Template) fLogWarn(obj interface{}, args ...interface{}) (string, error) {
+func (tpl *Template) LogWarn(obj interface{}, args ...interface{}) (string, error) {
 	if tpl.logger == nil {
 		return "", nil
 	}
@@ -70,7 +70,7 @@ func (tpl *Template) fLogWarn(obj interface{}, args ...interface{}) (string, err
 }
 
 // put warnings to logger
-func (tpl *Template) fLogDebug(obj interface{}, args ...interface{}) (string, error) {
+func (tpl *Template) LogDebug(obj interface{}, args ...interface{}) (string, error) {
 	if tpl.logger == nil {
 		return "", nil
 	}
@@ -79,7 +79,7 @@ func (tpl *Template) fLogDebug(obj interface{}, args ...interface{}) (string, er
 }
 
 // put information to logger
-func (tpl *Template) fLogInfo(obj interface{}, args ...interface{}) (string, error) {
+func (tpl *Template) LogInfo(obj interface{}, args ...interface{}) (string, error) {
 	if tpl.logger == nil {
 		return "", nil
 	}
@@ -89,13 +89,13 @@ func (tpl *Template) fLogInfo(obj interface{}, args ...interface{}) (string, err
 
 // replaceAll replaces all occurrences of a value in a string with the given
 // replacement value.
-func (tpl *Template) fReplaceAll(f, t, s string) (string, error) {
+func (tpl *Template) ReplaceAll(f, t, s string) (string, error) {
 	return strings.Replace(s, f, t, -1), nil
 }
 
 // regexReplaceAll replaces all occurrences of a regular expression with
 // the given replacement value.
-func (tpl *Template) fRegexReplaceAll(re, pl, s string) (string, error) {
+func (tpl *Template) RegexReplaceAll(re, pl, s string) (string, error) {
 	compiled, err := regexp.Compile(re)
 	if err != nil {
 		return "", err
@@ -103,9 +103,9 @@ func (tpl *Template) fRegexReplaceAll(re, pl, s string) (string, error) {
 	return compiled.ReplaceAllString(s, pl), nil
 }
 
-// regexMatch returns true or false if the string matches
+// regexMatch returns true or alse if the string matches
 // the given regular expression
-func (tpl *Template) fRegexMatch(re, s string) (bool, error) {
+func (tpl *Template) RegexMatch(re, s string) (bool, error) {
 	compiled, err := regexp.Compile(re)
 	if err != nil {
 		return false, err
@@ -113,7 +113,7 @@ func (tpl *Template) fRegexMatch(re, s string) (bool, error) {
 	return compiled.MatchString(s), nil
 }
 
-func (tpl *Template) fRegexFindSubmatch(regex string, s string) []string {
+func (tpl *Template) RegexFindSubmatch(regex string, s string) []string {
 	r := regexp.MustCompile(regex)
 	return r.FindStringSubmatch(s)
 }
@@ -146,18 +146,18 @@ func (tpl *Template) RegexMatchObjectNamesByField(obj map[string]interface{}, fi
 	return r
 }
 
-func (tpl *Template) fRegexMatchObjectNameByField(obj map[string]interface{}, field, value string) interface{} {
+func (tpl *Template) RegexMatchObjectNameByField(obj map[string]interface{}, ield, value string) interface{} {
 
-	keys := tpl.RegexMatchObjectNamesByField(obj, field, value)
+	keys := tpl.RegexMatchObjectNamesByField(obj, ield, value)
 	if len(keys) == 0 {
 		return value
 	}
 	return keys[0]
 }
 
-func (tpl *Template) fRegexMatchObjectByField(obj map[string]interface{}, field, value string) interface{} {
+func (tpl *Template) RegexMatchObjectByField(obj map[string]interface{}, ield, value string) interface{} {
 
-	key := tpl.fRegexMatchObjectNameByField(obj, field, value)
+	key := tpl.RegexMatchObjectNameByField(obj, ield, value)
 	if obj == nil {
 		return nil
 	}
@@ -169,22 +169,22 @@ func (tpl *Template) fRegexMatchObjectByField(obj map[string]interface{}, field,
 }
 
 // toLower converts the given string (usually by a pipe) to lowercase.
-func (tpl *Template) fToLower(s string) (string, error) {
+func (tpl *Template) ToLower(s string) (string, error) {
 	return strings.ToLower(s), nil
 }
 
 // toTitle converts the given string (usually by a pipe) to titlecase.
-func (tpl *Template) fToTitle(s string) (string, error) {
+func (tpl *Template) ToTitle(s string) (string, error) {
 	return strings.Title(s), nil
 }
 
 // toUpper converts the given string (usually by a pipe) to uppercase.
-func (tpl *Template) fToUpper(s string) (string, error) {
+func (tpl *Template) ToUpper(s string) (string, error) {
 	return strings.ToUpper(s), nil
 }
 
 // toJSON converts the given structure into a deeply nested JSON string.
-func (tpl *Template) fToJSON(i interface{}) (string, error) {
+func (tpl *Template) ToJSON(i interface{}) (string, error) {
 	result, err := json.Marshal(i)
 	if err != nil {
 		return "", err
@@ -193,7 +193,7 @@ func (tpl *Template) fToJSON(i interface{}) (string, error) {
 }
 
 // split is a version of strings.Split that can be piped
-func (tpl *Template) fSplit(sep, s string) ([]string, error) {
+func (tpl *Template) Split(sep, s string) ([]string, error) {
 	s = strings.TrimSpace(s)
 	if s == "" {
 		return []string{}, nil
@@ -202,20 +202,20 @@ func (tpl *Template) fSplit(sep, s string) ([]string, error) {
 }
 
 // join is a version of strings.Join that can be piped
-func (tpl *Template) fJoin(sep string, a []string) (string, error) {
+func (tpl *Template) Join(sep string, a []string) (string, error) {
 	return strings.Join(a, sep), nil
 }
 
-func (tpl *Template) fIsEmpty(s string) (bool, error) {
+func (tpl *Template) IsEmpty(s string) (bool, error) {
 	s1 := strings.TrimSpace(s)
 	return len(s1) == 0, nil
 }
 
-func (tpl *Template) fEnv(key string) (string, error) {
+func (tpl *Template) Env(key string) (string, error) {
 	return utils.EnvGet(key, "").(string), nil
 }
 
-func (tpl *Template) fTimeFormat(s string, format string) (string, error) {
+func (tpl *Template) TimeFormat(s string, format string) (string, error) {
 
 	t, err := time.Parse(tpl.options.TimeFormat, s)
 	if err != nil {
@@ -225,7 +225,7 @@ func (tpl *Template) fTimeFormat(s string, format string) (string, error) {
 	return t.Format(format), nil
 }
 
-func (tpl *Template) fTimeNano(s string) (string, error) {
+func (tpl *Template) TimeNano(s string) (string, error) {
 
 	t1, err := time.Parse(time.RFC3339Nano, s)
 	if err != nil {
@@ -234,7 +234,7 @@ func (tpl *Template) fTimeNano(s string) (string, error) {
 	return strconv.FormatInt(t1.UnixNano(), 10), nil
 }
 
-func (tpl *Template) fJsonEscape(s string) (string, error) {
+func (tpl *Template) JsonEscape(s string) (string, error) {
 
 	bytes, err := json.Marshal(s)
 	if err != nil {
@@ -245,7 +245,7 @@ func (tpl *Template) fJsonEscape(s string) (string, error) {
 }
 
 // toString converts the given value to string
-func (tpl *Template) fToString(i interface{}) (string, error) {
+func (tpl *Template) ToString(i interface{}) (string, error) {
 
 	if i != nil {
 		return fmt.Sprintf("%v", i), nil
@@ -253,15 +253,15 @@ func (tpl *Template) fToString(i interface{}) (string, error) {
 	return "", nil
 }
 
-func (tpl *Template) fEscapeString(s string) (string, error) {
+func (tpl *Template) EscapeString(s string) (string, error) {
 	return html.EscapeString(s), nil
 }
 
-func (tpl *Template) fUnescapeString(s string) (string, error) {
+func (tpl *Template) UnescapeString(s string) (string, error) {
 	return html.UnescapeString(s), nil
 }
 
-func (tpl *Template) fJsonata(data interface{}, query string) (string, error) {
+func (tpl *Template) Jsonata(data interface{}, query string) (string, error) {
 
 	if utils.IsEmpty(query) {
 		return "", errors.New("query is empty")
@@ -316,7 +316,7 @@ func (tpl *Template) fJsonata(data interface{}, query string) (string, error) {
 	return ret, nil
 }
 
-func (tpl *Template) fGjson(obj interface{}, path string) (string, error) {
+func (tpl *Template) Gjson(obj interface{}, path string) (string, error) {
 
 	if utils.IsEmpty(path) {
 		err := errors.New("path is empty")
@@ -357,15 +357,15 @@ func (tpl *Template) fGjson(obj interface{}, path string) (string, error) {
 	return value.String(), nil
 }
 
-func (tpl *Template) fIfDef(i interface{}, def string) (string, error) {
+func (tpl *Template) IfDef(i interface{}, def string) (string, error) {
 
 	if utils.IsEmpty(i) {
 		return def, nil
 	}
-	return tpl.fToString(i)
+	return tpl.ToString(i)
 }
 
-func (tpl *Template) fIfElse(o interface{}, vars []interface{}) interface{} {
+func (tpl *Template) IfElse(o interface{}, vars []interface{}) interface{} {
 
 	if len(vars) == 0 {
 		return o
@@ -380,24 +380,32 @@ func (tpl *Template) fIfElse(o interface{}, vars []interface{}) interface{} {
 	return o
 }
 
-func (tpl *Template) fIfIP(s string) bool {
+func (tpl *Template) IfIP(obj interface{}) bool {
 
-	a := net.ParseIP(s)
+	if obj == nil {
+		return false
+	}
+
+	a := net.ParseIP(fmt.Sprintf("%v", obj))
 	return a != nil
 }
 
-func (tpl *Template) fIfIPAndPort(s string) bool {
+func (tpl *Template) IfIPAndPort(obj interface{}) bool {
 
+	if obj == nil {
+		return false
+	}
+	s := fmt.Sprintf("%v", obj)
 	arr := strings.Split(s, ":")
 	if len(arr) > 0 {
 		s = strings.TrimSpace(arr[0])
 	} else {
 		return false
 	}
-	return tpl.fIfIP(s)
+	return tpl.IfIP(s)
 }
 
-func (tpl *Template) fContent(s string) (string, error) {
+func (tpl *Template) Content(s string) (string, error) {
 
 	if utils.IsEmpty(s) {
 		return "", nil
@@ -419,7 +427,7 @@ func (tpl *Template) tryToWaitUntil(t time.Time, timeout time.Duration) {
 	}
 }
 
-func (tpl *Template) fURLWait(url string, timeout, retry int, size int64) []byte {
+func (tpl *Template) URLWait(url string, timeout, retry int, size int64) []byte {
 
 	if utils.IsEmpty(url) {
 		return nil
@@ -429,7 +437,7 @@ func (tpl *Template) fURLWait(url string, timeout, retry int, size int64) []byte
 		retry = 1
 	}
 
-	tpl.fLogInfo("fURLWait url => %s [%d, %d, %d]", url, timeout, retry, size)
+	tpl.LogInfo("fURLWait url => %s [%d, %d, %d]", url, timeout, retry, size)
 
 	var transport = &http.Transport{
 		Dial:                (&net.Dialer{Timeout: time.Duration(timeout) * time.Second}).Dial,
@@ -446,17 +454,17 @@ func (tpl *Template) fURLWait(url string, timeout, retry int, size int64) []byte
 
 		t1 := time.Now()
 
-		tpl.fLogInfo("fURLWait(%d) get %s...", i, url)
+		tpl.LogInfo("fURLWait(%d) get %s...", i, url)
 
 		data, err := common.HttpGetRaw(&client, url, "", "")
 		if err != nil {
-			tpl.fLogInfo("fURLWait(%d) get %s err => %s", i, url, err.Error())
+			tpl.LogInfo("fURLWait(%d) get %s err => %s", i, url, err.Error())
 			tpl.tryToWaitUntil(t1, client.Timeout)
 			continue
 		}
 
 		l := int64(len(data))
-		tpl.fLogInfo("fURLWait(%d) %s len(data) = %d", i, url, l)
+		tpl.LogInfo("fURLWait(%d) %s len(data) = %d", i, url, l)
 
 		if l < size {
 			tpl.tryToWaitUntil(t1, client.Timeout)
@@ -468,7 +476,7 @@ func (tpl *Template) fURLWait(url string, timeout, retry int, size int64) []byte
 	return nil
 }
 
-func (tpl *Template) fGitlabPipelineVars(URL string, token string, projectID int, query string, limit int) string {
+func (tpl *Template) GitlabPipelineVars(URL string, token string, projectID int, query string, limit int) string {
 
 	gitlabOptions := vendors.GitlabOptions{
 		Timeout:  30,
@@ -479,7 +487,7 @@ func (tpl *Template) fGitlabPipelineVars(URL string, token string, projectID int
 
 	gitlab, err := vendors.NewGitlab(gitlabOptions)
 	if err != nil {
-		tpl.fLogInfo("fGitlabPipelineVars err => %s", err.Error())
+		tpl.LogInfo("fGitlabPipelineVars err => %s", err.Error())
 		return ""
 	}
 
@@ -501,13 +509,13 @@ func (tpl *Template) fGitlabPipelineVars(URL string, token string, projectID int
 
 	b, err := gitlab.PipelineGetVariables(pipelineOptions, pipelineGetVariablesOptions)
 	if err != nil {
-		tpl.fLogInfo("fGitlabPipelineVars err => %s", err.Error())
+		tpl.LogInfo("fGitlabPipelineVars err => %s", err.Error())
 		return ""
 	}
 	return string(b)
 }
 
-func (tpl *Template) fTagExists(s, key string) (bool, error) {
+func (tpl *Template) TagExists(s, key string) (bool, error) {
 
 	// DataDog tags
 	tags := strings.Split(s, ",")
@@ -526,7 +534,7 @@ func (tpl *Template) fTagExists(s, key string) (bool, error) {
 	return false, nil
 }
 
-func (tpl *Template) fTagValue(s, key string) (string, error) {
+func (tpl *Template) TagValue(s, key string) (string, error) {
 
 	// DataDog tags
 	tags := strings.Split(s, ",")
@@ -551,45 +559,45 @@ func (tpl *Template) fTagValue(s, key string) (string, error) {
 
 func (tpl *Template) setTemplateFuncs(funcs map[string]any) {
 
-	funcs["logError"] = tpl.fLogError
-	funcs["logWarn"] = tpl.fLogWarn
-	funcs["logDebug"] = tpl.fLogDebug
-	funcs["logInfo"] = tpl.fLogInfo
+	funcs["logError"] = tpl.LogError
+	funcs["logWarn"] = tpl.LogWarn
+	funcs["logDebug"] = tpl.LogDebug
+	funcs["logInfo"] = tpl.LogInfo
 
-	funcs["regexReplaceAll"] = tpl.fRegexReplaceAll
-	funcs["regexMatch"] = tpl.fRegexMatch
-	funcs["regexFindSubmatch"] = tpl.fRegexFindSubmatch
+	funcs["regexReplaceAll"] = tpl.RegexReplaceAll
+	funcs["regexMatch"] = tpl.RegexMatch
+	funcs["regexFindSubmatch"] = tpl.RegexFindSubmatch
 	funcs["regexMatchObjectNamesByField"] = tpl.RegexMatchObjectNamesByField
-	funcs["regexMatchObjectNameByField"] = tpl.fRegexMatchObjectNameByField
-	funcs["regexMatchObjectByField"] = tpl.fRegexMatchObjectByField
+	funcs["regexMatchObjectNameByField"] = tpl.RegexMatchObjectNameByField
+	funcs["regexMatchObjectByField"] = tpl.RegexMatchObjectByField
 
-	funcs["replaceAll"] = tpl.fReplaceAll
-	funcs["toLower"] = tpl.fToLower
-	funcs["toTitle"] = tpl.fToTitle
-	funcs["toUpper"] = tpl.fToUpper
-	funcs["toJSON"] = tpl.fToJSON
-	funcs["split"] = tpl.fSplit
-	funcs["join"] = tpl.fJoin
-	funcs["isEmpty"] = tpl.fIsEmpty
-	funcs["env"] = tpl.fEnv
-	funcs["getEnv"] = tpl.fEnv
-	funcs["timeFormat"] = tpl.fTimeFormat
-	funcs["timeNano"] = tpl.fTimeNano
-	funcs["jsonEscape"] = tpl.fJsonEscape
-	funcs["toString"] = tpl.fToString
-	funcs["escapeString"] = tpl.fEscapeString
-	funcs["unescapeString"] = tpl.fUnescapeString
-	funcs["jsonata"] = tpl.fJsonata
-	funcs["gjson"] = tpl.fGjson
-	funcs["ifDef"] = tpl.fIfDef
-	funcs["ifElse"] = tpl.fIfElse
-	funcs["ifIP"] = tpl.fIfIP
-	funcs["ifIPAndPort"] = tpl.fIfIPAndPort
-	funcs["content"] = tpl.fContent
-	funcs["urlWait"] = tpl.fURLWait
-	funcs["gitlabPipelineVars"] = tpl.fGitlabPipelineVars
-	funcs["tagExists"] = tpl.fTagExists
-	funcs["tagValue"] = tpl.fTagValue
+	funcs["replaceAll"] = tpl.ReplaceAll
+	funcs["toLower"] = tpl.ToLower
+	funcs["toTitle"] = tpl.ToTitle
+	funcs["toUpper"] = tpl.ToUpper
+	funcs["toJSON"] = tpl.ToJSON
+	funcs["split"] = tpl.Split
+	funcs["join"] = tpl.Join
+	funcs["isEmpty"] = tpl.IsEmpty
+	funcs["env"] = tpl.Env
+	funcs["getEnv"] = tpl.Env
+	funcs["timeFormat"] = tpl.TimeFormat
+	funcs["timeNano"] = tpl.TimeNano
+	funcs["jsonEscape"] = tpl.JsonEscape
+	funcs["toString"] = tpl.ToString
+	funcs["escapeString"] = tpl.EscapeString
+	funcs["unescapeString"] = tpl.UnescapeString
+	funcs["jsonata"] = tpl.Jsonata
+	funcs["gjson"] = tpl.Gjson
+	funcs["ifDef"] = tpl.IfDef
+	funcs["ifElse"] = tpl.IfElse
+	funcs["ifIP"] = tpl.IfIP
+	funcs["ifIPAndPort"] = tpl.IfIPAndPort
+	funcs["content"] = tpl.Content
+	funcs["urlWait"] = tpl.URLWait
+	funcs["gitlabPipelineVars"] = tpl.GitlabPipelineVars
+	funcs["tagExists"] = tpl.TagExists
+	funcs["tagValue"] = tpl.TagValue
 }
 
 func (tpl *Template) filterFuncsByContent(funcs map[string]any, content string) map[string]any {
@@ -608,7 +616,7 @@ func (tpl *TextTemplate) customRender(name string, obj interface{}) ([]byte, err
 	var b bytes.Buffer
 	var err error
 
-	if empty, _ := tpl.fIsEmpty(name); empty {
+	if empty, _ := tpl.IsEmpty(name); empty {
 		err = tpl.template.Execute(&b, obj)
 	} else {
 		err = tpl.template.ExecuteTemplate(&b, name, obj)
@@ -688,7 +696,7 @@ func (tpl *HtmlTemplate) customRender(name string, obj interface{}) ([]byte, err
 	var b bytes.Buffer
 	var err error
 
-	if empty, _ := tpl.fIsEmpty(name); empty {
+	if empty, _ := tpl.IsEmpty(name); empty {
 		err = tpl.template.Execute(&b, obj)
 	} else {
 		err = tpl.template.ExecuteTemplate(&b, name, obj)
