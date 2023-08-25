@@ -121,7 +121,7 @@ func (tpl *Template) RegexFindSubmatch(regex string, s string) []string {
 func (tpl *Template) RegexMatchObjectNamesByField(obj map[string]interface{}, field, value string) []interface{} {
 
 	var r []interface{}
-	if obj == nil || utils.IsEmpty(field) {
+	if obj == nil || utils.IsEmpty(field) || utils.IsEmpty(value) {
 		return r
 	}
 
@@ -146,18 +146,18 @@ func (tpl *Template) RegexMatchObjectNamesByField(obj map[string]interface{}, fi
 	return r
 }
 
-func (tpl *Template) RegexMatchObjectNameByField(obj map[string]interface{}, ield, value string) interface{} {
+func (tpl *Template) RegexMatchObjectNameByField(obj map[string]interface{}, field, value string) interface{} {
 
-	keys := tpl.RegexMatchObjectNamesByField(obj, ield, value)
+	keys := tpl.RegexMatchObjectNamesByField(obj, field, value)
 	if len(keys) == 0 {
 		return value
 	}
 	return keys[0]
 }
 
-func (tpl *Template) RegexMatchObjectByField(obj map[string]interface{}, ield, value string) interface{} {
+func (tpl *Template) RegexMatchObjectByField(obj map[string]interface{}, field, value string) interface{} {
 
-	key := tpl.RegexMatchObjectNameByField(obj, ield, value)
+	key := tpl.RegexMatchObjectNameByField(obj, field, value)
 	if obj == nil {
 		return nil
 	}
