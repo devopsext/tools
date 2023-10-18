@@ -2,6 +2,7 @@ package common
 
 import (
 	"bytes"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -15,6 +16,11 @@ import (
 type OutputOptions struct {
 	Output string
 	Query  string
+}
+
+func FormatBasicAuth(user, pass string) string {
+	auth := user + ":" + pass
+	return "Basic " + base64.StdEncoding.EncodeToString([]byte(auth))
 }
 
 // we need custom json marshal due to no html escaption
