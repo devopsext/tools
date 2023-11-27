@@ -85,6 +85,7 @@ func (p *Prometheus) Get() ([]byte, error) {
 }
 
 func NewPrometheus(options PrometheusOptions) *Prometheus {
+	
 	return &Prometheus{
 		client:  utils.NewHttpClient(options.Timeout, options.Insecure),
 		options: options,

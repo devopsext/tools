@@ -61,6 +61,7 @@ func Execute() {
 	rootCmd.AddCommand(NewGitlabCommand())
 	rootCmd.AddCommand(NewGoogleCommand())
 	rootCmd.AddCommand(NewPrometheusCommand())
+	rootCmd.AddCommand(NewObserviumCommand())
 
 	rootCmd.AddCommand(NewTemplateCommand())
 	rootCmd.AddCommand(NewDateCommand())
