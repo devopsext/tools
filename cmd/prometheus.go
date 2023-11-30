@@ -16,6 +16,8 @@ var prometheusOptions = vendors.PrometheusOptions{
 	To:       envGet("PROMETHEUS_TO", "").(string),
 	Step:     envGet("PROMETHEUS_STEP", "60").(string),
 	Params:   envGet("PROMETHEUS_PARAMS", "").(string),
+	User:     envGet("PROMETHEUS_USER", "").(string),
+	Password: envGet("PROMETHEUS_PASSWORD", "").(string),
 }
 
 var prometheusOutput = common.OutputOptions{
@@ -57,6 +59,8 @@ func NewPrometheusCommand() *cobra.Command {
 	flags.StringVar(&prometheusOptions.To, "prometheus-to", prometheusOptions.To, "Prometheus to")
 	flags.StringVar(&prometheusOptions.Step, "prometheus-step", prometheusOptions.Step, "Prometheus step")
 	flags.StringVar(&prometheusOptions.Params, "prometheus-params", prometheusOptions.Params, "Prometheus params")
+	flags.StringVar(&prometheusOptions.User, "prometheus-user", prometheusOptions.User, "Prometheus user")
+	flags.StringVar(&prometheusOptions.Password, "prometheus-password", prometheusOptions.Password, "Prometheus password")
 	flags.StringVar(&prometheusOutput.Output, "prometheus-output", prometheusOutput.Output, "Prometheus output")
 	flags.StringVar(&prometheusOutput.Query, "prometheus-output-query", prometheusOutput.Query, "Prometheus output query")
 

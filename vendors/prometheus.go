@@ -12,16 +12,16 @@ import (
 )
 
 type PrometheusOptions struct {
-	URL          string
-	HttpUsername string
-	HttpPassword string
-	Timeout      int
-	Insecure     bool
-	Query        string
-	From         string
-	To           string
-	Step         string
-	Params       string
+	URL      string
+	User     string
+	Password string
+	Timeout  int
+	Insecure bool
+	Query    string
+	From     string
+	To       string
+	Step     string
+	Params   string
 }
 type PrometheusOutputOptions struct {
 	Output      string
@@ -80,8 +80,8 @@ func (p *Prometheus) CustomGet(options PrometheusOptions) ([]byte, error) {
 	u.Path = path.Join(u.Path, apiURL)
 	u.RawQuery = params.Encode()
 
-	if !utils.IsEmpty(options.HttpUsername) && !utils.IsEmpty(options.HttpPassword) {
-		authorization = common.FormatBasicAuth(options.HttpUsername, options.HttpPassword)
+	if !utils.IsEmpty(options.User) && !utils.IsEmpty(options.Password) {
+		authorization = common.FormatBasicAuth(options.User, options.Password)
 	}
 
 	return common.HttpGetRaw(p.client, u.String(), "application/json", authorization)
@@ -92,7 +92,7 @@ func (p *Prometheus) Get() ([]byte, error) {
 }
 
 func NewPrometheus(options PrometheusOptions) *Prometheus {
-	
+
 	return &Prometheus{
 		client:  utils.NewHttpClient(options.Timeout, options.Insecure),
 		options: options,
