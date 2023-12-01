@@ -241,7 +241,11 @@ func (s *Slack) prepareMessage(m SlackMessage) (*bytes.Buffer, error) {
 		return nil, err
 	}
 
+	ts := strings.ReplaceAll(m.Message, "\r", "")
+	m.Message = strings.ReplaceAll(ts, "\n", "\\n")
+
 	b := &bytes.Buffer{}
+
 	if err := t.Execute(b, m); err != nil {
 		return nil, err
 	}
