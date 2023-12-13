@@ -341,3 +341,17 @@ func ReadAndMarshal(path string) (map[string]interface{}, error) {
 
 	return result, nil
 }
+
+func RemoveEmptyStrings(items []string) []string {
+
+	r := []string{}
+
+	for _, v := range items {
+		if utils.IsEmpty(v) {
+			continue
+		}
+		r = append(r, strings.TrimSpace(v))
+	}
+
+	return r
+}

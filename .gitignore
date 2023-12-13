@@ -8,6 +8,7 @@ coverage.txt
 __debug_bin
 tools
 observium-devices.query
+zabbix-hosts.query
 slack.output
 slack.query
 slack-old.query
