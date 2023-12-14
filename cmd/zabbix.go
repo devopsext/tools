@@ -8,10 +8,10 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var zabbixHostGetOptions = vendors.ZabbixHostGetOptions{
-	Fields:     strings.Split(envGet("ZABBIX_HOST_GET_FIELDS", "").(string), ","),
-	Inventory:  strings.Split(envGet("ZABBIX_HOST_GET_INVENTORY", "").(string), ","),
-	Interfaces: strings.Split(envGet("ZABBIX_HOST_GET_INTERFACSES", "").(string), ","),
+var zabbixHostOptions = vendors.ZabbixHostOptions{
+	Fields:     strings.Split(envGet("ZABBIX_HOST_FIELDS", "").(string), ","),
+	Inventory:  strings.Split(envGet("ZABBIX_HOST_INVENTORY", "").(string), ","),
+	Interfaces: strings.Split(envGet("ZABBIX_HOST_INTERFACSES", "").(string), ","),
 }
 
 var zabbixOptions = vendors.ZabbixOptions{
@@ -56,27 +56,27 @@ func NewZabbixCommand() *cobra.Command {
 	flags.StringVar(&zabbixOutput.Output, "zabbix-output", zabbixOutput.Output, "Zabbix output")
 	flags.StringVar(&zabbixOutput.Query, "zabbix-output-query", zabbixOutput.Query, "Zabbix output query")
 
-	zabbixHostGetCmd := &cobra.Command{
+	zabbixGetHostsCmd := &cobra.Command{
 		Use:   "get-hosts",
 		Short: "Get hosts from URL",
 		Run: func(cmd *cobra.Command, args []string) {
 
 			stdout.Debug("Getting hosts from URL...")
-			common.Debug("Zabbix", zabbixHostGetOptions, stdout)
+			common.Debug("Zabbix", zabbixHostOptions, stdout)
 
-			bytes, err := zabbixNew(stdout).GetHosts(zabbixHostGetOptions)
+			bytes, err := zabbixNew(stdout).GetHosts(zabbixHostOptions)
 			if err != nil {
 				stdout.Error(err)
 				return
 			}
-			common.OutputJson(zabbixOutput, "Zabbix", []interface{}{zabbixOptions, zabbixHostGetOptions}, bytes, stdout)
+			common.OutputJson(zabbixOutput, "Zabbix", []interface{}{zabbixOptions, zabbixHostOptions}, bytes, stdout)
 		},
 	}
-	flags = zabbixHostGetCmd.PersistentFlags()
-	flags.StringSliceVar(&zabbixHostGetOptions.Fields, "zabbix-host-get-fields", zabbixHostGetOptions.Fields, "Zabbix host get fields")
-	flags.StringSliceVar(&zabbixHostGetOptions.Inventory, "zabbix-host-get-inventory", zabbixHostGetOptions.Inventory, "Zabbix host get inventory")
-	flags.StringSliceVar(&zabbixHostGetOptions.Interfaces, "zabbix-host-get-interfaces", zabbixHostGetOptions.Interfaces, "Zabbix host get interfaces")
-	zabbixCmd.AddCommand(zabbixHostGetCmd)
+	flags = zabbixGetHostsCmd.PersistentFlags()
+	flags.StringSliceVar(&zabbixHostOptions.Fields, "zabbix-host-fields", zabbixHostOptions.Fields, "Zabbix get host fields")
+	flags.StringSliceVar(&zabbixHostOptions.Inventory, "zabbix-host-inventory", zabbixHostOptions.Inventory, "Zabbix get host inventory")
+	flags.StringSliceVar(&zabbixHostOptions.Interfaces, "zabbix-host-interfaces", zabbixHostOptions.Interfaces, "Zabbix get host interfaces")
+	zabbixCmd.AddCommand(zabbixGetHostsCmd)
 
 	return zabbixCmd
 }

@@ -10,7 +10,7 @@ import (
 	"github.com/devopsext/utils"
 )
 
-type ZabbixHostGetOptions struct {
+type ZabbixHostOptions struct {
 	Fields     []string
 	Inventory  []string
 	Interfaces []string
@@ -62,7 +62,7 @@ type ZabbixHostGet struct {
 
 const (
 	zabbixContentType    = "application/json-rpc"
-	zabbixJsonRpcURL     = "/api_jsonrpc.php"
+	zabbixJsonRpcPath    = "/api_jsonrpc.php"
 	zabbixJsonRpcVersion = "2.0"
 )
 
@@ -72,7 +72,7 @@ func (o *Zabbix) getZabbixAuth(opts ZabbixOptions) (*ZabbixUserLoginResponse, er
 	if err != nil {
 		return nil, err
 	}
-	u.Path = path.Join(u.Path, zabbixJsonRpcURL)
+	u.Path = path.Join(u.Path, zabbixJsonRpcPath)
 
 	r := &ZabbixUserLogin{
 
@@ -103,7 +103,7 @@ func (o *Zabbix) getZabbixAuth(opts ZabbixOptions) (*ZabbixUserLoginResponse, er
 	return &zr, nil
 }
 
-func (o *Zabbix) CustomGetHosts(options ZabbixOptions, hostGetOptions ZabbixHostGetOptions) ([]byte, error) {
+func (o *Zabbix) CustomGetHosts(options ZabbixOptions, hostOptions ZabbixHostOptions) ([]byte, error) {
 
 	auth := options.Auth
 	if utils.IsEmpty(auth) {
@@ -119,7 +119,7 @@ func (o *Zabbix) CustomGetHosts(options ZabbixOptions, hostGetOptions ZabbixHost
 		return nil, err
 	}
 
-	u.Path = path.Join(u.Path, zabbixJsonRpcURL)
+	u.Path = path.Join(u.Path, zabbixJsonRpcPath)
 
 	r := &ZabbixHostGet{
 
@@ -128,9 +128,9 @@ func (o *Zabbix) CustomGetHosts(options ZabbixOptions, hostGetOptions ZabbixHost
 		Auth:    auth,
 		ID:      1,
 		Params: &ZabbixHostGetParams{
-			Output:           common.RemoveEmptyStrings(hostGetOptions.Fields),
-			SelectInventory:  common.RemoveEmptyStrings(hostGetOptions.Inventory),
-			SelectInterfaces: common.RemoveEmptyStrings(hostGetOptions.Interfaces),
+			Output:           common.RemoveEmptyStrings(hostOptions.Fields),
+			SelectInventory:  common.RemoveEmptyStrings(hostOptions.Inventory),
+			SelectInterfaces: common.RemoveEmptyStrings(hostOptions.Interfaces),
 		},
 	}
 
@@ -142,7 +142,7 @@ func (o *Zabbix) CustomGetHosts(options ZabbixOptions, hostGetOptions ZabbixHost
 	return common.HttpPostRaw(o.client, u.String(), zabbixContentType, "", req)
 }
 
-func (o *Zabbix) GetHosts(options ZabbixHostGetOptions) ([]byte, error) {
+func (o *Zabbix) GetHosts(options ZabbixHostOptions) ([]byte, error) {
 	return o.CustomGetHosts(o.options, options)
 }
 

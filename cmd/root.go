@@ -63,6 +63,7 @@ func Execute() {
 	rootCmd.AddCommand(NewPrometheusCommand())
 	rootCmd.AddCommand(NewObserviumCommand())
 	rootCmd.AddCommand(NewZabbixCommand())
+	rootCmd.AddCommand(NewVCenterCommand())
 
 	rootCmd.AddCommand(NewTemplateCommand())
 	rootCmd.AddCommand(NewDateCommand())
