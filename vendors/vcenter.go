@@ -88,15 +88,23 @@ func (vc *VCenter) getHeaders(session string) map[string]string {
 	return headers
 }
 
-func (vc *VCenter) CustomGetClusters(options VCenterOptions) ([]byte, error) {
+func (vc *VCenter) CustomGetSession(options VCenterOptions) (string, error) {
 
-	session := options.Session
-	if utils.IsEmpty(session) {
+	if utils.IsEmpty(options.Session) {
 		s, err := vc.getSession(options)
 		if err != nil {
-			return nil, err
+			return "", err
 		}
-		session = s
+		return s, nil
+	}
+	return options.Session, nil
+}
+
+func (vc *VCenter) CustomGetClusters(options VCenterOptions) ([]byte, error) {
+
+	session, err := vc.CustomGetSession(options)
+	if err != nil {
+		return nil, err
 	}
 
 	u, err := url.Parse(options.URL)
@@ -114,13 +122,9 @@ func (vc *VCenter) GetClusters() ([]byte, error) {
 
 func (vc *VCenter) CustomGetHosts(options VCenterOptions, hostOptions VCenterHostOptions) ([]byte, error) {
 
-	session := options.Session
-	if utils.IsEmpty(session) {
-		s, err := vc.getSession(options)
-		if err != nil {
-			return nil, err
-		}
-		session = s
+	session, err := vc.CustomGetSession(options)
+	if err != nil {
+		return nil, err
 	}
 
 	u, err := url.Parse(options.URL)
@@ -145,13 +149,9 @@ func (vc *VCenter) GetHosts(options VCenterHostOptions) ([]byte, error) {
 
 func (vc *VCenter) CustomGetVMs(options VCenterOptions, vmOptions VCenterVMOptions) ([]byte, error) {
 
-	session := options.Session
-	if utils.IsEmpty(session) {
-		s, err := vc.getSession(options)
-		if err != nil {
-			return nil, err
-		}
-		session = s
+	session, err := vc.CustomGetSession(options)
+	if err != nil {
+		return nil, err
 	}
 
 	u, err := url.Parse(options.URL)
