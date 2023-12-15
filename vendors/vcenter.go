@@ -16,6 +16,10 @@ type VCenterHostOptions struct {
 	Cluster string
 }
 
+type VCenterVMGuestIdentityOptions struct {
+	VM string
+}
+
 type VCenterVMOptions struct {
 	Cluster string
 	Host    string
@@ -40,12 +44,15 @@ type VCenterSessionResponse struct {
 }
 
 const (
-	VCenterContentType     = "application/json"
-	VCenterRestSessionPath = "/rest/com/vmware/cis/session"
-	VCenterRestClusterPath = "/rest/vcenter/cluster"
-	VCenterRestHostPath    = "/rest/vcenter/host"
-	VCenterRestVMPath      = "/rest/vcenter/vm"
+	VCenterContentType                = "application/json"
+	VCenterRestSessionPath            = "/rest/com/vmware/cis/session"
+	VCenterRestClusterPath            = "/rest/vcenter/cluster"
+	VCenterRestHostPath               = "/rest/vcenter/host"
+	VCenterRestVMPath                 = "/rest/vcenter/vm"
+	VCenterRestVMGuestIdentityPathFmt = "/rest/vcenter/vm/%s/guest/identity"
 )
+
+// https://developer.vmware.com/apis/vsphere-automation/latest/vcenter/vm/
 
 func (vc *VCenter) getAuth(opts VCenterOptions) string {
 
@@ -173,6 +180,27 @@ func (vc *VCenter) CustomGetVMs(options VCenterOptions, vmOptions VCenterVMOptio
 
 func (vc *VCenter) GetVMs(options VCenterVMOptions) ([]byte, error) {
 	return vc.CustomGetVMs(vc.options, options)
+}
+
+func (vc *VCenter) CustomGetVMGuestIdentity(options VCenterOptions, vmGuestidentity VCenterVMGuestIdentityOptions) ([]byte, error) {
+
+	session, err := vc.CustomGetSession(options)
+	if err != nil {
+		return nil, err
+	}
+
+	u, err := url.Parse(options.URL)
+	if err != nil {
+		return nil, err
+	}
+
+	u.Path = path.Join(u.Path, fmt.Sprintf(VCenterRestVMGuestIdentityPathFmt, vmGuestidentity.VM))
+
+	return common.HttpGetRawWithHeaders(vc.client, u.String(), vc.getHeaders(session))
+}
+
+func (vc *VCenter) GetVMGuestIdentity(options VCenterVMGuestIdentityOptions) ([]byte, error) {
+	return vc.CustomGetVMGuestIdentity(vc.options, options)
 }
 
 func NewVCenter(options VCenterOptions) *VCenter {

@@ -15,6 +15,10 @@ var vcenterVMOptions = vendors.VCenterVMOptions{
 	Host:    envGet("VCENTER_VM_HOST", "").(string),
 }
 
+var vcenterVMGuestIdentityOptions = vendors.VCenterVMGuestIdentityOptions{
+	VM: envGet("VCENTER_VM_GUEST_INDENTITY_VM", "").(string),
+}
+
 var vcenterOptions = vendors.VCenterOptions{
 	Timeout:  envGet("VCENTER_TIMEOUT", 30).(int),
 	Insecure: envGet("VCENTER_INSECURE", false).(bool),
@@ -114,6 +118,26 @@ func NewVCenterCommand() *cobra.Command {
 	flags.StringVar(&vcenterVMOptions.Cluster, "vcenter-vm-cluster", vcenterVMOptions.Cluster, "VCenter get vm cluster")
 	flags.StringVar(&vcenterVMOptions.Host, "vcenter-vm-host", vcenterVMOptions.Host, "VCenter get vm host")
 	vcenterCmd.AddCommand(vcenterGetVMsCmd)
+
+	vcenterGetVMGuestIdentityCmd := &cobra.Command{
+		Use:   "get-vm-guest-identity",
+		Short: "Get vm guest identity from URL",
+		Run: func(cmd *cobra.Command, args []string) {
+
+			stdout.Debug("Getting vm guest identity from URL...")
+			common.Debug("vcenter", vcenterVMGuestIdentityOptions, stdout)
+
+			bytes, err := vcenterNew(stdout).GetVMGuestIdentity(vcenterVMGuestIdentityOptions)
+			if err != nil {
+				stdout.Error(err)
+				return
+			}
+			common.OutputJson(vcenterOutput, "VCenter", []interface{}{vcenterOptions, vcenterVMGuestIdentityOptions}, bytes, stdout)
+		},
+	}
+	flags = vcenterGetVMGuestIdentityCmd.PersistentFlags()
+	flags.StringVar(&vcenterVMGuestIdentityOptions.VM, "vcenter-vm-guest-identity-vm", vcenterVMGuestIdentityOptions.VM, "VCenter get vm guest identity vm")
+	vcenterCmd.AddCommand(vcenterGetVMGuestIdentityCmd)
 
 	return vcenterCmd
 }
