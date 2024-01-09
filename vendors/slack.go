@@ -20,14 +20,14 @@ import (
 //go:embed slack.tmpl
 var msgTemplate string
 
-const baseURL = "https://slack.com/api/"
+const slackBaseURL = "https://slack.com/api/"
 
 const (
-	filesUpload           = "files.upload"
-	chatPostMessage       = "chat.postMessage"
-	reactionsAdd          = "reactions.add"
-	usersLookupByEmail    = "users.lookupByEmail"
-	usergroupsUsersUpdate = "usergroups.users.update"
+	slackFilesUpload           = "files.upload"
+	slackChatPostMessage       = "chat.postMessage"
+	slackReactionsAdd          = "reactions.add"
+	slackUsersLookupByEmail    = "users.lookupByEmail"
+	slackUsergroupsUsersUpdate = "usergroups.users.update"
 )
 
 type SlackOptions struct {
@@ -153,7 +153,7 @@ func (s *Slack) sendMessage(m SlackMessage) ([]byte, error) {
 		return nil, err
 	}
 	q := url.Values{}
-	b, err := s.post(m.Token, s.apiURL(chatPostMessage), q, "application/json; charset=utf-8", *jsonMsg)
+	b, err := s.post(m.Token, s.apiURL(slackChatPostMessage), q, "application/json; charset=utf-8", *jsonMsg)
 	if err != nil {
 		return nil, err
 	}
@@ -187,7 +187,7 @@ func (s *Slack) SendCustom(m SlackMessage) ([]byte, error) {
 	q := url.Values{}
 	q.Add("channels", s.options.Channel)
 
-	return s.post(m.Token, s.apiURL(filesUpload), q, w.FormDataContentType(), body)
+	return s.post(m.Token, s.apiURL(slackFilesUpload), q, w.FormDataContentType(), body)
 }
 
 func (s *Slack) SendCustomFile(m SlackMessage) ([]byte, error) {
@@ -232,7 +232,7 @@ func (s *Slack) SendCustomFile(m SlackMessage) ([]byte, error) {
 	q := url.Values{}
 	q.Add("channels", m.Channel)
 
-	return s.post(m.Token, s.apiURL(filesUpload), q, w.FormDataContentType(), body)
+	return s.post(m.Token, s.apiURL(slackFilesUpload), q, w.FormDataContentType(), body)
 }
 
 func (s *Slack) prepareMessage(m SlackMessage) (*bytes.Buffer, error) {
@@ -282,7 +282,7 @@ func (s *Slack) post(token string, URL string, query url.Values, contentType str
 }
 
 func (s *Slack) apiURL(cmd string) string {
-	return baseURL + cmd
+	return slackBaseURL + cmd
 }
 
 func (s *Slack) getAuth(opts SlackOptions) string {
@@ -318,27 +318,18 @@ func (s *Slack) CustomAddReaction(slackOptions SlackOptions, reactionOptions Sla
 	if err := w.Close(); err != nil {
 		return nil, err
 	}
-	return common.HttpPostRaw(s.client, s.apiURL(reactionsAdd), w.FormDataContentType(), s.getAuth(slackOptions), body.Bytes())
+	return common.HttpPostRaw(s.client, s.apiURL(slackReactionsAdd), w.FormDataContentType(), s.getAuth(slackOptions), body.Bytes())
 }
 
 func (s *Slack) AddReaction(options SlackReactionOptions) ([]byte, error) {
 	return s.CustomAddReaction(s.options, options)
 }
 
-func NewSlack(options SlackOptions) (*Slack, error) {
-
-	slack := &Slack{
-		client:  utils.NewHttpClient(options.Timeout, options.Insecure),
-		options: options,
-	}
-	return slack, nil
-}
-
 func (s *Slack) CustomGetUser(slackOptions SlackOptions, slackUser SlackUserEmail) ([]byte, error) {
 	params := make(url.Values)
 	params.Add("email", slackUser.Email)
 
-	u, err := url.Parse(s.apiURL(usersLookupByEmail))
+	u, err := url.Parse(s.apiURL(slackUsersLookupByEmail))
 	if err != nil {
 		return nil, err
 	}
@@ -364,9 +355,18 @@ func (s *Slack) CustomUpdateUsergroup(slackOptions SlackOptions, slackUpdateUser
 		return nil, err
 	}
 
-	return common.HttpPostRaw(s.client, s.apiURL(usergroupsUsersUpdate), "application/json", s.getAuth(slackOptions), req)
+	return common.HttpPostRaw(s.client, s.apiURL(slackUsergroupsUsersUpdate), "application/json", s.getAuth(slackOptions), req)
 }
 
 func (s *Slack) UpdateUsergroup(options SlackUsergroupUsers) ([]byte, error) {
 	return s.CustomUpdateUsergroup(s.options, options)
+}
+
+func NewSlack(options SlackOptions) (*Slack, error) {
+
+	slack := &Slack{
+		client:  utils.NewHttpClient(options.Timeout, options.Insecure),
+		options: options,
+	}
+	return slack, nil
 }

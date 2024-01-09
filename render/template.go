@@ -184,12 +184,30 @@ func (tpl *Template) ToUpper(s string) (string, error) {
 }
 
 // toJSON converts the given structure into a deeply nested JSON string.
-func (tpl *Template) ToJSON(i interface{}) (string, error) {
+func (tpl *Template) ToJson(i interface{}) (string, error) {
+
 	result, err := json.Marshal(i)
 	if err != nil {
 		return "", err
 	}
 	return string(bytes.TrimSpace(result)), err
+}
+
+func (tpl *Template) FromJson(i interface{}) (interface{}, error) {
+
+	var d []byte
+	var r interface{}
+	ds, ok := i.([]byte)
+	if ok {
+		d = ds
+	} else {
+		d = []byte(fmt.Sprintf("%v", i))
+	}
+	err := json.Unmarshal(d, &r)
+	if err != nil {
+		return nil, err
+	}
+	return r, nil
 }
 
 // split is a version of strings.Split that can be piped
@@ -247,7 +265,12 @@ func (tpl *Template) JsonEscape(s string) (string, error) {
 // toString converts the given value to string
 func (tpl *Template) ToString(i interface{}) (string, error) {
 
-	if i != nil {
+	if !utils.IsEmpty(i) {
+
+		ds, ok := i.([]byte)
+		if ok {
+			return string(ds), nil
+		}
 		return fmt.Sprintf("%v", i), nil
 	}
 	return "", nil
@@ -437,7 +460,7 @@ func (tpl *Template) URLWait(url string, timeout, retry int, size int64) []byte 
 		retry = 1
 	}
 
-	tpl.LogInfo("fURLWait url => %s [%d, %d, %d]", url, timeout, retry, size)
+	tpl.LogDebug("URLWait url => %s [%d, %d, %d]", url, timeout, retry, size)
 
 	var transport = &http.Transport{
 		Dial:                (&net.Dialer{Timeout: time.Duration(timeout) * time.Second}).Dial,
@@ -454,17 +477,17 @@ func (tpl *Template) URLWait(url string, timeout, retry int, size int64) []byte 
 
 		t1 := time.Now()
 
-		tpl.LogInfo("fURLWait(%d) get %s...", i, url)
+		tpl.LogDebug("URLWait(%d) get %s...", i, url)
 
 		data, err := common.HttpGetRaw(&client, url, "", "")
 		if err != nil {
-			tpl.LogInfo("fURLWait(%d) get %s err => %s", i, url, err.Error())
+			tpl.LogDebug("URLWait(%d) get %s err => %s", i, url, err.Error())
 			tpl.tryToWaitUntil(t1, client.Timeout)
 			continue
 		}
 
 		l := int64(len(data))
-		tpl.LogInfo("fURLWait(%d) %s len(data) = %d", i, url, l)
+		tpl.LogDebug("URLWait(%d) %s len(data) = %d", i, url, l)
 
 		if l < size {
 			tpl.tryToWaitUntil(t1, client.Timeout)
@@ -487,7 +510,7 @@ func (tpl *Template) GitlabPipelineVars(URL string, token string, projectID int,
 
 	gitlab, err := vendors.NewGitlab(gitlabOptions)
 	if err != nil {
-		tpl.LogInfo("fGitlabPipelineVars err => %s", err.Error())
+		tpl.LogDebug("fGitlabPipelineVars err => %s", err.Error())
 		return ""
 	}
 
@@ -557,6 +580,41 @@ func (tpl *Template) TagValue(s, key string) (string, error) {
 	return s, nil
 }
 
+func (tpl *Template) HttpGet(url, contentType, authorization string, timeout, retry int) ([]byte, error) {
+
+	if utils.IsEmpty(url) {
+		return nil, fmt.Errorf("URL is not set")
+	}
+
+	var transport = &http.Transport{
+		Dial:                (&net.Dialer{Timeout: time.Duration(timeout) * time.Second}).Dial,
+		TLSHandshakeTimeout: time.Duration(timeout) * time.Second,
+		TLSClientConfig:     &tls.Config{InsecureSkipVerify: true},
+	}
+
+	client := http.Client{
+		Timeout:   time.Duration(timeout) * time.Second,
+		Transport: transport,
+	}
+
+	var data []byte
+	var err error
+	for i := 0; i < retry; i++ {
+
+		t1 := time.Now()
+		tpl.LogDebug("HttpGet(%d) get %s...", i, url)
+
+		data, err = common.HttpGetRaw(&client, url, contentType, authorization)
+		if err != nil {
+			tpl.LogDebug("HttpGet(%d) get %s err => %s", i, url, err.Error())
+			tpl.tryToWaitUntil(t1, client.Timeout)
+			continue
+		}
+		break
+	}
+	return data, err
+}
+
 func (tpl *Template) setTemplateFuncs(funcs map[string]any) {
 
 	funcs["logError"] = tpl.LogError
@@ -575,12 +633,14 @@ func (tpl *Template) setTemplateFuncs(funcs map[string]any) {
 	funcs["toLower"] = tpl.ToLower
 	funcs["toTitle"] = tpl.ToTitle
 	funcs["toUpper"] = tpl.ToUpper
-	funcs["toJSON"] = tpl.ToJSON
+	funcs["toJSON"] = tpl.ToJson // deprecated
+	funcs["toJson"] = tpl.ToJson
+	funcs["fromJson"] = tpl.FromJson
 	funcs["split"] = tpl.Split
 	funcs["join"] = tpl.Join
 	funcs["isEmpty"] = tpl.IsEmpty
 	funcs["env"] = tpl.Env
-	funcs["getEnv"] = tpl.Env
+	funcs["getEnv"] = tpl.Env // deprecated
 	funcs["timeFormat"] = tpl.TimeFormat
 	funcs["timeNano"] = tpl.TimeNano
 	funcs["jsonEscape"] = tpl.JsonEscape
@@ -598,6 +658,8 @@ func (tpl *Template) setTemplateFuncs(funcs map[string]any) {
 	funcs["gitlabPipelineVars"] = tpl.GitlabPipelineVars
 	funcs["tagExists"] = tpl.TagExists
 	funcs["tagValue"] = tpl.TagValue
+
+	funcs["httpGet"] = tpl.HttpGet
 }
 
 func (tpl *Template) filterFuncsByContent(funcs map[string]any, content string) map[string]any {
