@@ -5,7 +5,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"os"
 	"strings"
@@ -113,7 +113,7 @@ func Output(query, to string, prefix string, opts []interface{}, bytes []byte, s
 		stdout.Info(output)
 	} else {
 		stdout.Debug("Writing output to %s...", to)
-		err := ioutil.WriteFile(to, []byte(output), 0600)
+		err := os.WriteFile(to, []byte(output), 0600)
 		if err != nil {
 			stdout.Error(err)
 		}
@@ -133,7 +133,7 @@ func OutputRaw(output string, bytes []byte, stdout *Stdout) {
 		stdout.Info(out)
 	} else {
 		stdout.Debug("Writing output to %s...", output)
-		err := ioutil.WriteFile(output, bytes, 0600)
+		err := os.WriteFile(output, bytes, 0600)
 		if err != nil {
 			stdout.Error(err)
 		}
@@ -178,7 +178,7 @@ func HttpRequestRawWithHeaders(client *http.Client, method, URL string, headers 
 		return nil, fmt.Errorf("response status code: %s", resp.Status)
 	}
 
-	b, err := ioutil.ReadAll(resp.Body)
+	b, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return nil, err
 	}
@@ -227,7 +227,7 @@ func HttpRequestRawWithHeadersOutCode(client *http.Client, method, URL string, h
 		return nil, 0, fmt.Errorf(resp.Status)
 	}
 
-	b, err := ioutil.ReadAll(resp.Body)
+	b, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return nil, 0, err
 	}
@@ -291,7 +291,7 @@ func HttpGetRawWithHeaders(client *http.Client, URL string, headers map[string]s
 		return nil, fmt.Errorf(resp.Status)
 	}
 
-	b, err := ioutil.ReadAll(resp.Body)
+	b, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return nil, err
 	}

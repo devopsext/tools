@@ -390,7 +390,7 @@ func (j *Jira) IssueSearch(options JiraIssueSearchOptions) ([]byte, error) {
 	return j.CustomIssueSearch(j.options, options)
 }
 
-func (j *Jira) AssetsCustomSearch(jiraOptions JiraOptions, assetsSearch JiraAssetsSearchOptions) ([]byte, error) {
+func (j *Jira) CustomAssetsSearch(jiraOptions JiraOptions, assetsSearch JiraAssetsSearchOptions) ([]byte, error) {
 
 	params := make(url.Values)
 	params.Add("qlQuery", assetsSearch.SearchPattern)
@@ -441,7 +441,7 @@ func (j *Jira) AssetsCustomSearch(jiraOptions JiraOptions, assetsSearch JiraAsse
 }
 
 func (j *Jira) AssetsSearch(options JiraAssetsSearchOptions) ([]byte, error) {
-	return j.AssetsCustomSearch(j.options, options)
+	return j.CustomAssetsSearch(j.options, options)
 }
 
 func NewJira(options JiraOptions) (*Jira, error) {

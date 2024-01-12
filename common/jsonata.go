@@ -2,14 +2,11 @@ package common
 
 import (
 	"encoding/json"
-	"fmt"
 	"net/http"
 	"os"
-	"regexp"
 
 	"github.com/blues/jsonata-go"
 	"github.com/blues/jsonata-go/jtypes"
-	"github.com/devopsext/utils"
 )
 
 type JsonataOptions struct {
@@ -42,7 +39,7 @@ func (j *Jsonata) fHttpGet(URL, contentType string) interface{} {
 	return r
 }
 
-func (j *Jsonata) fRegexMatchObjectByFields(obj map[string]interface{}, field, value string) []interface{} {
+/*func (j *Jsonata) fRegexMatchObjectByFields(obj map[string]interface{}, field, value string) []interface{} {
 
 	var r []interface{}
 	if obj == nil || utils.IsEmpty(field) {
@@ -77,7 +74,7 @@ func (j *Jsonata) fRegexMatchObjectByField(obj map[string]interface{}, field, va
 		return value
 	}
 	return keys[0]
-}
+}*/
 
 func (j *Jsonata) Eval(data interface{}, query string) (interface{}, error) {
 
@@ -92,16 +89,11 @@ func (j *Jsonata) Eval(data interface{}, query string) (interface{}, error) {
 		UndefinedHandler:   jtypes.ArgUndefined(0),
 		EvalContextHandler: jtypes.ArgCountEquals(0),
 	}
-	exts["regexMatchObjectByFields"] = jsonata.Extension{
-		Func:               j.fRegexMatchObjectByFields,
+	/*exts["regexMatchObjectByField"] = jsonata.Extension{
+		Func:               tpl,
 		UndefinedHandler:   jtypes.ArgUndefined(0),
 		EvalContextHandler: jtypes.ArgCountEquals(0),
-	}
-	exts["regexMatchObjectByField"] = jsonata.Extension{
-		Func:               j.fRegexMatchObjectByField,
-		UndefinedHandler:   jtypes.ArgUndefined(0),
-		EvalContextHandler: jtypes.ArgCountEquals(0),
-	}
+	}*/
 	jsonata.RegisterExts(exts)
 
 	expr := jsonata.MustCompile(query)
