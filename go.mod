@@ -5,12 +5,10 @@ go 1.21
 require (
 	github.com/Masterminds/sprig/v3 v3.2.2
 	github.com/blues/jsonata-go v1.5.4
-	github.com/devopsext/utils v0.2.0
-	github.com/gogo/protobuf v1.3.2
+	github.com/devopsext/utils v0.2.5
 	github.com/sirupsen/logrus v1.8.1
 	github.com/spf13/cobra v1.4.0
 	github.com/tidwall/gjson v1.14.1
-	golang.org/x/text v0.3.3
 )
 
 require (
