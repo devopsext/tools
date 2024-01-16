@@ -785,14 +785,14 @@ func (tpl *Template) JiraAssetsSearch(params map[string]interface{}) ([]byte, er
 		return nil, err
 	}
 
-	pattern, _ := params["pattern"].(string)
+	query, _ := params["query"].(string)
 	limit, _ := params["limit"].(int)
 	if limit == 0 {
 		limit = 50
 	}
 
 	assetsOptions := vendors.JiraAssetsSearchOptions{
-		SearchPattern: pattern,
+		SearchPattern: query,
 		ResultPerPage: limit,
 	}
 
