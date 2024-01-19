@@ -15,7 +15,7 @@ import (
 	"github.com/devopsext/utils"
 )
 
-type JiraIssueCreateOptions struct {
+type JiraCreateIssueOptions struct {
 	ProjectKey string
 	Type       string
 	Priority   string
@@ -32,21 +32,21 @@ type JiraIssueOptions struct {
 	Labels       []string
 }
 
-type JiraIssueAddCommentOptions struct {
+type JiraAddIssueCommentOptions struct {
 	Body string
 }
 
-type JiraIssueAddAttachmentOptions struct {
+type JiraAddIssueAttachmentOptions struct {
 	File string
 	Name string
 }
 
-type JiraIssueSearchOptions struct {
+type JiraSearchIssueOptions struct {
 	SearchPattern string
 	MaxResults    int
 }
 
-type JiraAssetsSearchOptions struct {
+type JiraSearchAssetsOptions struct {
 	SearchPattern string
 	ResultPerPage int
 }
@@ -165,15 +165,15 @@ func (j *Jira) getAuth(opts JiraOptions) string {
 	return auth
 }
 
-func (j *Jira) CustomIssueCreate(jiraOptions JiraOptions, issueOptions JiraIssueOptions, issueCreateOptions JiraIssueCreateOptions) ([]byte, error) {
+func (j *Jira) CustomCreateIssue(jiraOptions JiraOptions, issueOptions JiraIssueOptions, createOptions JiraCreateIssueOptions) ([]byte, error) {
 
 	issue := &JiraIssueCreate{
 		Fields: &JiraIssueFields{
 			Project: &JiraIssueProject{
-				Key: issueCreateOptions.ProjectKey,
+				Key: createOptions.ProjectKey,
 			},
 			IssueType: &JiraIssueType{
-				Name: issueCreateOptions.Type,
+				Name: createOptions.Type,
 			},
 			Summary:     issueOptions.Summary,
 			Description: issueOptions.Description,
@@ -181,21 +181,21 @@ func (j *Jira) CustomIssueCreate(jiraOptions JiraOptions, issueOptions JiraIssue
 		},
 	}
 
-	if !utils.IsEmpty(issueCreateOptions.Priority) {
+	if !utils.IsEmpty(createOptions.Priority) {
 		issue.Fields.Priority = &JiraIssuePriority{
-			Name: issueCreateOptions.Priority,
+			Name: createOptions.Priority,
 		}
 	}
 
-	if !utils.IsEmpty(issueCreateOptions.Assignee) {
+	if !utils.IsEmpty(createOptions.Assignee) {
 		issue.Fields.Assignee = &JiraIssueAssignee{
-			Name: issueCreateOptions.Assignee,
+			Name: createOptions.Assignee,
 		}
 	}
 
-	if !utils.IsEmpty(issueCreateOptions.Reporter) {
+	if !utils.IsEmpty(createOptions.Reporter) {
 		issue.Fields.Reporter = &JiraIssueReporter{
-			Name: issueCreateOptions.Reporter,
+			Name: createOptions.Reporter,
 		}
 	}
 
@@ -222,11 +222,11 @@ func (j *Jira) CustomIssueCreate(jiraOptions JiraOptions, issueOptions JiraIssue
 	return common.HttpPostRaw(j.client, u.String(), "application/json", j.getAuth(jiraOptions), req)
 }
 
-func (j *Jira) IssueCreate(issueOptions JiraIssueOptions, issueCreateOptions JiraIssueCreateOptions) ([]byte, error) {
-	return j.CustomIssueCreate(j.options, issueOptions, issueCreateOptions)
+func (j *Jira) CreateIssue(issueOptions JiraIssueOptions, issueCreateOptions JiraCreateIssueOptions) ([]byte, error) {
+	return j.CustomCreateIssue(j.options, issueOptions, issueCreateOptions)
 }
 
-func (j *Jira) CustomIssueAddComment(jiraOptions JiraOptions, issueOptions JiraIssueOptions, addCommentOptions JiraIssueAddCommentOptions) ([]byte, error) {
+func (j *Jira) CustomAddIssueComment(jiraOptions JiraOptions, issueOptions JiraIssueOptions, addCommentOptions JiraAddIssueCommentOptions) ([]byte, error) {
 
 	comment := &JiraIssueAddComment{
 		Body: addCommentOptions.Body,
@@ -245,11 +245,11 @@ func (j *Jira) CustomIssueAddComment(jiraOptions JiraOptions, issueOptions JiraI
 	return common.HttpPostRaw(j.client, u.String(), "application/json", j.getAuth(jiraOptions), req)
 }
 
-func (j *Jira) IssueAddComment(issueOptions JiraIssueOptions, addCommentOptions JiraIssueAddCommentOptions) ([]byte, error) {
-	return j.CustomIssueAddComment(j.options, issueOptions, addCommentOptions)
+func (j *Jira) IssueAddComment(issueOptions JiraIssueOptions, addCommentOptions JiraAddIssueCommentOptions) ([]byte, error) {
+	return j.CustomAddIssueComment(j.options, issueOptions, addCommentOptions)
 }
 
-func (j *Jira) CustomIssueAddAttachment(jiraOptions JiraOptions, issueOptions JiraIssueOptions, addAttachmentOptions JiraIssueAddAttachmentOptions) ([]byte, error) {
+func (j *Jira) CustomAddIssueAttachment(jiraOptions JiraOptions, issueOptions JiraIssueOptions, addAttachmentOptions JiraAddIssueAttachmentOptions) ([]byte, error) {
 
 	u, err := url.Parse(jiraOptions.URL)
 	if err != nil {
@@ -283,11 +283,11 @@ func (j *Jira) CustomIssueAddAttachment(jiraOptions JiraOptions, issueOptions Ji
 	return common.HttpPostRawWithHeaders(j.client, u.String(), headers, body.Bytes())
 }
 
-func (j *Jira) IssueAddAttachment(issueOptions JiraIssueOptions, addAttachmentOptions JiraIssueAddAttachmentOptions) ([]byte, error) {
-	return j.CustomIssueAddAttachment(j.options, issueOptions, addAttachmentOptions)
+func (j *Jira) AddIssueAttachment(issueOptions JiraIssueOptions, addAttachmentOptions JiraAddIssueAttachmentOptions) ([]byte, error) {
+	return j.CustomAddIssueAttachment(j.options, issueOptions, addAttachmentOptions)
 }
 
-func (j *Jira) CustomIssueUpdate(jiraOptions JiraOptions, issueOptions JiraIssueOptions) ([]byte, error) {
+func (j *Jira) CustomUpdateIssue(jiraOptions JiraOptions, issueOptions JiraIssueOptions) ([]byte, error) {
 
 	issue := &JiraIssueUpdate{
 		Fields: &JiraIssueFields{
@@ -328,11 +328,11 @@ func (j *Jira) CustomIssueUpdate(jiraOptions JiraOptions, issueOptions JiraIssue
 	return common.HttpPutRaw(j.client, u.String(), "application/json", j.getAuth(jiraOptions), req)
 }
 
-func (j *Jira) IssueUpdate(options JiraIssueOptions) ([]byte, error) {
-	return j.CustomIssueUpdate(j.options, options)
+func (j *Jira) UpdateIssue(options JiraIssueOptions) ([]byte, error) {
+	return j.CustomUpdateIssue(j.options, options)
 }
 
-func (j *Jira) CustomIssueChangeTransitions(jiraOptions JiraOptions, issueOptions JiraIssueOptions) ([]byte, error) {
+func (j *Jira) CustomChangeIssueTransitions(jiraOptions JiraOptions, issueOptions JiraIssueOptions) ([]byte, error) {
 
 	transition := &JiraIssueTransition{
 		Transition: &JiraTransition{ID: issueOptions.Status},
@@ -364,15 +364,15 @@ func (j *Jira) CustomIssueChangeTransitions(jiraOptions JiraOptions, issueOption
 	return code, nil
 }
 
-func (j *Jira) IssueChangeTransitions(options JiraIssueOptions) ([]byte, error) {
-	return j.CustomIssueChangeTransitions(j.options, options)
+func (j *Jira) ChangeIssueTransitions(options JiraIssueOptions) ([]byte, error) {
+	return j.CustomChangeIssueTransitions(j.options, options)
 }
 
-func (j *Jira) CustomIssueSearch(jiraOptions JiraOptions, issueSearch JiraIssueSearchOptions) ([]byte, error) {
+func (j *Jira) CustomSearchIssue(jiraOptions JiraOptions, search JiraSearchIssueOptions) ([]byte, error) {
 
 	params := make(url.Values)
-	params.Add("jql", issueSearch.SearchPattern)
-	params.Add("maxResults", strconv.Itoa(issueSearch.MaxResults))
+	params.Add("jql", search.SearchPattern)
+	params.Add("maxResults", strconv.Itoa(search.MaxResults))
 	params.Add("validateQuery", "strict")
 
 	u, err := url.Parse(jiraOptions.URL)
@@ -386,15 +386,15 @@ func (j *Jira) CustomIssueSearch(jiraOptions JiraOptions, issueSearch JiraIssueS
 	return common.HttpGetRaw(j.client, u.String(), "application/json", j.getAuth(jiraOptions))
 }
 
-func (j *Jira) IssueSearch(options JiraIssueSearchOptions) ([]byte, error) {
-	return j.CustomIssueSearch(j.options, options)
+func (j *Jira) SearchIssue(options JiraSearchIssueOptions) ([]byte, error) {
+	return j.CustomSearchIssue(j.options, options)
 }
 
-func (j *Jira) CustomAssetsSearch(jiraOptions JiraOptions, assetsSearch JiraAssetsSearchOptions) ([]byte, error) {
+func (j *Jira) CustomSearchAssets(jiraOptions JiraOptions, search JiraSearchAssetsOptions) ([]byte, error) {
 
 	params := make(url.Values)
-	params.Add("qlQuery", assetsSearch.SearchPattern)
-	params.Add("resultPerPage", strconv.Itoa(assetsSearch.ResultPerPage))
+	params.Add("qlQuery", search.SearchPattern)
+	params.Add("resultPerPage", strconv.Itoa(search.ResultPerPage))
 
 	u, err := url.Parse(jiraOptions.URL)
 	if err != nil {
@@ -440,8 +440,8 @@ func (j *Jira) CustomAssetsSearch(jiraOptions JiraOptions, assetsSearch JiraAsse
 	return json.Marshal(result)
 }
 
-func (j *Jira) AssetsSearch(options JiraAssetsSearchOptions) ([]byte, error) {
-	return j.CustomAssetsSearch(j.options, options)
+func (j *Jira) SearchAssets(options JiraSearchAssetsOptions) ([]byte, error) {
+	return j.CustomSearchAssets(j.options, options)
 }
 
 func NewJira(options JiraOptions) (*Jira, error) {

@@ -23,7 +23,7 @@ var observiumOutput = common.OutputOptions{
 func observiumNew(stdout *common.Stdout) *vendors.Observium {
 
 	common.Debug("Observium", observiumOptions, stdout)
-	common.Debug("Observium", observiumOptions, stdout)
+	common.Debug("Observium", observiumOutput, stdout)
 
 	observium := vendors.NewObservium(observiumOptions)
 	if observium == nil {

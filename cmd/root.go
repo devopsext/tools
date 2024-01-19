@@ -64,6 +64,7 @@ func Execute() {
 	rootCmd.AddCommand(NewObserviumCommand())
 	rootCmd.AddCommand(NewZabbixCommand())
 	rootCmd.AddCommand(NewVCenterCommand())
+	rootCmd.AddCommand(NewPagerDutyCommand())
 
 	rootCmd.AddCommand(NewTemplateCommand())
 	rootCmd.AddCommand(NewDateCommand())

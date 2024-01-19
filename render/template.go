@@ -669,11 +669,11 @@ func (tpl *Template) GitlabPipelineVars(URL string, token string, projectID int,
 		Limit:     limit,
 	}
 
-	pipelineGetVariablesOptions := vendors.GitlabPipelineGetVariablesOptions{
+	pipelineGetVariablesOptions := vendors.GitlabGetPipelineVariablesOptions{
 		Query: strings.Split(query, ","),
 	}
 
-	b, err := gitlab.PipelineGetVariables(pipelineOptions, pipelineGetVariablesOptions)
+	b, err := gitlab.GetPipelineVariables(pipelineOptions, pipelineGetVariablesOptions)
 	if err != nil {
 		tpl.LogInfo("GitlabPipelineVars err => %s", err.Error())
 		return ""
@@ -754,10 +754,10 @@ func (tpl *Template) HttpGet(params map[string]interface{}) ([]byte, error) {
 	return common.HttpGetRaw(&client, url, contentType, authorization)
 }
 
-func (tpl *Template) JiraAssetsSearch(params map[string]interface{}) ([]byte, error) {
+func (tpl *Template) JiraSearchAssets(params map[string]interface{}) ([]byte, error) {
 
 	if len(params) == 0 {
-		return nil, fmt.Errorf("JiraAssetsSearch err => %s", "no params allowed")
+		return nil, fmt.Errorf("JiraSearchAssets err => %s", "no params allowed")
 	}
 
 	url, _ := params["url"].(string)
@@ -781,7 +781,7 @@ func (tpl *Template) JiraAssetsSearch(params map[string]interface{}) ([]byte, er
 
 	jira, err := vendors.NewJira(jiraOptions)
 	if err != nil {
-		tpl.LogDebug("JiraAssetsSearch err => %s", err.Error())
+		tpl.LogDebug("JiraSearchAssets err => %s", err.Error())
 		return nil, err
 	}
 
@@ -791,12 +791,20 @@ func (tpl *Template) JiraAssetsSearch(params map[string]interface{}) ([]byte, er
 		limit = 50
 	}
 
-	assetsOptions := vendors.JiraAssetsSearchOptions{
+	assetsOptions := vendors.JiraSearchAssetsOptions{
 		SearchPattern: query,
 		ResultPerPage: limit,
 	}
 
-	return jira.AssetsSearch(assetsOptions)
+	return jira.SearchAssets(assetsOptions)
+}
+
+func (tpl *Template) PagerDutyEscalate(params map[string]interface{}) ([]byte, error) {
+
+	if len(params) == 0 {
+		return nil, fmt.Errorf("PagerDutyEscalate err => %s", "no params allowed")
+	}
+	return nil, nil
 }
 
 func (tpl *Template) setTemplateFuncs(funcs map[string]any) {
@@ -849,8 +857,8 @@ func (tpl *Template) setTemplateFuncs(funcs map[string]any) {
 	funcs["tagValue"] = tpl.TagValue
 
 	funcs["httpGet"] = tpl.HttpGet
-
-	funcs["jiraAssetsSearch"] = tpl.JiraAssetsSearch
+	funcs["jiraSearchAssets"] = tpl.JiraSearchAssets
+	funcs["pagerDutyEscalate"] = tpl.PagerDutyEscalate
 }
 
 func (tpl *Template) filterFuncsByContent(funcs map[string]any, content string) map[string]any {

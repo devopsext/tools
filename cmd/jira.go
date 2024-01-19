@@ -19,7 +19,7 @@ var jiraOptions = vendors.JiraOptions{
 	AccessToken: envGet("JIRA_ACCESS_TOKEN", "").(string),
 }
 
-var jiraIssueCreateOptions = vendors.JiraIssueCreateOptions{
+var jiraIssueCreateOptions = vendors.JiraCreateIssueOptions{
 	ProjectKey: envGet("JIRA_ISSUE_PROJECT_KEY", "").(string),
 	Type:       envGet("JIRA_ISSUE_TYPE", "").(string),
 	Priority:   envGet("JIRA_ISSUE_PRIORITY", "").(string),
@@ -36,21 +36,21 @@ var jiraIssueOptions = vendors.JiraIssueOptions{
 	Status:       envGet("JIRA_ISSUE_STATUS", "").(string),
 }
 
-var jiraIssueAddCommentOptions = vendors.JiraIssueAddCommentOptions{
+var jiraIssueAddCommentOptions = vendors.JiraAddIssueCommentOptions{
 	Body: envGet("JIRA_ISSUE_COMMENT_BODY", "").(string),
 }
 
-var jiraIssueAddAttachmentOptions = vendors.JiraIssueAddAttachmentOptions{
+var jiraIssueAddAttachmentOptions = vendors.JiraAddIssueAttachmentOptions{
 	File: envGet("JIRA_ISSUE_ATTACHMENT_FILE", "").(string),
 	Name: envGet("JIRA_ISSUE_ATTACHMENT_NAME", "").(string),
 }
 
-var jiraIssueSearchOptions = vendors.JiraIssueSearchOptions{
+var jiraIssueSearchOptions = vendors.JiraSearchIssueOptions{
 	SearchPattern: envGet("JIRA_ISSUE_SEARCH_PATTERN", "").(string),
 	MaxResults:    envGet("JIRA_ISSUE_SEARCH_MAX_RESULTS", 50).(int),
 }
 
-var jiraAssetsSearchOptions = vendors.JiraAssetsSearchOptions{
+var jiraAssetsSearchOptions = vendors.JiraSearchAssetsOptions{
 	SearchPattern: envGet("JIRA_ASSETS_SEARCH_PATTERN", "").(string),
 	ResultPerPage: envGet("JIRA_ASSETS_SEARCH_RESULT_PER_PAGE", 50).(int),
 }
@@ -116,7 +116,7 @@ func NewJiraCommand() *cobra.Command {
 			}
 			jiraIssueOptions.Description = string(descriptionBytes)
 
-			bytes, err := jiraNew(stdout).IssueCreate(jiraIssueOptions, jiraIssueCreateOptions)
+			bytes, err := jiraNew(stdout).CreateIssue(jiraIssueOptions, jiraIssueCreateOptions)
 			if err != nil {
 				stdout.Error(err)
 				return
@@ -180,7 +180,7 @@ func NewJiraCommand() *cobra.Command {
 			}
 			jiraIssueAddAttachmentOptions.File = string(fileBytes)
 
-			bytes, err := jiraNew(stdout).IssueAddAttachment(jiraIssueOptions, jiraIssueAddAttachmentOptions)
+			bytes, err := jiraNew(stdout).AddIssueAttachment(jiraIssueOptions, jiraIssueAddAttachmentOptions)
 			if err != nil {
 				stdout.Error(err)
 				return
@@ -208,7 +208,7 @@ func NewJiraCommand() *cobra.Command {
 			}
 			jiraIssueOptions.Description = string(descriptionBytes)
 
-			bytes, err := jiraNew(stdout).IssueUpdate(jiraIssueOptions)
+			bytes, err := jiraNew(stdout).UpdateIssue(jiraIssueOptions)
 			if err != nil {
 				stdout.Error(err)
 				return
@@ -232,7 +232,7 @@ func NewJiraCommand() *cobra.Command {
 			}
 			jiraIssueOptions.Status = string(statusBytes)
 
-			bytes, err := jiraNew(stdout).IssueChangeTransitions(jiraIssueOptions)
+			bytes, err := jiraNew(stdout).ChangeIssueTransitions(jiraIssueOptions)
 			if err != nil {
 				stdout.Error(err)
 				return
@@ -258,7 +258,7 @@ func NewJiraCommand() *cobra.Command {
 			}
 			jiraIssueSearchOptions.SearchPattern = string(searchBytes)
 
-			bytes, err := jiraNew(stdout).IssueSearch(jiraIssueSearchOptions)
+			bytes, err := jiraNew(stdout).SearchIssue(jiraIssueSearchOptions)
 			if err != nil {
 				stdout.Error(err)
 				return
@@ -284,8 +284,8 @@ func NewJiraCommand() *cobra.Command {
 		Use:   "search",
 		Short: "Search assets",
 		Run: func(cmd *cobra.Command, args []string) {
-			stdout.Debug("Assets searching...")
-			common.Debug("Assets", jiraAssetsSearchOptions, stdout)
+			stdout.Debug("Jira assets searching...")
+			common.Debug("Jira", jiraAssetsSearchOptions, stdout)
 
 			searchBytes, err := utils.Content(jiraAssetsSearchOptions.SearchPattern)
 			if err != nil {
@@ -293,7 +293,7 @@ func NewJiraCommand() *cobra.Command {
 			}
 			jiraAssetsSearchOptions.SearchPattern = string(searchBytes)
 
-			bytes, err := jiraNew(stdout).AssetsSearch(jiraAssetsSearchOptions)
+			bytes, err := jiraNew(stdout).SearchAssets(jiraAssetsSearchOptions)
 			if err != nil {
 				stdout.Error(err)
 				return

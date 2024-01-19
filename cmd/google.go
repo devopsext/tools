@@ -74,7 +74,7 @@ func NewGoogleCommand() *cobra.Command {
 			stdout.Debug("Google callendar getting events...")
 			common.Debug("Google", googleCalendarOptions, stdout)
 
-			bytes, err := googleNew(stdout).CalendarGetEvents(googleCalendarOptions)
+			bytes, err := googleNew(stdout).GetCalendarEvents(googleCalendarOptions)
 			if err != nil {
 				stdout.Error(err)
 				return

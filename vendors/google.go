@@ -115,7 +115,7 @@ func (g *Google) getCustomAccessToken(opts GoogleOptions) (string, error) {
 	return r.AccessToken, nil
 }
 
-func (g *Google) CustomCalendarGetEvents(googleOptions GoogleOptions, calendarOptions GoogleCalendarOptions) ([]byte, error) {
+func (g *Google) CustomGetCalendarEvents(googleOptions GoogleOptions, calendarOptions GoogleCalendarOptions) ([]byte, error) {
 
 	accessToken, err := g.getCustomAccessToken(googleOptions)
 	if err != nil {
@@ -164,8 +164,8 @@ func (g *Google) CustomCalendarGetEvents(googleOptions GoogleOptions, calendarOp
 	return common.HttpGetRawWithHeaders(g.client, u.String(), nil)
 }
 
-func (g *Google) CalendarGetEvents(options GoogleCalendarOptions) ([]byte, error) {
-	return g.CustomCalendarGetEvents(g.options, options)
+func (g *Google) GetCalendarEvents(options GoogleCalendarOptions) ([]byte, error) {
+	return g.CustomGetCalendarEvents(g.options, options)
 }
 
 func NewGoogle(options GoogleOptions, stdout *common.Stdout) (*Google, error) {

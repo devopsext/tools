@@ -31,7 +31,7 @@ var pipelineOptions = vendors.GitlabPipelineOptions{
 	Limit:     envGet("GITLAB_PIPELINE_LIMIT", 1).(int),
 }
 
-var pipelineGetVariablesOptions = vendors.GitlabPipelineGetVariablesOptions{
+var pipelineGetVariablesOptions = vendors.GitlabGetPipelineVariablesOptions{
 	Query: strings.Split(envGet("GITLAB_PIPELINE_VARIABLE_QUERY", "").(string), ","),
 }
 
@@ -117,7 +117,7 @@ func NewGitlabCommand() *cobra.Command {
 			common.Debug("Gitlab", pipelineOptions, stdout)
 			common.Debug("Gitlab", pipelineGetVariablesOptions, stdout)
 
-			bytes, err := gitlabNew(stdout).PipelineGetVariables(pipelineOptions, pipelineGetVariablesOptions)
+			bytes, err := gitlabNew(stdout).GetPipelineVariables(pipelineOptions, pipelineGetVariablesOptions)
 			if err != nil {
 				stdout.Error(err)
 				return

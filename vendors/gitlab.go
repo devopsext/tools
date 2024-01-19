@@ -38,7 +38,7 @@ type GitlabPipelineOptions struct {
 	Limit     int
 }
 
-type GitlabPipelineGetVariablesOptions struct {
+type GitlabGetPipelineVariablesOptions struct {
 	Query []string
 }
 
@@ -289,8 +289,8 @@ func (g *Gitlab) variablesExist(variables []GitlabPipelineVariableResp, query st
 	return false
 }
 
-func (g *Gitlab) CustomPipelineGetVariables(gitlabOptions GitlabOptions, pipelineOptions GitlabPipelineOptions,
-	pipelineGetVariablesOptions GitlabPipelineGetVariablesOptions) ([]byte, error) {
+func (g *Gitlab) CustomGetPipelineVariables(gitlabOptions GitlabOptions, pipelineOptions GitlabPipelineOptions,
+	getVariablesOptions GitlabGetPipelineVariablesOptions) ([]byte, error) {
 
 	// 1. get pipeline list by pipeline variable key=value
 	// 2. reverse pipeline list and get first success pipeline
@@ -316,11 +316,11 @@ func (g *Gitlab) CustomPipelineGetVariables(gitlabOptions GitlabOptions, pipelin
 		}
 
 		r := false
-		if len(pipelineGetVariablesOptions.Query) > 0 {
+		if len(getVariablesOptions.Query) > 0 {
 			r = true
 		}
 
-		for _, q := range pipelineGetVariablesOptions.Query {
+		for _, q := range getVariablesOptions.Query {
 			r = r && g.variablesExist(variables, q)
 		}
 
@@ -335,8 +335,8 @@ func (g *Gitlab) CustomPipelineGetVariables(gitlabOptions GitlabOptions, pipelin
 	return nil, errors.New("no pipeline or variables found")
 }
 
-func (g *Gitlab) PipelineGetVariables(pipelineOptions GitlabPipelineOptions, pipelineGetVariablesOptions GitlabPipelineGetVariablesOptions) ([]byte, error) {
-	return g.CustomPipelineGetVariables(g.options, pipelineOptions, pipelineGetVariablesOptions)
+func (g *Gitlab) GetPipelineVariables(pipelineOptions GitlabPipelineOptions, getVariablesOptions GitlabGetPipelineVariablesOptions) ([]byte, error) {
+	return g.CustomGetPipelineVariables(g.options, pipelineOptions, getVariablesOptions)
 }
 
 func NewGitlab(options GitlabOptions) (*Gitlab, error) {
