@@ -444,11 +444,11 @@ func (j *Jira) SearchAssets(options JiraSearchAssetsOptions) ([]byte, error) {
 	return j.CustomSearchAssets(j.options, options)
 }
 
-func NewJira(options JiraOptions) (*Jira, error) {
+func NewJira(options JiraOptions) *Jira {
 
 	jira := &Jira{
 		client:  utils.NewHttpClient(options.Timeout, options.Insecure),
 		options: options,
 	}
-	return jira, nil
+	return jira
 }

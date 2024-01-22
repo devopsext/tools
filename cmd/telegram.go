@@ -45,11 +45,7 @@ func telegramNew(stdout *common.Stdout) *vendors.Telegram {
 	common.Debug("Telegram", telegramOptions, stdout)
 	common.Debug("Telegram", telegramOutput, stdout)
 
-	telegram, err := vendors.NewTelegram(telegramOptions)
-	if err != nil {
-		stdout.Panic(err)
-	}
-	return telegram
+	return vendors.NewTelegram(telegramOptions)
 }
 
 func NewTelegramCommand() *cobra.Command {

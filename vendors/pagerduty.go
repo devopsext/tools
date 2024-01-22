@@ -66,7 +66,7 @@ type PagerDutyOptions struct {
 type PagerDuty struct {
 	client  *http.Client
 	options PagerDutyOptions
-	stdout  *common.Stdout
+	logger  common.Logger
 }
 
 const (
@@ -163,11 +163,11 @@ func (pd *PagerDuty) GetIncidents(getOptions PagerDutyGetIncidentsOptions) ([]by
 	return pd.CustomGetIncidents(pd.options, getOptions)
 }
 
-func NewPagerDuty(options PagerDutyOptions, stdout *common.Stdout) *PagerDuty {
+func NewPagerDuty(options PagerDutyOptions, logger common.Logger) *PagerDuty {
 
 	return &PagerDuty{
 		client:  utils.NewHttpClient(options.Timeout, options.Insecure),
 		options: options,
-		stdout:  stdout,
+		logger:  logger,
 	}
 }

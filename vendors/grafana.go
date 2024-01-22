@@ -2,7 +2,6 @@ package vendors
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -591,16 +590,11 @@ func (g *Grafana) CreateDashboard(options GrafanaCreateDahboardOptions) ([]byte,
 	return g.CustomCreateDashboard(g.options, options)
 }
 
-func NewGrafana(options GrafanaOptions) (*Grafana, error) {
-
-	client := utils.NewHttpClient(options.Timeout, options.Insecure)
-	if client == nil {
-		return nil, errors.New("no http client")
-	}
+func NewGrafana(options GrafanaOptions) *Grafana {
 
 	grafana := &Grafana{
-		client:  client,
+		client:  utils.NewHttpClient(options.Timeout, options.Insecure),
 		options: options,
 	}
-	return grafana, nil
+	return grafana
 }

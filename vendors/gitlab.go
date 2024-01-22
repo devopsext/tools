@@ -339,16 +339,11 @@ func (g *Gitlab) GetPipelineVariables(pipelineOptions GitlabPipelineOptions, get
 	return g.CustomGetPipelineVariables(g.options, pipelineOptions, getVariablesOptions)
 }
 
-func NewGitlab(options GitlabOptions) (*Gitlab, error) {
-
-	client := utils.NewHttpClient(options.Timeout, options.Insecure)
-	if client == nil {
-		return nil, errors.New("no http client")
-	}
+func NewGitlab(options GitlabOptions) *Gitlab {
 
 	gitlab := &Gitlab{
-		client:  client,
+		client:  utils.NewHttpClient(options.Timeout, options.Insecure),
 		options: options,
 	}
-	return gitlab, nil
+	return gitlab
 }

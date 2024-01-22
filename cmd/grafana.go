@@ -76,11 +76,7 @@ func grafanaNew(stdout *common.Stdout) *vendors.Grafana {
 	common.Debug("Grafana", grafanaOptions, stdout)
 	common.Debug("Grafana", grafanaOutput, stdout)
 
-	grafana, err := vendors.NewGrafana(grafanaOptions)
-	if err != nil {
-		stdout.Panic(err)
-	}
-	return grafana
+	return vendors.NewGrafana(grafanaOptions)
 }
 
 func NewGrafanaCommand() *cobra.Command {

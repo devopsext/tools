@@ -65,11 +65,7 @@ func jiraNew(stdout *common.Stdout) *vendors.Jira {
 	common.Debug("Jira", jiraOptions, stdout)
 	common.Debug("Jira", jiraOutput, stdout)
 
-	jira, err := vendors.NewJira(jiraOptions)
-	if err != nil {
-		stdout.Panic(err)
-	}
-	return jira
+	return vendors.NewJira(jiraOptions)
 }
 
 func NewJiraCommand() *cobra.Command {

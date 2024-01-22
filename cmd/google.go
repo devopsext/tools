@@ -35,11 +35,7 @@ func googleNew(stdout *common.Stdout) *vendors.Google {
 	common.Debug("Google", googleOptions, stdout)
 	common.Debug("Google", googleOutput, stdout)
 
-	google, err := vendors.NewGoogle(googleOptions, stdout)
-	if err != nil {
-		stdout.Panic(err)
-	}
-	return google
+	return vendors.NewGoogle(googleOptions, stdout)
 }
 
 func NewGoogleCommand() *cobra.Command {

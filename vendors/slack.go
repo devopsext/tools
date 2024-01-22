@@ -362,11 +362,11 @@ func (s *Slack) UpdateUsergroup(options SlackUsergroupUsers) ([]byte, error) {
 	return s.CustomUpdateUsergroup(s.options, options)
 }
 
-func NewSlack(options SlackOptions) (*Slack, error) {
+func NewSlack(options SlackOptions) *Slack {
 
 	slack := &Slack{
 		client:  utils.NewHttpClient(options.Timeout, options.Insecure),
 		options: options,
 	}
-	return slack, nil
+	return slack
 }

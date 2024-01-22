@@ -39,11 +39,7 @@ func graylogNew(stdout *common.Stdout) *vendors.Graylog {
 	}
 	graylogOptions.Query = string(queryBytes)
 
-	graylog, err := vendors.NewGraylog(graylogOptions)
-	if err != nil {
-		stdout.Panic(err)
-	}
-	return graylog
+	return vendors.NewGraylog(graylogOptions)
 }
 
 func NewGraylogCommand() *cobra.Command {

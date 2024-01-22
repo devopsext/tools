@@ -63,11 +63,7 @@ func slackNew(stdout *common.Stdout) *vendors.Slack {
 	}
 	slackOptions.File = string(fileBytes)
 
-	slack, err := vendors.NewSlack(slackOptions)
-	if err != nil {
-		stdout.Panic(err)
-	}
-	return slack
+	return vendors.NewSlack(slackOptions)
 }
 
 func NewSlackCommand() *cobra.Command {

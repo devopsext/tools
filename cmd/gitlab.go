@@ -40,11 +40,7 @@ func gitlabNew(stdout *common.Stdout) *vendors.Gitlab {
 	common.Debug("Gitlab", gitlabOptions, stdout)
 	common.Debug("Gitlab", gitlabOutput, stdout)
 
-	gitlab, err := vendors.NewGitlab(gitlabOptions)
-	if err != nil {
-		stdout.Panic(err)
-	}
-	return gitlab
+	return vendors.NewGitlab(gitlabOptions)
 }
 
 func NewGitlabCommand() *cobra.Command {

@@ -651,11 +651,7 @@ func (tpl *Template) GitlabPipelineVars(URL string, token string, projectID int,
 		Token:    token,
 	}
 
-	gitlab, err := vendors.NewGitlab(gitlabOptions)
-	if err != nil {
-		tpl.LogDebug("GitlabPipelineVars err => %s", err.Error())
-		return ""
-	}
+	gitlab := vendors.NewGitlab(gitlabOptions)
 
 	if limit <= 0 {
 		limit = 100
@@ -779,11 +775,7 @@ func (tpl *Template) JiraSearchAssets(params map[string]interface{}) ([]byte, er
 		AccessToken: token,
 	}
 
-	jira, err := vendors.NewJira(jiraOptions)
-	if err != nil {
-		tpl.LogDebug("JiraSearchAssets err => %s", err.Error())
-		return nil, err
-	}
+	jira := vendors.NewJira(jiraOptions)
 
 	query, _ := params["query"].(string)
 	limit, _ := params["limit"].(int)
@@ -799,12 +791,50 @@ func (tpl *Template) JiraSearchAssets(params map[string]interface{}) ([]byte, er
 	return jira.SearchAssets(assetsOptions)
 }
 
-func (tpl *Template) PagerDutyEscalate(params map[string]interface{}) ([]byte, error) {
+func (tpl *Template) PagerDutyCreateIncident(params map[string]interface{}) ([]byte, error) {
 
 	if len(params) == 0 {
 		return nil, fmt.Errorf("PagerDutyEscalate err => %s", "no params allowed")
 	}
-	return nil, nil
+
+	url, _ := params["url"].(string)
+	timeout, _ := params["timeout"].(int)
+	if timeout == 0 {
+		timeout = 10
+	}
+	insecure, _ := params["insecure"].(bool)
+	token, _ := params["token"].(string)
+
+	pagerDutyOptions := vendors.PagerDutyOptions{
+		URL:      url,
+		Timeout:  timeout,
+		Insecure: insecure,
+		Token:    token,
+	}
+
+	pagerDuty := vendors.NewPagerDuty(pagerDutyOptions, tpl.logger)
+
+	title, _ := params["title"].(string)
+	body, _ := params["body"].(string)
+	urgency, _ := params["urgency"].(string)
+	serviceID, _ := params["serviceID"].(string)
+	priorityID, _ := params["priorityID"].(string)
+
+	incidentOptions := vendors.PagerDutyIncidentOptions{
+		Title:      title,
+		Body:       body,
+		Urgency:    urgency,
+		ServiceID:  serviceID,
+		PriorityID: priorityID,
+	}
+
+	from, _ := params["from"].(string)
+
+	createOptions := vendors.PagerDutyCreateIncidentOptions{
+		From: from,
+	}
+
+	return pagerDuty.CreateIncident(incidentOptions, createOptions)
 }
 
 func (tpl *Template) setTemplateFuncs(funcs map[string]any) {
@@ -858,7 +888,7 @@ func (tpl *Template) setTemplateFuncs(funcs map[string]any) {
 
 	funcs["httpGet"] = tpl.HttpGet
 	funcs["jiraSearchAssets"] = tpl.JiraSearchAssets
-	funcs["pagerDutyEscalate"] = tpl.PagerDutyEscalate
+	funcs["pagerDutyCreateIncident"] = tpl.PagerDutyCreateIncident
 }
 
 func (tpl *Template) filterFuncsByContent(funcs map[string]any, content string) map[string]any {
