@@ -837,6 +837,28 @@ func (tpl *Template) PagerDutyCreateIncident(params map[string]interface{}) ([]b
 	return pagerDuty.CreateIncident(incidentOptions, createOptions)
 }
 
+func (tpl *Template) TemplateRenderFile(path string, obj interface{}) (string, error) {
+
+	content, err := utils.Content(path)
+	if err != nil {
+		return "", err
+	}
+
+	opts := TemplateOptions{
+		Content: string(content[:]),
+	}
+	t, err := NewTextTemplate(opts, tpl.logger)
+	if err != nil {
+		return "", err
+	}
+
+	b, err := t.RenderObject(obj)
+	if err != nil {
+		return "", err
+	}
+	return string(b), nil
+}
+
 func (tpl *Template) setTemplateFuncs(funcs map[string]any) {
 
 	funcs["logError"] = tpl.LogError
@@ -889,6 +911,7 @@ func (tpl *Template) setTemplateFuncs(funcs map[string]any) {
 	funcs["httpGet"] = tpl.HttpGet
 	funcs["jiraSearchAssets"] = tpl.JiraSearchAssets
 	funcs["pagerDutyCreateIncident"] = tpl.PagerDutyCreateIncident
+	funcs["templateRenderFile"] = tpl.TemplateRenderFile
 }
 
 func (tpl *Template) filterFuncsByContent(funcs map[string]any, content string) map[string]any {
