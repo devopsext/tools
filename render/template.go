@@ -14,6 +14,7 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"text/template"
 	txtTemplate "text/template"
 	"time"
 
@@ -38,6 +39,7 @@ type TemplateOptions struct {
 type Template struct {
 	options TemplateOptions
 	logger  common.Logger
+	funcs   template.FuncMap
 }
 
 type TextTemplate struct {
@@ -846,6 +848,7 @@ func (tpl *Template) TemplateRenderFile(path string, obj interface{}) (string, e
 
 	opts := TemplateOptions{
 		Content: string(content[:]),
+		Funcs:   tpl.funcs,
 	}
 	t, err := NewTextTemplate(opts, tpl.logger)
 	if err != nil {
@@ -1000,6 +1003,7 @@ func NewTextTemplate(options TemplateOptions, logger common.Logger) (*TextTempla
 	}
 
 	tpl.template = t
+	tpl.funcs = funcs
 	tpl.options = options
 	tpl.logger = logger
 	return &tpl, nil
@@ -1080,6 +1084,7 @@ func NewHtmlTemplate(options TemplateOptions, logger common.Logger) (*HtmlTempla
 	}
 
 	tpl.template = t
+	tpl.funcs = funcs
 	tpl.options = options
 	tpl.logger = logger
 	return &tpl, nil
