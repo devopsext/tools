@@ -27,13 +27,14 @@ import (
 )
 
 type TemplateOptions struct {
-	Name       string
-	Object     string
-	Content    string
-	Files      []string
-	TimeFormat string
-	Pattern    string
-	Funcs      map[string]any
+	Name        string
+	Object      string
+	Content     string
+	Files       []string
+	TimeFormat  string
+	Pattern     string
+	Funcs       map[string]any
+	FilterFuncs bool
 }
 
 type Template struct {
@@ -847,8 +848,9 @@ func (tpl *Template) TemplateRenderFile(path string, obj interface{}) (string, e
 	}
 
 	opts := TemplateOptions{
-		Content: string(content[:]),
-		Funcs:   tpl.funcs,
+		Content:     string(content),
+		Funcs:       tpl.funcs,
+		FilterFuncs: false,
 	}
 	t, err := NewTextTemplate(opts, tpl.logger)
 	if err != nil {
@@ -979,7 +981,7 @@ func NewTextTemplate(options TemplateOptions, logger common.Logger) (*TextTempla
 		funcs[k] = v
 	}
 
-	if utils.IsEmpty(options.Files) && utils.IsEmpty(options.Pattern) {
+	if options.FilterFuncs {
 		funcs = tpl.filterFuncsByContent(funcs, options.Content)
 	}
 
@@ -1060,7 +1062,7 @@ func NewHtmlTemplate(options TemplateOptions, logger common.Logger) (*HtmlTempla
 		funcs[k] = v
 	}
 
-	if utils.IsEmpty(options.Files) && utils.IsEmpty(options.Pattern) {
+	if options.FilterFuncs {
 		funcs = tpl.filterFuncsByContent(funcs, options.Content)
 	}
 
