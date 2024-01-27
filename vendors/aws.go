@@ -2,6 +2,7 @@ package vendors
 
 import (
 	"context"
+	"strings"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/credentials"
@@ -82,7 +83,7 @@ func (e *EC2) GetAllEC2Instances() ([]EC2Instance, error) {
 				host := *instance.InstanceId
 				for _, tag := range instance.Tags {
 					if *tag.Key == "Name" {
-						host = *tag.Value
+						host = strings.ReplaceAll(strings.TrimSpace(*tag.Value), " ", "_")
 					}
 				}
 
