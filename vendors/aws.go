@@ -79,8 +79,15 @@ func (e *EC2) GetAllEC2Instances() ([]EC2Instance, error) {
 
 		for _, reservation := range rawInstances.Reservations {
 			for _, instance := range reservation.Instances {
+				host := *instance.InstanceId
+				for _, tag := range instance.Tags {
+					if *tag.Key == "Name" {
+						host = *tag.Value
+					}
+				}
+
 				instances = append(instances, EC2Instance{
-					Host:    *instance.InstanceId,
+					Host:    host,
 					IP:      *instance.PublicIpAddress,
 					Region:  client.Options().Region,
 					OS:      *instance.PlatformDetails,
