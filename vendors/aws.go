@@ -31,7 +31,7 @@ type EC2Instance struct {
 }
 
 func NewEC2(options EC2Options) (*EC2, error) {
-	credentials := aws.NewCredentialsCache(credentials.NewStaticCredentialsProvider(options.AccessKey, options.SecretKey, ""))
+	creds := aws.NewCredentialsCache(credentials.NewStaticCredentialsProvider(options.AccessKey, options.SecretKey, ""))
 	clients := make([]*ec2.Client, 0)
 	regions, err := GetAvailableAWSRegions(options)
 	if err != nil {
@@ -41,7 +41,7 @@ func NewEC2(options EC2Options) (*EC2, error) {
 	for _, region := range regions {
 		clients = append(clients, ec2.New(ec2.Options{
 			Region:      region,
-			Credentials: credentials,
+			Credentials: creds,
 		}))
 	}
 
