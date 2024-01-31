@@ -11,7 +11,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/devopsext/tools/common"
 	"github.com/devopsext/utils"
 )
 
@@ -222,7 +221,7 @@ func (g *Gitlab) getPipelines(gitlabOptions GitlabOptions, pipelineOptions Gitla
 	headers := make(map[string]string)
 	headers["PRIVATE-TOKEN"] = gitlabOptions.Token
 
-	b, err := common.HttpGetRawWithHeaders(g.client, u.String(), headers)
+	b, err := utils.HttpGetRawWithHeaders(g.client, u.String(), headers)
 	if err != nil {
 		return nil, err
 	}
@@ -246,7 +245,7 @@ func (g *Gitlab) getPipelineVariablesEx(gitlabOptions GitlabOptions, projectID, 
 	headers := make(map[string]string)
 	headers["PRIVATE-TOKEN"] = gitlabOptions.Token
 
-	b, err := common.HttpGetRawWithHeaders(g.client, u.String(), headers)
+	b, err := utils.HttpGetRawWithHeaders(g.client, u.String(), headers)
 	if err != nil {
 		return nil, err
 	}

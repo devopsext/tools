@@ -133,7 +133,7 @@ func (pd *PagerDuty) CustomCreateIncident(options PagerDutyOptions, incidentOpti
 		return nil, err
 	}
 
-	return common.HttpPostRaw(pd.client, u.String(), pagerDutyContentType, pd.getAuth(options), data)
+	return utils.HttpPostRaw(pd.client, u.String(), pagerDutyContentType, pd.getAuth(options), data)
 }
 
 func (pd *PagerDuty) CreateIncident(incidentOptions PagerDutyIncidentOptions, createOptions PagerDutyCreateIncidentOptions) ([]byte, error) {
@@ -157,7 +157,7 @@ func (pd *PagerDuty) CustomGetIncidents(options PagerDutyOptions, getOptions Pag
 	u.RawQuery = params.Encode()
 	u.Path = path.Join(u.Path, pagerDutyIncidentsPath)
 
-	return common.HttpGetRaw(pd.client, u.String(), pagerDutyContentType, pd.getAuth(options))
+	return utils.HttpGetRaw(pd.client, u.String(), pagerDutyContentType, pd.getAuth(options))
 }
 func (pd *PagerDuty) GetIncidents(getOptions PagerDutyGetIncidentsOptions) ([]byte, error) {
 	return pd.CustomGetIncidents(pd.options, getOptions)

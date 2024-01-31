@@ -219,7 +219,7 @@ func (j *Jira) CustomCreateIssue(jiraOptions JiraOptions, issueOptions JiraIssue
 		return nil, err
 	}
 	u.Path = path.Join(u.Path, "/rest/api/2/issue")
-	return common.HttpPostRaw(j.client, u.String(), "application/json", j.getAuth(jiraOptions), req)
+	return utils.HttpPostRaw(j.client, u.String(), "application/json", j.getAuth(jiraOptions), req)
 }
 
 func (j *Jira) CreateIssue(issueOptions JiraIssueOptions, issueCreateOptions JiraCreateIssueOptions) ([]byte, error) {
@@ -242,7 +242,7 @@ func (j *Jira) CustomAddIssueComment(jiraOptions JiraOptions, issueOptions JiraI
 		return nil, err
 	}
 	u.Path = path.Join(u.Path, fmt.Sprintf("/rest/api/2/issue/%s/comment", issueOptions.IdOrKey))
-	return common.HttpPostRaw(j.client, u.String(), "application/json", j.getAuth(jiraOptions), req)
+	return utils.HttpPostRaw(j.client, u.String(), "application/json", j.getAuth(jiraOptions), req)
 }
 
 func (j *Jira) IssueAddComment(issueOptions JiraIssueOptions, addCommentOptions JiraAddIssueCommentOptions) ([]byte, error) {
@@ -280,7 +280,7 @@ func (j *Jira) CustomAddIssueAttachment(jiraOptions JiraOptions, issueOptions Ji
 	headers["Content-type"] = w.FormDataContentType()
 	headers["Authorization"] = j.getAuth(jiraOptions)
 	headers["X-Atlassian-Token"] = "no-check"
-	return common.HttpPostRawWithHeaders(j.client, u.String(), headers, body.Bytes())
+	return utils.HttpPostRawWithHeaders(j.client, u.String(), headers, body.Bytes())
 }
 
 func (j *Jira) AddIssueAttachment(issueOptions JiraIssueOptions, addAttachmentOptions JiraAddIssueAttachmentOptions) ([]byte, error) {
@@ -325,7 +325,7 @@ func (j *Jira) CustomUpdateIssue(jiraOptions JiraOptions, issueOptions JiraIssue
 		return nil, err
 	}
 	u.Path = path.Join(u.Path, fmt.Sprintf("/rest/api/2/issue/%s", issueOptions.IdOrKey))
-	return common.HttpPutRaw(j.client, u.String(), "application/json", j.getAuth(jiraOptions), req)
+	return utils.HttpPutRaw(j.client, u.String(), "application/json", j.getAuth(jiraOptions), req)
 }
 
 func (j *Jira) UpdateIssue(options JiraIssueOptions) ([]byte, error) {
@@ -349,7 +349,7 @@ func (j *Jira) CustomChangeIssueTransitions(jiraOptions JiraOptions, issueOption
 	}
 	u.Path = path.Join(u.Path, fmt.Sprintf("/rest/api/2/issue/%s/transitions", issueOptions.IdOrKey))
 
-	_, c, err := common.HttpPostRawOutCode(j.client, u.String(), "application/json", j.getAuth(jiraOptions), req)
+	_, c, err := utils.HttpPostRawOutCode(j.client, u.String(), "application/json", j.getAuth(jiraOptions), req)
 	if err != nil {
 		return nil, err
 	}
@@ -383,7 +383,7 @@ func (j *Jira) CustomSearchIssue(jiraOptions JiraOptions, search JiraSearchIssue
 	u.Path = path.Join(u.Path, "/rest/api/2/search")
 	u.RawQuery = params.Encode()
 
-	return common.HttpGetRaw(j.client, u.String(), "application/json", j.getAuth(jiraOptions))
+	return utils.HttpGetRaw(j.client, u.String(), "application/json", j.getAuth(jiraOptions))
 }
 
 func (j *Jira) SearchIssue(options JiraSearchIssueOptions) ([]byte, error) {
@@ -403,7 +403,7 @@ func (j *Jira) CustomSearchAssets(jiraOptions JiraOptions, search JiraSearchAsse
 
 	u.Path = path.Join(u.Path, "/rest/insight/1.0/aql/objects")
 	u.RawQuery = params.Encode()
-	a, err := common.HttpGetRaw(j.client, u.String(), "application/json", j.getAuth(jiraOptions))
+	a, err := utils.HttpGetRaw(j.client, u.String(), "application/json", j.getAuth(jiraOptions))
 	if err != nil {
 		return nil, err
 	}
@@ -420,7 +420,7 @@ func (j *Jira) CustomSearchAssets(jiraOptions JiraOptions, search JiraSearchAsse
 		for i := 2; i <= int(pageSize); i++ {
 			params.Set("page", strconv.Itoa(i))
 			u.RawQuery = params.Encode()
-			a, err := common.HttpGetRaw(j.client, u.String(), "application/json", j.getAuth(jiraOptions))
+			a, err := utils.HttpGetRaw(j.client, u.String(), "application/json", j.getAuth(jiraOptions))
 			if err != nil {
 				return nil, err
 			}

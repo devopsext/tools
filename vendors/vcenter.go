@@ -8,7 +8,6 @@ import (
 	"net/url"
 	"path"
 
-	"github.com/devopsext/tools/common"
 	"github.com/devopsext/utils"
 )
 
@@ -73,7 +72,7 @@ func (vc *VCenter) getSession(opts VCenterOptions) (string, error) {
 	}
 	u.Path = path.Join(u.Path, VCenterRestSessionPath)
 
-	res, err := common.HttpPostRaw(vc.client, u.String(), VCenterContentType, vc.getAuth(opts), nil)
+	res, err := utils.HttpPostRaw(vc.client, u.String(), VCenterContentType, vc.getAuth(opts), nil)
 	if err != nil {
 		return "", err
 	}
@@ -120,7 +119,7 @@ func (vc *VCenter) CustomGetClusters(options VCenterOptions) ([]byte, error) {
 	}
 
 	u.Path = path.Join(u.Path, VCenterRestClusterPath)
-	return common.HttpGetRawWithHeaders(vc.client, u.String(), vc.getHeaders(session))
+	return utils.HttpGetRawWithHeaders(vc.client, u.String(), vc.getHeaders(session))
 }
 
 func (vc *VCenter) GetClusters() ([]byte, error) {
@@ -147,7 +146,7 @@ func (vc *VCenter) CustomGetHosts(options VCenterOptions, hostOptions VCenterHos
 
 	u.Path = path.Join(u.Path, VCenterRestHostPath)
 
-	return common.HttpGetRawWithHeaders(vc.client, u.String(), vc.getHeaders(session))
+	return utils.HttpGetRawWithHeaders(vc.client, u.String(), vc.getHeaders(session))
 }
 
 func (vc *VCenter) GetHosts(options VCenterHostOptions) ([]byte, error) {
@@ -175,7 +174,7 @@ func (vc *VCenter) CustomGetVMs(options VCenterOptions, vmOptions VCenterVMOptio
 
 	u.Path = path.Join(u.Path, VCenterRestVMPath)
 
-	return common.HttpGetRawWithHeaders(vc.client, u.String(), vc.getHeaders(session))
+	return utils.HttpGetRawWithHeaders(vc.client, u.String(), vc.getHeaders(session))
 }
 
 func (vc *VCenter) GetVMs(options VCenterVMOptions) ([]byte, error) {
@@ -196,7 +195,7 @@ func (vc *VCenter) CustomGetVMGuestIdentity(options VCenterOptions, vmGuestident
 
 	u.Path = path.Join(u.Path, fmt.Sprintf(VCenterRestVMGuestIdentityPathFmt, vmGuestidentity.VM))
 
-	return common.HttpGetRawWithHeaders(vc.client, u.String(), vc.getHeaders(session))
+	return utils.HttpGetRawWithHeaders(vc.client, u.String(), vc.getHeaders(session))
 }
 
 func (vc *VCenter) GetVMGuestIdentity(options VCenterVMGuestIdentityOptions) ([]byte, error) {

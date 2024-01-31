@@ -11,7 +11,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/devopsext/tools/common"
 	"github.com/devopsext/utils"
 )
 
@@ -157,7 +156,7 @@ func (g *Grafana) CustomRenderImage(grafanaOptions GrafanaOptions, renderImageOp
 	params.Add("tz", grafanaOptions.DashboardTimezone)
 
 	u.RawQuery = params.Encode()
-	return common.HttpGetRaw(g.client, u.String(), "", g.getAuth(grafanaOptions))
+	return utils.HttpGetRaw(g.client, u.String(), "", g.getAuth(grafanaOptions))
 }
 
 func (g *Grafana) RenderImage(options GrafanaRenderImageOptions) ([]byte, error) {
@@ -171,7 +170,7 @@ func (g *Grafana) CustomGetDashboards(grafanaOptions GrafanaOptions) ([]byte, er
 	}
 
 	u.Path = path.Join(u.Path, fmt.Sprintf("/api/dashboards/uid/%s", grafanaOptions.DashboardUID))
-	return common.HttpGetRaw(g.client, u.String(), "", g.getAuth(grafanaOptions))
+	return utils.HttpGetRaw(g.client, u.String(), "", g.getAuth(grafanaOptions))
 }
 
 func (g *Grafana) GetDashboards() ([]byte, error) {
@@ -190,7 +189,7 @@ func (g Grafana) CustomCreateAnnotation(grafanaOptions GrafanaOptions, createAnn
 	if err != nil {
 		return nil, err
 	}
-	return common.HttpPostRaw(g.client, u.String(), "application/json", g.getAuth(grafanaOptions), b)
+	return utils.HttpPostRaw(g.client, u.String(), "application/json", g.getAuth(grafanaOptions), b)
 }
 
 func (g *Grafana) createAnnotation(o *GrafanaCreateAnnotationOptions) *GrafanaAnnotation {
@@ -273,7 +272,7 @@ func (g *Grafana) CustomGetAnnotations(grafanaOptions GrafanaOptions, getAnnotat
 	params.Add("tz", grafanaOptions.DashboardTimezone)
 
 	u.RawQuery = params.Encode()
-	return common.HttpGetRaw(g.client, u.String(), "", g.getAuth(grafanaOptions))
+	return utils.HttpGetRaw(g.client, u.String(), "", g.getAuth(grafanaOptions))
 }
 
 func (g *Grafana) GetAnnotations(options GrafanaGetAnnotationsOptions) ([]byte, error) {
@@ -583,7 +582,7 @@ func (g Grafana) CustomCreateDashboard(grafanaOptions GrafanaOptions, createDash
 	if err != nil {
 		return nil, err
 	}
-	return common.HttpPostRaw(g.client, u.String(), "application/json", g.getAuth(grafanaOptions), b)
+	return utils.HttpPostRaw(g.client, u.String(), "application/json", g.getAuth(grafanaOptions), b)
 }
 
 func (g *Grafana) CreateDashboard(options GrafanaCreateDahboardOptions) ([]byte, error) {

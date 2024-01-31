@@ -90,7 +90,7 @@ func (g *Google) refreshCustomAccessToken(opts GoogleOptions) (*GoogleTokenRepon
 	}
 	u.Path = path.Join(u.Path, "/token")
 
-	bytes, err := common.HttpPostRaw(g.client, u.String(), w.FormDataContentType(), "", body.Bytes())
+	bytes, err := utils.HttpPostRaw(g.client, u.String(), w.FormDataContentType(), "", body.Bytes())
 	if err != nil {
 		return nil, err
 	}
@@ -161,7 +161,7 @@ func (g *Google) CustomGetCalendarEvents(googleOptions GoogleOptions, calendarOp
 	if params != nil {
 		u.RawQuery = params.Encode()
 	}
-	return common.HttpGetRawWithHeaders(g.client, u.String(), nil)
+	return utils.HttpGetRawWithHeaders(g.client, u.String(), nil)
 }
 
 func (g *Google) GetCalendarEvents(options GoogleCalendarOptions) ([]byte, error) {

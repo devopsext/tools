@@ -7,7 +7,6 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/devopsext/tools/common"
 	"github.com/devopsext/utils"
 )
 
@@ -97,7 +96,7 @@ func (t *Telegram) CustomSendMessage(telegramOptions TelegramOptions, messageOpt
 	if err := w.Close(); err != nil {
 		return nil, err
 	}
-	return common.HttpPostRaw(t.client, t.getSendMessageURL(telegramOptions), w.FormDataContentType(), "", body.Bytes())
+	return utils.HttpPostRaw(t.client, t.getSendMessageURL(telegramOptions), w.FormDataContentType(), "", body.Bytes())
 }
 
 func (t *Telegram) SendMessage(options TelegramMessageOptions) ([]byte, error) {
@@ -140,7 +139,7 @@ func (t *Telegram) CustomSendPhoto(telegramOptions TelegramOptions, photoOptions
 	if err := w.Close(); err != nil {
 		return nil, err
 	}
-	return common.HttpPostRaw(t.client, t.getSendPhotoURL(telegramOptions), w.FormDataContentType(), "", body.Bytes())
+	return utils.HttpPostRaw(t.client, t.getSendPhotoURL(telegramOptions), w.FormDataContentType(), "", body.Bytes())
 }
 
 func (t *Telegram) SendPhoto(options TelegramPhotoOptions) ([]byte, error) {
@@ -183,7 +182,7 @@ func (t *Telegram) CustomSendDocument(telegramOptions TelegramOptions, documentO
 	if err := w.Close(); err != nil {
 		return nil, err
 	}
-	return common.HttpPostRaw(t.client, t.getSendDocumentURL(telegramOptions), w.FormDataContentType(), "", body.Bytes())
+	return utils.HttpPostRaw(t.client, t.getSendDocumentURL(telegramOptions), w.FormDataContentType(), "", body.Bytes())
 }
 
 func (t *Telegram) SendDocument(options TelegramDocumentOptions) ([]byte, error) {

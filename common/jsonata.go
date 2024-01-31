@@ -7,6 +7,7 @@ import (
 
 	"github.com/blues/jsonata-go"
 	"github.com/blues/jsonata-go/jtypes"
+	"github.com/devopsext/utils"
 )
 
 type JsonataOptions struct {
@@ -28,7 +29,7 @@ func (j *Jsonata) fHttpGet(URL, contentType string) interface{} {
 
 	var r interface{}
 
-	bytes, err := HttpGetRaw(http.DefaultClient, URL, contentType, "")
+	bytes, err := utils.HttpGetRaw(http.DefaultClient, URL, contentType, "")
 	if err != nil {
 		return err
 	}

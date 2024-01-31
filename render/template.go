@@ -625,7 +625,7 @@ func (tpl *Template) URLWait(url string, timeout, retry int, size int64) []byte 
 
 		tpl.LogDebug("URLWait(%d) get %s...", i, url)
 
-		data, err := common.HttpGetRaw(&client, url, "", "")
+		data, err := utils.HttpGetRaw(&client, url, "", "")
 		if err != nil {
 			tpl.LogDebug("URLWait(%d) get %s err => %s", i, url, err.Error())
 			tpl.tryToWaitUntil(t1, client.Timeout)
@@ -749,8 +749,51 @@ func (tpl *Template) HttpGet(params map[string]interface{}) ([]byte, error) {
 		Timeout:   time.Duration(timeout) * time.Second,
 		Transport: transport,
 	}
+	return utils.HttpGetRaw(&client, url, contentType, authorization)
+}
 
-	return common.HttpGetRaw(&client, url, contentType, authorization)
+func (tpl *Template) HttpPost(params map[string]interface{}) ([]byte, error) {
+
+	if len(params) == 0 {
+		return nil, fmt.Errorf("HttpPost err => %s", "no params allowed")
+	}
+
+	url, _ := params["url"].(string)
+	timeout, _ := params["timeout"].(int)
+	if timeout == 0 {
+		timeout = 5
+	}
+
+	insecure, _ := params["insecure"].(bool)
+	contentType, _ := params["contentType"].(string)
+	authorization, _ := params["authorization"].(string)
+
+	var body []byte
+	b := params["body"]
+	if !utils.IsEmpty(b) {
+		switch b.(type) {
+		case string:
+			bs, _ := b.(string)
+			body = []byte(bs)
+		case []byte:
+			body, _ = b.([]byte)
+		default:
+			bs := fmt.Sprintf("%s", b)
+			body = []byte(bs)
+		}
+	}
+
+	var transport = &http.Transport{
+		Dial:                (&net.Dialer{Timeout: time.Duration(timeout) * time.Second}).Dial,
+		TLSHandshakeTimeout: time.Duration(timeout) * time.Second,
+		TLSClientConfig:     &tls.Config{InsecureSkipVerify: insecure},
+	}
+
+	client := http.Client{
+		Timeout:   time.Duration(timeout) * time.Second,
+		Transport: transport,
+	}
+	return utils.HttpPostRaw(&client, url, contentType, authorization, body)
 }
 
 func (tpl *Template) JiraSearchAssets(params map[string]interface{}) ([]byte, error) {
@@ -914,6 +957,7 @@ func (tpl *Template) setTemplateFuncs(funcs map[string]any) {
 	funcs["tagValue"] = tpl.TagValue
 
 	funcs["httpGet"] = tpl.HttpGet
+	funcs["httpPost"] = tpl.HttpPost
 	funcs["jiraSearchAssets"] = tpl.JiraSearchAssets
 	funcs["pagerDutyCreateIncident"] = tpl.PagerDutyCreateIncident
 	funcs["templateRenderFile"] = tpl.TemplateRenderFile

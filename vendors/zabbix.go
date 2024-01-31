@@ -90,7 +90,7 @@ func (o *Zabbix) getZabbixAuth(opts ZabbixOptions) (*ZabbixUserLoginResponse, er
 		return nil, err
 	}
 
-	res, err := common.HttpPostRaw(o.client, u.String(), zabbixContentType, "", req)
+	res, err := utils.HttpPostRaw(o.client, u.String(), zabbixContentType, "", req)
 	if err != nil {
 		return nil, err
 	}
@@ -139,7 +139,7 @@ func (o *Zabbix) CustomGetHosts(options ZabbixOptions, hostOptions ZabbixHostOpt
 		return nil, err
 	}
 
-	return common.HttpPostRaw(o.client, u.String(), zabbixContentType, "", req)
+	return utils.HttpPostRaw(o.client, u.String(), zabbixContentType, "", req)
 }
 
 func (o *Zabbix) GetHosts(options ZabbixHostOptions) ([]byte, error) {

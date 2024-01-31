@@ -84,7 +84,7 @@ func (p *Prometheus) CustomGet(options PrometheusOptions) ([]byte, error) {
 		authorization = common.FormatBasicAuth(options.User, options.Password)
 	}
 
-	return common.HttpGetRaw(p.client, u.String(), "application/json", authorization)
+	return utils.HttpGetRaw(p.client, u.String(), "application/json", authorization)
 }
 
 func (p *Prometheus) Get() ([]byte, error) {

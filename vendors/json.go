@@ -3,7 +3,6 @@ package vendors
 import (
 	"net/http"
 
-	"github.com/devopsext/tools/common"
 	"github.com/devopsext/utils"
 )
 
@@ -23,7 +22,7 @@ type JSON struct {
 }
 
 func (c *JSON) Get() ([]byte, error) {
-	return common.HttpGetRaw(c.client, c.options.URL, "", "")
+	return utils.HttpGetRaw(c.client, c.options.URL, "", "")
 }
 
 func NewJSON(options JSONOptions) *JSON {

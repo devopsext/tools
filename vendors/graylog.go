@@ -9,7 +9,6 @@ import (
 
 	"encoding/base64"
 
-	"github.com/devopsext/tools/common"
 	"github.com/devopsext/utils"
 )
 
@@ -42,7 +41,7 @@ func (g *Graylog) get(URL string) ([]byte, error) {
 		auth = fmt.Sprintf("Basic %s", basic)
 	}
 
-	return common.HttpGetRaw(g.client, URL, "application/json", auth)
+	return utils.HttpGetRaw(g.client, URL, "application/json", auth)
 }
 
 // https://graylog.some.host/api/search/universal/relative?query=*&range=3600&limit=100&sort=timestamp:desc&pretty=true

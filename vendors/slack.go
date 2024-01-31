@@ -318,7 +318,7 @@ func (s *Slack) CustomAddReaction(slackOptions SlackOptions, reactionOptions Sla
 	if err := w.Close(); err != nil {
 		return nil, err
 	}
-	return common.HttpPostRaw(s.client, s.apiURL(slackReactionsAdd), w.FormDataContentType(), s.getAuth(slackOptions), body.Bytes())
+	return utils.HttpPostRaw(s.client, s.apiURL(slackReactionsAdd), w.FormDataContentType(), s.getAuth(slackOptions), body.Bytes())
 }
 
 func (s *Slack) AddReaction(options SlackReactionOptions) ([]byte, error) {
@@ -335,7 +335,7 @@ func (s *Slack) CustomGetUser(slackOptions SlackOptions, slackUser SlackUserEmai
 	}
 
 	u.RawQuery = params.Encode()
-	return common.HttpGetRaw(s.client, u.String(), "application/x-www-form-urlencoded", s.getAuth(slackOptions))
+	return utils.HttpGetRaw(s.client, u.String(), "application/x-www-form-urlencoded", s.getAuth(slackOptions))
 
 }
 
@@ -355,7 +355,7 @@ func (s *Slack) CustomUpdateUsergroup(slackOptions SlackOptions, slackUpdateUser
 		return nil, err
 	}
 
-	return common.HttpPostRaw(s.client, s.apiURL(slackUsergroupsUsersUpdate), "application/json", s.getAuth(slackOptions), req)
+	return utils.HttpPostRaw(s.client, s.apiURL(slackUsergroupsUsersUpdate), "application/json", s.getAuth(slackOptions), req)
 }
 
 func (s *Slack) UpdateUsergroup(options SlackUsergroupUsers) ([]byte, error) {

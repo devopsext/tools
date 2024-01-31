@@ -7,7 +7,6 @@ import (
 	"net/url"
 	"path"
 
-	"github.com/devopsext/tools/common"
 	"github.com/devopsext/utils"
 )
 
@@ -49,7 +48,7 @@ func (o *Observium) CustomGetDevices(options ObserviumOptions) ([]byte, error) {
 
 	u.Path = path.Join(u.Path, "/api/v0/devices/")
 
-	return common.HttpGetRaw(o.client, u.String(), "application/json", o.getAuth(options))
+	return utils.HttpGetRaw(o.client, u.String(), "application/json", o.getAuth(options))
 }
 
 func (o *Observium) GetDevices() ([]byte, error) {
