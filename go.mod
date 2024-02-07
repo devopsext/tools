@@ -4,6 +4,7 @@ go 1.21
 
 require (
 	github.com/Masterminds/sprig/v3 v3.2.2
+	github.com/araddon/dateparse v0.0.0-20210429162001-6b43995a97de
 	github.com/blues/jsonata-go v1.5.4
 	github.com/devopsext/utils v0.3.0
 	github.com/sirupsen/logrus v1.8.1

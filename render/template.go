@@ -19,6 +19,7 @@ import (
 	"time"
 
 	"github.com/Masterminds/sprig/v3"
+	"github.com/araddon/dateparse"
 	"github.com/devopsext/tools/common"
 	"github.com/devopsext/tools/vendors"
 	utils "github.com/devopsext/utils"
@@ -837,6 +838,15 @@ func (tpl *Template) JiraSearchAssets(params map[string]interface{}) ([]byte, er
 	return jira.SearchAssets(assetsOptions)
 }
 
+func (tpl *Template) JiraCreateIssue(params map[string]interface{}) ([]byte, error) {
+
+	if len(params) == 0 {
+		return nil, fmt.Errorf("JiraSearchAssets err => %s", "no params allowed")
+	}
+
+	return []byte("asdadasdad"), nil
+}
+
 func (tpl *Template) PagerDutyCreateIncident(params map[string]interface{}) ([]byte, error) {
 
 	if len(params) == 0 {
@@ -907,6 +917,14 @@ func (tpl *Template) TemplateRenderFile(path string, obj interface{}) (string, e
 	return string(b), nil
 }
 
+func (tpl *Template) DateParse(d string) (time.Time, error) {
+	t, err := dateparse.ParseAny(d)
+	if err != nil {
+		return time.Now(), err
+	}
+	return t, nil
+}
+
 func (tpl *Template) setTemplateFuncs(funcs map[string]any) {
 
 	funcs["logError"] = tpl.LogError
@@ -959,8 +977,10 @@ func (tpl *Template) setTemplateFuncs(funcs map[string]any) {
 	funcs["httpGet"] = tpl.HttpGet
 	funcs["httpPost"] = tpl.HttpPost
 	funcs["jiraSearchAssets"] = tpl.JiraSearchAssets
+	funcs["jiraCreateIssue"] = tpl.JiraCreateIssue
 	funcs["pagerDutyCreateIncident"] = tpl.PagerDutyCreateIncident
 	funcs["templateRenderFile"] = tpl.TemplateRenderFile
+	funcs["dateParse"] = tpl.DateParse
 }
 
 func (tpl *Template) filterFuncsByContent(funcs map[string]any, content string) map[string]any {
