@@ -177,3 +177,5 @@ fabric.properties
 
 pagerduty.incident
 pagerduty.response
+
+google.sh

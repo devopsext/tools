@@ -70,9 +70,8 @@ func (g *Graylog) searchRelative(URL, streams, query, sort string, ranges string
 	}
 
 	u.Path = path.Join(u.Path, "/api/search/universal/relative")
-	if params != nil {
-		u.RawQuery = params.Encode()
-	}
+	u.RawQuery = params.Encode()
+
 	return g.get(u.String())
 }
 

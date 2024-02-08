@@ -15,8 +15,56 @@ import (
 	"github.com/devopsext/utils"
 )
 
-type GoogleCalendarOptions struct {
-	ID                 string
+type GoogleConference struct {
+}
+
+type GoogleCalendarEventDataTime struct {
+	Date     string `json:"date,omitempty"`
+	DateTime string `json:"dateTime,omitempty"`
+	TimeZone string `json:"timeZone,omitempty"`
+}
+
+type GoogleCalendarEventAttendee struct {
+	Email    string `json:"email"`
+	Optional string `json:"optional,omitempty"`
+}
+
+type GoogleCalendarEventSource struct {
+	Title string `json:"title"`
+	URL   string `json:"url"`
+}
+
+type GoogleCalendarEvent struct {
+	Summary                 string                         `json:"summary"`
+	Description             string                         `json:"description"`
+	EventType               string                         `json:"eventType"`
+	Location                string                         `json:"location,omitempty"`
+	Transparency            string                         `json:"transparency,omitempty"`
+	Visibility              string                         `json:"visibility,omitempty"`
+	Start                   GoogleCalendarEventDataTime    `json:"start"`
+	End                     GoogleCalendarEventDataTime    `json:"end"`
+	Attendees               []*GoogleCalendarEventAttendee `json:"attendees"`
+	GuestsCanInviteOthers   bool                           `json:"guestsCanInviteOthers"`
+	GuestsCanModify         bool                           `json:"guestsCanModify"`
+	GuestsCanSeeOtherGuests bool                           `json:"guestsCanSeeOtherGuests"`
+	Source                  *GoogleCalendarEventSource     `json:"source,omitempty"`
+	ConferenceData          *GoogleConference              `json:"conferenceData,omitempty"`
+}
+
+type GoogleCalendarInsertEventOptions struct {
+	Summary             string
+	Description         string
+	Start               string
+	End                 string
+	TimeZone            string
+	Visibility          string
+	SendUpdates         string
+	SupportsAttachments bool
+	SourceTitle         string
+	SourceURL           string
+}
+
+type GoogleCalendarGetEventsOptions struct {
 	TimeMin            string
 	TimeMax            string
 	AlwaysIncludeEmail bool
@@ -25,13 +73,17 @@ type GoogleCalendarOptions struct {
 	SingleEvents       bool
 }
 
+type GoogleCalendarOptions struct {
+	ID string
+}
+
 type GoogleOptions struct {
 	Timeout           int
 	Insecure          bool
 	OAuthClientID     string
 	OAuthClientSecret string
 	RefreshToken      string
-	AccessToken       string
+	Scope             string
 }
 
 type GoogleTokenReponse struct {
@@ -48,12 +100,19 @@ type Google struct {
 }
 
 const (
-	googleOAuthURL    = "https://oauth2.googleapis.com"
-	googleCalendarURL = "https://www.googleapis.com/calendar/v3"
+	googleOAuthURL       = "https://oauth2.googleapis.com"
+	googleCalendarURL    = "https://www.googleapis.com/calendar/v3"
+	googleCalendarEvents = "/calendars/%s/events"
 )
 
-// https://developers.google.com/oauthplayground
-func (g *Google) refreshCustomAccessToken(opts GoogleOptions) (*GoogleTokenReponse, error) {
+// go to https://developers.google.com/oauthplayground
+// set options to use OAuth Client ID and OAuth Client secret
+// choose Access type => Online
+// select API => https://www.googleapis.com/auth/calendar,https://www.googleapis.com/auth/calendar.events
+// clieck Autorize Api, and Allow for your user
+// use refresh token
+
+func (g *Google) refreshToken(opts GoogleOptions) (*GoogleTokenReponse, error) {
 
 	var body bytes.Buffer
 	w := multipart.NewWriter(&body)
@@ -103,69 +162,127 @@ func (g *Google) refreshCustomAccessToken(opts GoogleOptions) (*GoogleTokenRepon
 	return &r, nil
 }
 
-func (g *Google) getCustomAccessToken(opts GoogleOptions) (string, error) {
+// https://developers.google.com/calendar/api/v3/reference/events/get
+func (g *Google) CustomCalendarGetEvents(googleOptions GoogleOptions, calendarOptions GoogleCalendarOptions, calendarGetEventsOptions GoogleCalendarGetEventsOptions) ([]byte, error) {
 
-	if !utils.IsEmpty(opts.AccessToken) {
-		return opts.AccessToken, nil
-	}
-	r, err := g.refreshCustomAccessToken(opts)
-	if err != nil {
-		return "", err
-	}
-	return r.AccessToken, nil
-}
-
-func (g *Google) CustomGetCalendarEvents(googleOptions GoogleOptions, calendarOptions GoogleCalendarOptions) ([]byte, error) {
-
-	accessToken, err := g.getCustomAccessToken(googleOptions)
+	r, err := g.refreshToken(googleOptions)
 	if err != nil {
 		return nil, err
 	}
-	g.stdout.Debug("Access token => %s", accessToken)
+	g.stdout.Debug("Access token => %s", r.AccessToken)
 
 	params := make(url.Values)
-	params.Add("access_token", accessToken)
-	if !utils.IsEmpty(calendarOptions.TimeMin) {
-		params.Add("timeMin", calendarOptions.TimeMin)
+	params.Add("access_token", r.AccessToken)
+	if !utils.IsEmpty(calendarGetEventsOptions.TimeMin) {
+		params.Add("timeMin", calendarGetEventsOptions.TimeMin)
 	}
-	if !utils.IsEmpty(calendarOptions.TimeMax) {
-		params.Add("timeMax", calendarOptions.TimeMax)
+	if !utils.IsEmpty(calendarGetEventsOptions.TimeMax) {
+		params.Add("timeMax", calendarGetEventsOptions.TimeMax)
 	}
 
-	params.Add("singleEvents", strconv.FormatBool(calendarOptions.SingleEvents))
+	params.Add("singleEvents", strconv.FormatBool(calendarGetEventsOptions.SingleEvents))
 
-	if !utils.IsEmpty(calendarOptions.OrderBy) {
-		if calendarOptions.OrderBy == "startTime" {
-			if calendarOptions.SingleEvents {
-				params.Add("orderBy", calendarOptions.OrderBy)
+	if !utils.IsEmpty(calendarGetEventsOptions.OrderBy) {
+		if calendarGetEventsOptions.OrderBy == "startTime" {
+			if calendarGetEventsOptions.SingleEvents {
+				params.Add("orderBy", calendarGetEventsOptions.OrderBy)
 			} else {
 				return nil, errors.New("if orderBy=startTime singleEvents must be true")
 			}
 
 		} else {
-			params.Add("orderBy", calendarOptions.OrderBy)
+			params.Add("orderBy", calendarGetEventsOptions.OrderBy)
 		}
 	}
-	if !utils.IsEmpty(calendarOptions.Q) {
-		params.Add("q", calendarOptions.Q)
+	if !utils.IsEmpty(calendarGetEventsOptions.Q) {
+		params.Add("q", calendarGetEventsOptions.Q)
 	}
 
-	params.Add("alwaysIncludeEmail", strconv.FormatBool(calendarOptions.AlwaysIncludeEmail))
+	params.Add("alwaysIncludeEmail", strconv.FormatBool(calendarGetEventsOptions.AlwaysIncludeEmail))
 
 	u, err := url.Parse(googleCalendarURL)
 	if err != nil {
 		return nil, err
 	}
 
-	u.Path = path.Join(u.Path, fmt.Sprintf("/calendars/%s/events", calendarOptions.ID))
-	if params != nil {
-		u.RawQuery = params.Encode()
-	}
+	u.Path = path.Join(u.Path, fmt.Sprintf(googleCalendarEvents, calendarOptions.ID))
+	u.RawQuery = params.Encode()
+
 	return utils.HttpGetRawWithHeaders(g.client, u.String(), nil)
 }
 
-func (g *Google) GetCalendarEvents(options GoogleCalendarOptions) ([]byte, error) {
-	return g.CustomGetCalendarEvents(g.options, options)
+func (g *Google) CalendarGetEvents(calendarOptions GoogleCalendarOptions, calendarGetEventsOptions GoogleCalendarGetEventsOptions) ([]byte, error) {
+	return g.CustomCalendarGetEvents(g.options, calendarOptions, calendarGetEventsOptions)
+}
+
+// https://developers.google.com/calendar/api/v3/reference/events/insert
+func (g *Google) CustomCalendarInsertEvent(googleOptions GoogleOptions, calendarOptions GoogleCalendarOptions, calendarInsertEventOptions GoogleCalendarInsertEventOptions) ([]byte, error) {
+
+	r, err := g.refreshToken(googleOptions)
+	if err != nil {
+		return nil, err
+	}
+	g.stdout.Debug("Access token => %s", r.AccessToken)
+
+	params := make(url.Values)
+	params.Add("access_token", r.AccessToken)
+	if !utils.IsEmpty(calendarInsertEventOptions.SendUpdates) {
+		params.Add("sendUpdates", calendarInsertEventOptions.SendUpdates)
+	}
+	params.Add("supportsAttachments", strconv.FormatBool(calendarInsertEventOptions.SupportsAttachments))
+
+	var source *GoogleCalendarEventSource
+	if !utils.IsEmpty(calendarInsertEventOptions.SourceTitle) || !utils.IsEmpty(calendarInsertEventOptions.SourceURL) {
+		source = &GoogleCalendarEventSource{
+			Title: calendarInsertEventOptions.SourceTitle,
+			URL:   calendarInsertEventOptions.SourceURL,
+		}
+	}
+
+	var conference *GoogleConference
+
+	event := &GoogleCalendarEvent{
+		Summary:     calendarInsertEventOptions.Summary,
+		Description: calendarInsertEventOptions.Description,
+		Start: GoogleCalendarEventDataTime{
+			DateTime: calendarInsertEventOptions.Start,
+			TimeZone: calendarInsertEventOptions.TimeZone,
+		},
+		End: GoogleCalendarEventDataTime{
+			DateTime: calendarInsertEventOptions.End,
+			TimeZone: calendarInsertEventOptions.TimeZone,
+		},
+		EventType:               "default",
+		Transparency:            "transparent",
+		Visibility:              calendarInsertEventOptions.Visibility,
+		Attendees:               []*GoogleCalendarEventAttendee{},
+		GuestsCanInviteOthers:   true,
+		GuestsCanModify:         false,
+		GuestsCanSeeOtherGuests: true,
+		Source:                  source,
+		ConferenceData:          conference,
+	}
+
+	data, err := json.Marshal(event)
+	if err != nil {
+		return nil, err
+	}
+
+	u, err := url.Parse(googleCalendarURL)
+	if err != nil {
+		return nil, err
+	}
+
+	g.stdout.Debug(string(data))
+
+	u.Path = path.Join(u.Path, fmt.Sprintf(googleCalendarEvents, calendarOptions.ID))
+	u.RawQuery = params.Encode()
+
+	return utils.HttpPostRawWithHeaders(g.client, u.String(), nil, data)
+}
+
+func (g *Google) CalendarInsertEvent(calendarOptions GoogleCalendarOptions, calendarInsertEventOptions GoogleCalendarInsertEventOptions) ([]byte, error) {
+	return g.CustomCalendarInsertEvent(g.options, calendarOptions, calendarInsertEventOptions)
 }
 
 func NewGoogle(options GoogleOptions, stdout *common.Stdout) *Google {

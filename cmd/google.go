@@ -12,17 +12,38 @@ var googleOptions = vendors.GoogleOptions{
 	OAuthClientID:     envGet("GOOGLE_OAUTH_CLIENT_ID", "").(string),
 	OAuthClientSecret: envGet("GOOGLE_OAUTH_CLIENT_SECRET", "").(string),
 	RefreshToken:      envGet("GOOGLE_REFRESH_TOKEN", "").(string),
-	AccessToken:       envGet("GOOGLE_ACCESS_TOKEN", "").(string),
 }
 
 var googleCalendarOptions = vendors.GoogleCalendarOptions{
-	ID:                 envGet("GOOGLE_CALENDAR_ID", "").(string),
+	ID: envGet("GOOGLE_CALENDAR_ID", "").(string),
+}
+
+var googleCalendarGetEventsOptions = vendors.GoogleCalendarGetEventsOptions{
 	TimeMin:            envGet("GOOGLE_CALENDAR_TIME_MIN", "").(string),
 	TimeMax:            envGet("GOOGLE_CALENDAR_TIME_MAX", "").(string),
 	AlwaysIncludeEmail: envGet("GOOGLE_CALENDAR_ALWAYS_INCLUDE_EMAIL", true).(bool),
 	OrderBy:            envGet("GOOGLE_CALENDAR_ORDER_BY", "").(string),
 	Q:                  envGet("GOOGLE_CALENDAR_Q", "").(string),
 	SingleEvents:       envGet("GOOGLE_CALENDAR_SINGLE_EVENTS", false).(bool),
+}
+
+var googleCalendarInsertEventOptions = vendors.GoogleCalendarInsertEventOptions{
+	Summary:             envGet("GOOGLE_CALENDAR_EVENT_SUMMARY", "").(string),
+	Description:         envGet("GOOGLE_CALENDAR_EVENT_DESCRIPTION", "").(string),
+	Start:               envGet("GOOGLE_CALENDAR_EVENT_START", "").(string),
+	End:                 envGet("GOOGLE_CALENDAR_EVENT_END", "").(string),
+	TimeZone:            envGet("GOOGLE_CALENDAR_EVENT_TIMEZONE", "").(string),
+	Visibility:          envGet("GOOGLE_CALENDAR_EVENT_VISIBILITY", "public").(string),
+	SendUpdates:         envGet("GOOGLE_CALENDAR_EVENT_SEND_UPDATES", "all").(string),
+	SupportsAttachments: envGet("GOOGLE_CALENDAR_EVENT_SUPPORTS_ATTACHMENTS", false).(bool),
+	SourceTitle:         envGet("GOOGLE_CALENDAR_EVENT_SOURCE_TITLE", "").(string),
+	SourceURL:           envGet("GOOGLE_CALENDAR_EVENT_SOURCE_URL", "").(string),
+}
+
+type GoogleCalendarInsertEventOptions struct {
+	SupportsAttachments bool
+	SourceTitle         string
+	SourceURL           string
 }
 
 var googleOutput = common.OutputOptions{
@@ -50,7 +71,6 @@ func NewGoogleCommand() *cobra.Command {
 	flags.StringVar(&googleOptions.OAuthClientID, "google-oauth-client-id", googleOptions.OAuthClientID, "Google OAuth client id")
 	flags.StringVar(&googleOptions.OAuthClientSecret, "google-oauth-client-secret", googleOptions.OAuthClientSecret, "Google OAuth client secret")
 	flags.StringVar(&googleOptions.RefreshToken, "google-refresh-token", googleOptions.RefreshToken, "Google refresh token")
-	flags.StringVar(&googleOptions.AccessToken, "google-access-token", googleOptions.AccessToken, "Google access token")
 	flags.StringVar(&googleOutput.Output, "google-output", googleOutput.Output, "Google output")
 	flags.StringVar(&googleOutput.Query, "google-output-query", googleOutput.Query, "Google output query")
 
@@ -62,30 +82,59 @@ func NewGoogleCommand() *cobra.Command {
 	flags.StringVar(&googleCalendarOptions.ID, "google-calendar-id", googleCalendarOptions.ID, "Google calendar id")
 	googleCmd.AddCommand(calendarCmd)
 
-	calendarEventsCmd := &cobra.Command{
+	calendarGetEventsCmd := &cobra.Command{
 		Use:   "get-events",
 		Short: "Calendar get events",
 		Run: func(cmd *cobra.Command, args []string) {
 
 			stdout.Debug("Google callendar getting events...")
 			common.Debug("Google", googleCalendarOptions, stdout)
+			common.Debug("Google", googleCalendarGetEventsOptions, stdout)
 
-			bytes, err := googleNew(stdout).GetCalendarEvents(googleCalendarOptions)
+			bytes, err := googleNew(stdout).CalendarGetEvents(googleCalendarOptions, googleCalendarGetEventsOptions)
 			if err != nil {
-				stdout.Error(err)
-				return
+				stdout.Error("CalendarGetEvents error: %s", err)
 			}
-			common.OutputJson(googleOutput, "Google", []interface{}{googleOptions, googleCalendarOptions}, bytes, stdout)
+			common.OutputJson(googleOutput, "Google", []interface{}{googleOptions, googleCalendarOptions, googleCalendarGetEventsOptions}, bytes, stdout)
 		},
 	}
-	flags = calendarEventsCmd.PersistentFlags()
-	flags.StringVar(&googleCalendarOptions.TimeMin, "google-calendar-time-min", googleCalendarOptions.TimeMin, "Google calendar time min")
-	flags.StringVar(&googleCalendarOptions.TimeMax, "google-calendar-time-max", googleCalendarOptions.TimeMax, "Google calendar time max")
-	flags.StringVar(&googleCalendarOptions.OrderBy, "google-calendar-oreder-by", googleCalendarOptions.OrderBy, "Google calendar oreder by")
-	flags.StringVar(&googleCalendarOptions.Q, "google-calendar-q", googleCalendarOptions.Q, "Google calendar q")
-	flags.BoolVar(&googleCalendarOptions.AlwaysIncludeEmail, "google-calendar-always-include-email", googleCalendarOptions.AlwaysIncludeEmail, "Google calendar always include email")
-	flags.BoolVar(&googleCalendarOptions.SingleEvents, "google-calendar-single-events", googleCalendarOptions.SingleEvents, "Google calendar single events")
-	calendarCmd.AddCommand(calendarEventsCmd)
+	flags = calendarGetEventsCmd.PersistentFlags()
+	flags.StringVar(&googleCalendarGetEventsOptions.TimeMin, "google-calendar-time-min", googleCalendarGetEventsOptions.TimeMin, "Google calendar time min")
+	flags.StringVar(&googleCalendarGetEventsOptions.TimeMax, "google-calendar-time-max", googleCalendarGetEventsOptions.TimeMax, "Google calendar time max")
+	flags.StringVar(&googleCalendarGetEventsOptions.OrderBy, "google-calendar-order-by", googleCalendarGetEventsOptions.OrderBy, "Google calendar order by")
+	flags.StringVar(&googleCalendarGetEventsOptions.Q, "google-calendar-q", googleCalendarGetEventsOptions.Q, "Google calendar q")
+	flags.BoolVar(&googleCalendarGetEventsOptions.AlwaysIncludeEmail, "google-calendar-always-include-email", googleCalendarGetEventsOptions.AlwaysIncludeEmail, "Google calendar always include email")
+	flags.BoolVar(&googleCalendarGetEventsOptions.SingleEvents, "google-calendar-single-events", googleCalendarGetEventsOptions.SingleEvents, "Google calendar single events")
+	calendarCmd.AddCommand(calendarGetEventsCmd)
+
+	calendarInsertEventCmd := &cobra.Command{
+		Use:   "insert-event",
+		Short: "Calendar insert event",
+		Run: func(cmd *cobra.Command, args []string) {
+
+			stdout.Debug("Google callendar inserting event...")
+			common.Debug("Google", googleCalendarOptions, stdout)
+			common.Debug("Google", googleCalendarInsertEventOptions, stdout)
+
+			bytes, err := googleNew(stdout).CalendarInsertEvent(googleCalendarOptions, googleCalendarInsertEventOptions)
+			if err != nil {
+				stdout.Error("CalendarInsertEvent error: %s", err)
+			}
+			common.OutputJson(googleOutput, "Google", []interface{}{googleOptions, googleCalendarOptions, googleCalendarInsertEventOptions}, bytes, stdout)
+		},
+	}
+	flags = calendarInsertEventCmd.PersistentFlags()
+	flags.StringVar(&googleCalendarInsertEventOptions.Summary, "google-calendar-event-summary", googleCalendarInsertEventOptions.Summary, "Google calendar event summary")
+	flags.StringVar(&googleCalendarInsertEventOptions.Description, "google-calendar-event-description", googleCalendarInsertEventOptions.Description, "Google calendar event description")
+	flags.StringVar(&googleCalendarInsertEventOptions.Start, "google-calendar-event-start", googleCalendarInsertEventOptions.Start, "Google calendar event start")
+	flags.StringVar(&googleCalendarInsertEventOptions.End, "google-calendar-event-end", googleCalendarInsertEventOptions.End, "Google calendar event end")
+	flags.StringVar(&googleCalendarInsertEventOptions.TimeZone, "google-calendar-event-timezone", googleCalendarInsertEventOptions.TimeZone, "Google calendar event timezone")
+	flags.StringVar(&googleCalendarInsertEventOptions.Visibility, "google-calendar-event-visibility", googleCalendarInsertEventOptions.Visibility, "Google calendar event visibility")
+	flags.StringVar(&googleCalendarInsertEventOptions.SendUpdates, "google-calendar-event-send-updates", googleCalendarInsertEventOptions.SendUpdates, "Google calendar event send updates")
+	flags.BoolVar(&googleCalendarInsertEventOptions.SupportsAttachments, "google-calendar-event-supports-attachments", googleCalendarInsertEventOptions.SupportsAttachments, "Google calendar event support attachments")
+	flags.StringVar(&googleCalendarInsertEventOptions.SourceTitle, "google-calendar-event-source-title", googleCalendarInsertEventOptions.SourceTitle, "Google calendar event source title")
+	flags.StringVar(&googleCalendarInsertEventOptions.SourceURL, "google-calendar-event-source-url", googleCalendarInsertEventOptions.SourceURL, "Google calendar event source URL")
+	calendarCmd.AddCommand(calendarInsertEventCmd)
 
 	return &googleCmd
 }
