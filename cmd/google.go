@@ -38,6 +38,7 @@ var googleCalendarInsertEventOptions = vendors.GoogleCalendarInsertEventOptions{
 	SupportsAttachments: envGet("GOOGLE_CALENDAR_EVENT_SUPPORTS_ATTACHMENTS", false).(bool),
 	SourceTitle:         envGet("GOOGLE_CALENDAR_EVENT_SOURCE_TITLE", "").(string),
 	SourceURL:           envGet("GOOGLE_CALENDAR_EVENT_SOURCE_URL", "").(string),
+	ConferenceID:        envGet("GOOGLE_CALENDAR_EVENT_CONFERENCE_ID", "").(string),
 }
 
 type GoogleCalendarInsertEventOptions struct {
@@ -134,6 +135,7 @@ func NewGoogleCommand() *cobra.Command {
 	flags.BoolVar(&googleCalendarInsertEventOptions.SupportsAttachments, "google-calendar-event-supports-attachments", googleCalendarInsertEventOptions.SupportsAttachments, "Google calendar event support attachments")
 	flags.StringVar(&googleCalendarInsertEventOptions.SourceTitle, "google-calendar-event-source-title", googleCalendarInsertEventOptions.SourceTitle, "Google calendar event source title")
 	flags.StringVar(&googleCalendarInsertEventOptions.SourceURL, "google-calendar-event-source-url", googleCalendarInsertEventOptions.SourceURL, "Google calendar event source URL")
+	flags.StringVar(&googleCalendarInsertEventOptions.ConferenceID, "google-calendar-event-conference-id", googleCalendarInsertEventOptions.ConferenceID, "Google calendar conference ID")
 	calendarCmd.AddCommand(calendarInsertEventCmd)
 
 	return &googleCmd

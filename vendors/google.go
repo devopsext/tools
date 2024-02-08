@@ -13,9 +13,26 @@ import (
 
 	"github.com/devopsext/tools/common"
 	"github.com/devopsext/utils"
+	"github.com/google/uuid"
 )
 
-type GoogleConference struct {
+type GoogleConferenceDataSolutionKey struct {
+	Type string `json:"type"`
+}
+
+type GoogleConferenceDataSolution struct {
+	Key GoogleConferenceDataSolutionKey `json:"key"`
+}
+
+type GoogleConferenceDataCreateRequest struct {
+	ConferenceSolutionKey GoogleConferenceDataSolutionKey `json:"conferenceSolutionKey"`
+	RequestID             string                          `json:"requestId"`
+}
+
+type GoogleConferenceData struct {
+	ConferenceSolution *GoogleConferenceDataSolution      `json:"conferenceSolution,omitempty"`
+	CreateRequest      *GoogleConferenceDataCreateRequest `json:"createRequest,omitempty"`
+	ConferenceID       string                             `json:"conferenceId,omitempty"`
 }
 
 type GoogleCalendarEventDataTime struct {
@@ -48,7 +65,7 @@ type GoogleCalendarEvent struct {
 	GuestsCanModify         bool                           `json:"guestsCanModify"`
 	GuestsCanSeeOtherGuests bool                           `json:"guestsCanSeeOtherGuests"`
 	Source                  *GoogleCalendarEventSource     `json:"source,omitempty"`
-	ConferenceData          *GoogleConference              `json:"conferenceData,omitempty"`
+	ConferenceData          *GoogleConferenceData          `json:"conferenceData,omitempty"`
 }
 
 type GoogleCalendarInsertEventOptions struct {
@@ -62,6 +79,7 @@ type GoogleCalendarInsertEventOptions struct {
 	SupportsAttachments bool
 	SourceTitle         string
 	SourceURL           string
+	ConferenceID        string
 }
 
 type GoogleCalendarGetEventsOptions struct {
@@ -83,7 +101,6 @@ type GoogleOptions struct {
 	OAuthClientID     string
 	OAuthClientSecret string
 	RefreshToken      string
-	Scope             string
 }
 
 type GoogleTokenReponse struct {
@@ -96,7 +113,7 @@ type GoogleTokenReponse struct {
 type Google struct {
 	client  *http.Client
 	options GoogleOptions
-	stdout  *common.Stdout
+	logger  common.Logger
 }
 
 const (
@@ -169,7 +186,7 @@ func (g *Google) CustomCalendarGetEvents(googleOptions GoogleOptions, calendarOp
 	if err != nil {
 		return nil, err
 	}
-	g.stdout.Debug("Access token => %s", r.AccessToken)
+	g.logger.Debug("Access token => %s", r.AccessToken)
 
 	params := make(url.Values)
 	params.Add("access_token", r.AccessToken)
@@ -222,7 +239,7 @@ func (g *Google) CustomCalendarInsertEvent(googleOptions GoogleOptions, calendar
 	if err != nil {
 		return nil, err
 	}
-	g.stdout.Debug("Access token => %s", r.AccessToken)
+	g.logger.Debug("Access token => %s", r.AccessToken)
 
 	params := make(url.Values)
 	params.Add("access_token", r.AccessToken)
@@ -230,6 +247,7 @@ func (g *Google) CustomCalendarInsertEvent(googleOptions GoogleOptions, calendar
 		params.Add("sendUpdates", calendarInsertEventOptions.SendUpdates)
 	}
 	params.Add("supportsAttachments", strconv.FormatBool(calendarInsertEventOptions.SupportsAttachments))
+	params.Add("conferenceDataVersion", "1")
 
 	var source *GoogleCalendarEventSource
 	if !utils.IsEmpty(calendarInsertEventOptions.SourceTitle) || !utils.IsEmpty(calendarInsertEventOptions.SourceURL) {
@@ -239,7 +257,19 @@ func (g *Google) CustomCalendarInsertEvent(googleOptions GoogleOptions, calendar
 		}
 	}
 
-	var conference *GoogleConference
+	var conference *GoogleConferenceData
+	if !utils.IsEmpty(calendarInsertEventOptions.ConferenceID) {
+
+		requestID := uuid.New().String()
+		conference = &GoogleConferenceData{
+			CreateRequest: &GoogleConferenceDataCreateRequest{
+				ConferenceSolutionKey: GoogleConferenceDataSolutionKey{
+					Type: "hangoutsMeet",
+				},
+				RequestID: requestID,
+			},
+		}
+	}
 
 	event := &GoogleCalendarEvent{
 		Summary:     calendarInsertEventOptions.Summary,
@@ -273,7 +303,7 @@ func (g *Google) CustomCalendarInsertEvent(googleOptions GoogleOptions, calendar
 		return nil, err
 	}
 
-	g.stdout.Debug(string(data))
+	g.logger.Debug(string(data))
 
 	u.Path = path.Join(u.Path, fmt.Sprintf(googleCalendarEvents, calendarOptions.ID))
 	u.RawQuery = params.Encode()
@@ -285,12 +315,12 @@ func (g *Google) CalendarInsertEvent(calendarOptions GoogleCalendarOptions, cale
 	return g.CustomCalendarInsertEvent(g.options, calendarOptions, calendarInsertEventOptions)
 }
 
-func NewGoogle(options GoogleOptions, stdout *common.Stdout) *Google {
+func NewGoogle(options GoogleOptions, logger common.Logger) *Google {
 
 	google := &Google{
 		client:  utils.NewHttpClient(options.Timeout, options.Insecure),
 		options: options,
-		stdout:  stdout,
+		logger:  logger,
 	}
 	return google
 }

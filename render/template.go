@@ -723,6 +723,14 @@ func (tpl *Template) TagValue(s, key string) (string, error) {
 	return s, nil
 }
 
+func (tpl *Template) DateParse(d string) (time.Time, error) {
+	t, err := dateparse.ParseAny(d)
+	if err != nil {
+		return time.Now(), err
+	}
+	return t, nil
+}
+
 // url, contentType, authorization string, timeout int
 func (tpl *Template) HttpGet(params map[string]interface{}) ([]byte, error) {
 
@@ -917,12 +925,97 @@ func (tpl *Template) TemplateRenderFile(path string, obj interface{}) (string, e
 	return string(b), nil
 }
 
-func (tpl *Template) DateParse(d string) (time.Time, error) {
-	t, err := dateparse.ParseAny(d)
-	if err != nil {
-		return time.Now(), err
+func (tpl *Template) GoogleCalendarGetEvents(params map[string]interface{}) ([]byte, error) {
+
+	if len(params) == 0 {
+		return nil, fmt.Errorf("GoogleCalendarGetEvents err => %s", "no params allowed")
 	}
-	return t, nil
+
+	timeout, _ := params["timeout"].(int)
+	if timeout == 0 {
+		timeout = 10
+	}
+	insecure, _ := params["insecure"].(bool)
+	clientID, _ := params["clientID"].(string)
+	clientSecret, _ := params["clientSecret"].(string)
+	token, _ := params["token"].(string)
+
+	googleOptions := vendors.GoogleOptions{
+		Timeout:           timeout,
+		Insecure:          insecure,
+		OAuthClientID:     clientID,
+		OAuthClientSecret: clientSecret,
+		RefreshToken:      token,
+	}
+
+	google := vendors.NewGoogle(googleOptions, tpl.logger)
+
+	id, _ := params["ID"].(string)
+	calendarOptions := vendors.GoogleCalendarOptions{
+		ID: id,
+	}
+
+	timeMin, _ := params["timeMin"].(string)
+	timeMax, _ := params["timeMax"].(string)
+
+	calendarGetEventsOptions := vendors.GoogleCalendarGetEventsOptions{
+		TimeMin:            timeMin,
+		TimeMax:            timeMax,
+		AlwaysIncludeEmail: true,
+	}
+
+	return google.CalendarGetEvents(calendarOptions, calendarGetEventsOptions)
+}
+
+func (tpl *Template) GoogleCalendarInsertEvent(params map[string]interface{}) ([]byte, error) {
+
+	if len(params) == 0 {
+		return nil, fmt.Errorf("GoogleCalendarInsertEvent err => %s", "no params allowed")
+	}
+
+	timeout, _ := params["timeout"].(int)
+	if timeout == 0 {
+		timeout = 10
+	}
+	insecure, _ := params["insecure"].(bool)
+	clientID, _ := params["clientID"].(string)
+	clientSecret, _ := params["clientSecret"].(string)
+	token, _ := params["token"].(string)
+
+	googleOptions := vendors.GoogleOptions{
+		Timeout:           timeout,
+		Insecure:          insecure,
+		OAuthClientID:     clientID,
+		OAuthClientSecret: clientSecret,
+		RefreshToken:      token,
+	}
+
+	google := vendors.NewGoogle(googleOptions, tpl.logger)
+
+	id, _ := params["ID"].(string)
+	calendarOptions := vendors.GoogleCalendarOptions{
+		ID: id,
+	}
+
+	summary, _ := params["summary"].(string)
+	description, _ := params["description"].(string)
+	start, _ := params["start"].(string)
+	end, _ := params["end"].(string)
+	timeZone, _ := params["timeZone"].(string)
+	visibility, _ := params["visibility"].(string)
+	conferenceID, _ := params["conferenceID"].(string)
+
+	calendarInsertEventOptions := vendors.GoogleCalendarInsertEventOptions{
+		Summary:      summary,
+		Description:  description,
+		Start:        start,
+		End:          end,
+		TimeZone:     timeZone,
+		Visibility:   visibility,
+		ConferenceID: conferenceID,
+	}
+
+	return google.CalendarInsertEvent(calendarOptions, calendarInsertEventOptions)
 }
 
 func (tpl *Template) setTemplateFuncs(funcs map[string]any) {
@@ -973,6 +1066,7 @@ func (tpl *Template) setTemplateFuncs(funcs map[string]any) {
 	funcs["gitlabPipelineVars"] = tpl.GitlabPipelineVars
 	funcs["tagExists"] = tpl.TagExists
 	funcs["tagValue"] = tpl.TagValue
+	funcs["dateParse"] = tpl.DateParse
 
 	funcs["httpGet"] = tpl.HttpGet
 	funcs["httpPost"] = tpl.HttpPost
@@ -980,7 +1074,8 @@ func (tpl *Template) setTemplateFuncs(funcs map[string]any) {
 	funcs["jiraCreateIssue"] = tpl.JiraCreateIssue
 	funcs["pagerDutyCreateIncident"] = tpl.PagerDutyCreateIncident
 	funcs["templateRenderFile"] = tpl.TemplateRenderFile
-	funcs["dateParse"] = tpl.DateParse
+	funcs["googleCalendarGetEvents"] = tpl.GoogleCalendarGetEvents
+	funcs["googleCalendarInsertEvent"] = tpl.GoogleCalendarInsertEvent
 }
 
 func (tpl *Template) filterFuncsByContent(funcs map[string]any, content string) map[string]any {
