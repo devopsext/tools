@@ -21,7 +21,9 @@ type GoogleConferenceDataSolutionKey struct {
 }
 
 type GoogleConferenceDataSolution struct {
-	Key GoogleConferenceDataSolutionKey `json:"key"`
+	Key     GoogleConferenceDataSolutionKey `json:"key"`
+	Name    string                          `json:"name"`
+	IconURI string                          `json:"iconUri"`
 }
 
 type GoogleConferenceDataCreateRequest struct {
@@ -29,9 +31,16 @@ type GoogleConferenceDataCreateRequest struct {
 	RequestID             string                          `json:"requestId"`
 }
 
+type GoogleConferenceDataEntryPoint struct {
+	EntryPointType string `json:"entryPointType,omitempty"`
+	URI            string `json:"uri,omitempty"`
+	Label          string `json:"label,omitempty"`
+}
+
 type GoogleConferenceData struct {
 	ConferenceSolution *GoogleConferenceDataSolution      `json:"conferenceSolution,omitempty"`
 	CreateRequest      *GoogleConferenceDataCreateRequest `json:"createRequest,omitempty"`
+	EntryPoints        []*GoogleConferenceDataEntryPoint  `json:"entryPoints,omitempty"`
 	ConferenceID       string                             `json:"conferenceId,omitempty"`
 }
 
@@ -120,6 +129,8 @@ const (
 	googleOAuthURL       = "https://oauth2.googleapis.com"
 	googleCalendarURL    = "https://www.googleapis.com/calendar/v3"
 	googleCalendarEvents = "/calendars/%s/events"
+	googleMeetURL        = "https://meet.google.com/%s"
+	googleMeetLabel      = "meet.google.com/%s"
 )
 
 // go to https://developers.google.com/oauthplayground
@@ -180,6 +191,8 @@ func (g *Google) refreshToken(opts GoogleOptions) (*GoogleTokenReponse, error) {
 }
 
 // https://developers.google.com/calendar/api/v3/reference/events/get
+// https://stackoverflow.com/questions/75785196/create-a-google-calendar-event-with-a-specified-google-meet-id-conferencedata-c
+
 func (g *Google) CustomCalendarGetEvents(googleOptions GoogleOptions, calendarOptions GoogleCalendarOptions, calendarGetEventsOptions GoogleCalendarGetEventsOptions) ([]byte, error) {
 
 	r, err := g.refreshToken(googleOptions)
@@ -260,6 +273,21 @@ func (g *Google) CustomCalendarInsertEvent(googleOptions GoogleOptions, calendar
 	var conference *GoogleConferenceData
 	if !utils.IsEmpty(calendarInsertEventOptions.ConferenceID) {
 
+		entryVideo := &GoogleConferenceDataEntryPoint{
+			EntryPointType: "video",
+			URI:            fmt.Sprintf(googleMeetURL, calendarInsertEventOptions.ConferenceID),
+			Label:          fmt.Sprintf(googleMeetLabel, calendarInsertEventOptions.ConferenceID),
+		}
+		conference = &GoogleConferenceData{
+			ConferenceSolution: &GoogleConferenceDataSolution{
+				Key: GoogleConferenceDataSolutionKey{
+					Type: "hangoutsMeet",
+				},
+			},
+			EntryPoints:  []*GoogleConferenceDataEntryPoint{entryVideo},
+			ConferenceID: calendarInsertEventOptions.ConferenceID,
+		}
+	} else {
 		requestID := uuid.New().String()
 		conference = &GoogleConferenceData{
 			CreateRequest: &GoogleConferenceDataCreateRequest{
@@ -302,8 +330,6 @@ func (g *Google) CustomCalendarInsertEvent(googleOptions GoogleOptions, calendar
 	if err != nil {
 		return nil, err
 	}
-
-	g.logger.Debug(string(data))
 
 	u.Path = path.Join(u.Path, fmt.Sprintf(googleCalendarEvents, calendarOptions.ID))
 	u.RawQuery = params.Encode()
