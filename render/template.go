@@ -846,13 +846,50 @@ func (tpl *Template) JiraSearchAssets(params map[string]interface{}) ([]byte, er
 	return jira.SearchAssets(assetsOptions)
 }
 
-func (tpl *Template) JiraCreateIssue(params map[string]interface{}) ([]byte, error) {
+func (tpl *Template) jiraCreateIssueDailyCase(params map[string]interface{}) ([]byte, error) {
 
-	if len(params) == 0 {
-		return nil, fmt.Errorf("JiraSearchAssets err => %s", "no params allowed")
+	//jira options
+	url, _ := params["url"].(string)
+	timeout, _ := params["timeout"].(int)
+	if timeout == 0 {
+		timeout = 10
+	}
+	insecure, _ := params["insecure"].(bool)
+	user, _ := params["user"].(string)
+	password, _ := params["password"].(string)
+	token, _ := params["token"].(string)
+	// issue options
+	key, _ := params["projectKey"].(string)
+	summary, _ := params["summary"].(string)
+	description, _ := params["description"].(string)
+	assignee, _ := params["assignee"].(string)
+	severity, _ := params["severity"].(string)
+
+	jiraOptions := vendors.JiraOptions{
+		URL:         url,
+		Timeout:     timeout,
+		Insecure:    insecure,
+		User:        user,
+		Password:    password,
+		AccessToken: token,
+	}
+	jiraIssueOptions := vendors.JiraIssueDailyCase{
+		Project:     key,
+		Summary:     summary,
+		Description: description,
+		Severity:    severity,
+		IssueType:   "Daily Case",
+		Assignee:    assignee,
 	}
 
-	return []byte("asdadasdad"), nil
+	jira := vendors.NewJira(jiraOptions)
+
+	response, err := jira.CreateIssueDailyCase(jiraIssueOptions)
+	if err != nil {
+		return nil, err
+	}
+
+	return response, nil
 }
 
 func (tpl *Template) PagerDutyCreateIncident(params map[string]interface{}) ([]byte, error) {
@@ -1071,7 +1108,7 @@ func (tpl *Template) setTemplateFuncs(funcs map[string]any) {
 	funcs["httpGet"] = tpl.HttpGet
 	funcs["httpPost"] = tpl.HttpPost
 	funcs["jiraSearchAssets"] = tpl.JiraSearchAssets
-	funcs["jiraCreateIssue"] = tpl.JiraCreateIssue
+	funcs["jiraCreateIssueDailyCase"] = tpl.jiraCreateIssueDailyCase
 	funcs["pagerDutyCreateIncident"] = tpl.PagerDutyCreateIncident
 	funcs["templateRenderFile"] = tpl.TemplateRenderFile
 	funcs["googleCalendarGetEvents"] = tpl.GoogleCalendarGetEvents
