@@ -12,8 +12,8 @@ github.com/cpuguy83/go-md2man/v2 v2.0.1/go.mod h1:tgQtvFlXSQOSOSIRvRPT7W67SCa46t
 github.com/davecgh/go-spew v1.1.0/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/davecgh/go-spew v1.1.1 h1:vj9j/u1bqnvCEfJOwUhtlOARqs3+rkHYY13jYWTU97c=
 github.com/davecgh/go-spew v1.1.1/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
-github.com/devopsext/utils v0.3.1 h1:aTmXBPSHKqYPeFQjMLT65Jjn1Rs9b+LKwLSbwG0oUkE=
-github.com/devopsext/utils v0.3.1/go.mod h1:p26znr3y6BOCWOQ+Yy045UeEyV6U1fDk5lDRrGnwR2Y=
+github.com/devopsext/utils v0.3.3 h1:rC1YKcDUiVOuTT+fp+O5pd/8jtnhC5nfv816eQoCM/w=
+github.com/devopsext/utils v0.3.3/go.mod h1:p26znr3y6BOCWOQ+Yy045UeEyV6U1fDk5lDRrGnwR2Y=
 github.com/google/uuid v1.1.1 h1:Gkbcsh/GbpXz7lPftLA3P6TYMwjCLYm83jiFQZF/3gY=
 github.com/google/uuid v1.1.1/go.mod h1:TIyPZe4MgqvfeYDBFedMoGGpEw/LqOeaOT+nhxU+yHo=
 github.com/huandu/xstrings v1.3.1 h1:4jgBlKK6tLKFvO8u5pmYjG91cqytmDCDvGh7ECVFfFs=

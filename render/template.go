@@ -959,9 +959,8 @@ func (tpl *Template) GoogleCalendarGetEvents(params map[string]interface{}) ([]b
 	timeMax, _ := params["timeMax"].(string)
 
 	calendarGetEventsOptions := vendors.GoogleCalendarGetEventsOptions{
-		TimeMin:            timeMin,
-		TimeMax:            timeMax,
-		AlwaysIncludeEmail: true,
+		TimeMin: timeMin,
+		TimeMax: timeMax,
 	}
 
 	return google.CalendarGetEvents(calendarOptions, calendarGetEventsOptions)

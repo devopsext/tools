@@ -61,6 +61,7 @@ type GoogleCalendarEventSource struct {
 }
 
 type GoogleCalendarEvent struct {
+	ID                      string                         `json:"id,omitempty"`
 	Summary                 string                         `json:"summary"`
 	Description             string                         `json:"description"`
 	EventType               string                         `json:"eventType"`
@@ -77,6 +78,13 @@ type GoogleCalendarEvent struct {
 	ConferenceData          *GoogleConferenceData          `json:"conferenceData,omitempty"`
 }
 
+type GoogleCalendarEvents struct {
+	Kind     string                 `json:"kind"`
+	Summary  string                 `json:"summary,omitempty"`
+	TimeZone string                 `json:"timeZone,omitempty"`
+	Items    []*GoogleCalendarEvent `json:"items,omitempty"`
+}
+
 type GoogleCalendarInsertEventOptions struct {
 	Summary             string
 	Description         string
@@ -91,13 +99,23 @@ type GoogleCalendarInsertEventOptions struct {
 	ConferenceID        string
 }
 
+type GoogleCalendarDeleteEventOptions struct {
+	ID          string
+	SendUpdates string
+}
+
+type GoogleCalendarDeleteEventsOptions struct {
+	TimeMin string
+	TimeMax string
+}
+
 type GoogleCalendarGetEventsOptions struct {
-	TimeMin            string
-	TimeMax            string
-	AlwaysIncludeEmail bool
-	OrderBy            string
-	Q                  string
-	SingleEvents       bool
+	TimeMin      string
+	TimeMax      string
+	TimeZone     string
+	OrderBy      string
+	Q            string
+	SingleEvents bool
 }
 
 type GoogleCalendarOptions struct {
@@ -126,11 +144,12 @@ type Google struct {
 }
 
 const (
-	googleOAuthURL       = "https://oauth2.googleapis.com"
-	googleCalendarURL    = "https://www.googleapis.com/calendar/v3"
-	googleCalendarEvents = "/calendars/%s/events"
-	googleMeetURL        = "https://meet.google.com/%s"
-	googleMeetLabel      = "meet.google.com/%s"
+	googleOAuthURL            = "https://oauth2.googleapis.com"
+	googleCalendarURL         = "https://www.googleapis.com/calendar/v3"
+	googleCalendarEvents      = "/calendars/%s/events"
+	googleCalendarDeleteEvent = "/calendars/%s/events/%s"
+	googleMeetURL             = "https://meet.google.com/%s"
+	googleMeetLabel           = "meet.google.com/%s"
 )
 
 // go to https://developers.google.com/oauthplayground
@@ -193,21 +212,18 @@ func (g *Google) refreshToken(opts GoogleOptions) (*GoogleTokenReponse, error) {
 // https://developers.google.com/calendar/api/v3/reference/events/get
 // https://stackoverflow.com/questions/75785196/create-a-google-calendar-event-with-a-specified-google-meet-id-conferencedata-c
 
-func (g *Google) CustomCalendarGetEvents(googleOptions GoogleOptions, calendarOptions GoogleCalendarOptions, calendarGetEventsOptions GoogleCalendarGetEventsOptions) ([]byte, error) {
-
-	r, err := g.refreshToken(googleOptions)
-	if err != nil {
-		return nil, err
-	}
-	g.logger.Debug("Access token => %s", r.AccessToken)
+func (g *Google) calendarGetEvents(token string, calendarOptions GoogleCalendarOptions, calendarGetEventsOptions GoogleCalendarGetEventsOptions) ([]byte, error) {
 
 	params := make(url.Values)
-	params.Add("access_token", r.AccessToken)
+	params.Add("access_token", token)
 	if !utils.IsEmpty(calendarGetEventsOptions.TimeMin) {
 		params.Add("timeMin", calendarGetEventsOptions.TimeMin)
 	}
 	if !utils.IsEmpty(calendarGetEventsOptions.TimeMax) {
 		params.Add("timeMax", calendarGetEventsOptions.TimeMax)
+	}
+	if !utils.IsEmpty(calendarGetEventsOptions.TimeMax) {
+		params.Add("timeZone", calendarGetEventsOptions.TimeZone)
 	}
 
 	params.Add("singleEvents", strconv.FormatBool(calendarGetEventsOptions.SingleEvents))
@@ -228,8 +244,6 @@ func (g *Google) CustomCalendarGetEvents(googleOptions GoogleOptions, calendarOp
 		params.Add("q", calendarGetEventsOptions.Q)
 	}
 
-	params.Add("alwaysIncludeEmail", strconv.FormatBool(calendarGetEventsOptions.AlwaysIncludeEmail))
-
 	u, err := url.Parse(googleCalendarURL)
 	if err != nil {
 		return nil, err
@@ -241,11 +255,23 @@ func (g *Google) CustomCalendarGetEvents(googleOptions GoogleOptions, calendarOp
 	return utils.HttpGetRawWithHeaders(g.client, u.String(), nil)
 }
 
+func (g *Google) CustomCalendarGetEvents(googleOptions GoogleOptions, calendarOptions GoogleCalendarOptions, calendarGetEventsOptions GoogleCalendarGetEventsOptions) ([]byte, error) {
+
+	r, err := g.refreshToken(googleOptions)
+	if err != nil {
+		return nil, err
+	}
+	g.logger.Debug("Access token => %s", r.AccessToken)
+
+	return g.calendarGetEvents(r.AccessToken, calendarOptions, calendarGetEventsOptions)
+}
+
 func (g *Google) CalendarGetEvents(calendarOptions GoogleCalendarOptions, calendarGetEventsOptions GoogleCalendarGetEventsOptions) ([]byte, error) {
 	return g.CustomCalendarGetEvents(g.options, calendarOptions, calendarGetEventsOptions)
 }
 
 // https://developers.google.com/calendar/api/v3/reference/events/insert
+
 func (g *Google) CustomCalendarInsertEvent(googleOptions GoogleOptions, calendarOptions GoogleCalendarOptions, calendarInsertEventOptions GoogleCalendarInsertEventOptions) ([]byte, error) {
 
 	r, err := g.refreshToken(googleOptions)
@@ -339,6 +365,76 @@ func (g *Google) CustomCalendarInsertEvent(googleOptions GoogleOptions, calendar
 
 func (g *Google) CalendarInsertEvent(calendarOptions GoogleCalendarOptions, calendarInsertEventOptions GoogleCalendarInsertEventOptions) ([]byte, error) {
 	return g.CustomCalendarInsertEvent(g.options, calendarOptions, calendarInsertEventOptions)
+}
+
+// https://developers.google.com/calendar/api/v3/reference/events/delete
+
+func (g *Google) calendarDeleteEvent(token string, calendarOptions GoogleCalendarOptions, calendarDeleteEventOptions GoogleCalendarDeleteEventOptions) ([]byte, error) {
+
+	params := make(url.Values)
+	params.Add("access_token", token)
+	if !utils.IsEmpty(calendarDeleteEventOptions.SendUpdates) {
+		params.Add("sendUpdates", calendarDeleteEventOptions.SendUpdates)
+	}
+	u, err := url.Parse(googleCalendarURL)
+	if err != nil {
+		return nil, err
+	}
+
+	u.Path = path.Join(u.Path, fmt.Sprintf(googleCalendarDeleteEvent, calendarOptions.ID, calendarDeleteEventOptions.ID))
+	u.RawQuery = params.Encode()
+
+	return utils.HttpDeleteRawWithHeaders(g.client, u.String(), nil, nil)
+}
+
+func (g *Google) CustomCalendarDeleteEvent(googleOptions GoogleOptions, calendarOptions GoogleCalendarOptions, calendarDeleteEventOptions GoogleCalendarDeleteEventOptions) ([]byte, error) {
+
+	r, err := g.refreshToken(googleOptions)
+	if err != nil {
+		return nil, err
+	}
+	g.logger.Debug("Access token => %s", r.AccessToken)
+
+	return g.calendarDeleteEvent(r.AccessToken, calendarOptions, calendarDeleteEventOptions)
+}
+
+func (g *Google) CalendarDeleteEvent(calendarOptions GoogleCalendarOptions, calendarDeleteEventOptions GoogleCalendarDeleteEventOptions) ([]byte, error) {
+	return g.CustomCalendarDeleteEvent(g.options, calendarOptions, calendarDeleteEventOptions)
+}
+
+func (g *Google) CustomCalendarDeleteEvents(googleOptions GoogleOptions, calendarOptions GoogleCalendarOptions, calendarGetEventsOptions GoogleCalendarGetEventsOptions) ([]byte, error) {
+
+	r, err := g.refreshToken(googleOptions)
+	if err != nil {
+		return nil, err
+	}
+	g.logger.Debug("Access token => %s", r.AccessToken)
+
+	data, err := g.calendarGetEvents(r.AccessToken, calendarOptions, calendarGetEventsOptions)
+	if err != nil {
+		return data, err
+	}
+
+	g.logger.Debug(string(data))
+
+	var events GoogleCalendarEvents
+	err = json.Unmarshal(data, &events)
+	if err != nil {
+		return data, err
+	}
+
+	for _, e := range events.Items {
+
+		data, err = g.calendarDeleteEvent(r.AccessToken, calendarOptions, GoogleCalendarDeleteEventOptions{ID: e.ID})
+		if err != nil {
+			return data, err
+		}
+	}
+	return nil, nil
+}
+
+func (g *Google) CalendarDeleteEvents(calendarOptions GoogleCalendarOptions, calendarGetEventsOptions GoogleCalendarGetEventsOptions) ([]byte, error) {
+	return g.CustomCalendarDeleteEvents(g.options, calendarOptions, calendarGetEventsOptions)
 }
 
 func NewGoogle(options GoogleOptions, logger common.Logger) *Google {

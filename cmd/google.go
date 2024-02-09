@@ -19,12 +19,12 @@ var googleCalendarOptions = vendors.GoogleCalendarOptions{
 }
 
 var googleCalendarGetEventsOptions = vendors.GoogleCalendarGetEventsOptions{
-	TimeMin:            envGet("GOOGLE_CALENDAR_TIME_MIN", "").(string),
-	TimeMax:            envGet("GOOGLE_CALENDAR_TIME_MAX", "").(string),
-	AlwaysIncludeEmail: envGet("GOOGLE_CALENDAR_ALWAYS_INCLUDE_EMAIL", true).(bool),
-	OrderBy:            envGet("GOOGLE_CALENDAR_ORDER_BY", "").(string),
-	Q:                  envGet("GOOGLE_CALENDAR_Q", "").(string),
-	SingleEvents:       envGet("GOOGLE_CALENDAR_SINGLE_EVENTS", false).(bool),
+	TimeMin:      envGet("GOOGLE_CALENDAR_TIME_MIN", "").(string),
+	TimeMax:      envGet("GOOGLE_CALENDAR_TIME_MAX", "").(string),
+	TimeZone:     envGet("GOOGLE_CALENDAR_TIMEZONE", "").(string),
+	OrderBy:      envGet("GOOGLE_CALENDAR_ORDER_BY", "").(string),
+	Q:            envGet("GOOGLE_CALENDAR_Q", "").(string),
+	SingleEvents: envGet("GOOGLE_CALENDAR_SINGLE_EVENTS", false).(bool),
 }
 
 var googleCalendarInsertEventOptions = vendors.GoogleCalendarInsertEventOptions{
@@ -39,6 +39,10 @@ var googleCalendarInsertEventOptions = vendors.GoogleCalendarInsertEventOptions{
 	SourceTitle:         envGet("GOOGLE_CALENDAR_EVENT_SOURCE_TITLE", "").(string),
 	SourceURL:           envGet("GOOGLE_CALENDAR_EVENT_SOURCE_URL", "").(string),
 	ConferenceID:        envGet("GOOGLE_CALENDAR_EVENT_CONFERENCE_ID", "").(string),
+}
+
+var googleCalendarDeleteEventOptions = vendors.GoogleCalendarDeleteEventOptions{
+	ID: envGet("GOOGLE_CALENDAR_EVENT_ID", "").(string),
 }
 
 type GoogleCalendarInsertEventOptions struct {
@@ -102,9 +106,9 @@ func NewGoogleCommand() *cobra.Command {
 	flags = calendarGetEventsCmd.PersistentFlags()
 	flags.StringVar(&googleCalendarGetEventsOptions.TimeMin, "google-calendar-time-min", googleCalendarGetEventsOptions.TimeMin, "Google calendar time min")
 	flags.StringVar(&googleCalendarGetEventsOptions.TimeMax, "google-calendar-time-max", googleCalendarGetEventsOptions.TimeMax, "Google calendar time max")
+	flags.StringVar(&googleCalendarGetEventsOptions.TimeZone, "google-calendar-timezone", googleCalendarGetEventsOptions.TimeZone, "Google calendar timezone")
 	flags.StringVar(&googleCalendarGetEventsOptions.OrderBy, "google-calendar-order-by", googleCalendarGetEventsOptions.OrderBy, "Google calendar order by")
 	flags.StringVar(&googleCalendarGetEventsOptions.Q, "google-calendar-q", googleCalendarGetEventsOptions.Q, "Google calendar q")
-	flags.BoolVar(&googleCalendarGetEventsOptions.AlwaysIncludeEmail, "google-calendar-always-include-email", googleCalendarGetEventsOptions.AlwaysIncludeEmail, "Google calendar always include email")
 	flags.BoolVar(&googleCalendarGetEventsOptions.SingleEvents, "google-calendar-single-events", googleCalendarGetEventsOptions.SingleEvents, "Google calendar single events")
 	calendarCmd.AddCommand(calendarGetEventsCmd)
 
@@ -137,6 +141,51 @@ func NewGoogleCommand() *cobra.Command {
 	flags.StringVar(&googleCalendarInsertEventOptions.SourceURL, "google-calendar-event-source-url", googleCalendarInsertEventOptions.SourceURL, "Google calendar event source URL")
 	flags.StringVar(&googleCalendarInsertEventOptions.ConferenceID, "google-calendar-event-conference-id", googleCalendarInsertEventOptions.ConferenceID, "Google calendar conference ID")
 	calendarCmd.AddCommand(calendarInsertEventCmd)
+
+	calendarDeleteEventCmd := &cobra.Command{
+		Use:   "delete-event",
+		Short: "Calendar delete event",
+		Run: func(cmd *cobra.Command, args []string) {
+
+			stdout.Debug("Google callendar inserting event...")
+			common.Debug("Google", googleCalendarOptions, stdout)
+			common.Debug("Google", googleCalendarDeleteEventOptions, stdout)
+
+			bytes, err := googleNew(stdout).CalendarDeleteEvent(googleCalendarOptions, googleCalendarDeleteEventOptions)
+			if err != nil {
+				stdout.Error("CalendarDeleteEvent error: %s", err)
+			}
+			common.OutputJson(googleOutput, "Google", []interface{}{googleOptions, googleCalendarOptions, googleCalendarDeleteEventOptions}, bytes, stdout)
+		},
+	}
+	flags = calendarDeleteEventCmd.PersistentFlags()
+	flags.StringVar(&googleCalendarDeleteEventOptions.ID, "google-calendar-event-id", googleCalendarDeleteEventOptions.ID, "Google calendar event ID")
+	calendarCmd.AddCommand(calendarDeleteEventCmd)
+
+	calendarDeleteEventsCmd := &cobra.Command{
+		Use:   "delete-events",
+		Short: "Calendar delete evenst",
+		Run: func(cmd *cobra.Command, args []string) {
+
+			stdout.Debug("Google callendar deleting events...")
+			common.Debug("Google", googleCalendarOptions, stdout)
+			common.Debug("Google", googleCalendarGetEventsOptions, stdout)
+
+			bytes, err := googleNew(stdout).CalendarDeleteEvents(googleCalendarOptions, googleCalendarGetEventsOptions)
+			if err != nil {
+				stdout.Error("CalendarDeleteEvent error: %s", err)
+			}
+			common.OutputJson(googleOutput, "Google", []interface{}{googleOptions, googleCalendarOptions, googleCalendarGetEventsOptions}, bytes, stdout)
+		},
+	}
+	flags = calendarDeleteEventsCmd.PersistentFlags()
+	flags.StringVar(&googleCalendarGetEventsOptions.TimeMin, "google-calendar-time-min", googleCalendarGetEventsOptions.TimeMin, "Google calendar time min")
+	flags.StringVar(&googleCalendarGetEventsOptions.TimeMax, "google-calendar-time-max", googleCalendarGetEventsOptions.TimeMax, "Google calendar time max")
+	flags.StringVar(&googleCalendarGetEventsOptions.TimeZone, "google-calendar-timezone", googleCalendarGetEventsOptions.TimeZone, "Google calendar timezone")
+	flags.StringVar(&googleCalendarGetEventsOptions.OrderBy, "google-calendar-order-by", googleCalendarGetEventsOptions.OrderBy, "Google calendar order by")
+	flags.StringVar(&googleCalendarGetEventsOptions.Q, "google-calendar-q", googleCalendarGetEventsOptions.Q, "Google calendar q")
+	flags.BoolVar(&googleCalendarGetEventsOptions.SingleEvents, "google-calendar-single-events", googleCalendarGetEventsOptions.SingleEvents, "Google calendar single events")
+	calendarCmd.AddCommand(calendarDeleteEventsCmd)
 
 	return &googleCmd
 }
