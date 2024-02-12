@@ -65,6 +65,7 @@ func Execute() {
 	rootCmd.AddCommand(NewZabbixCommand())
 	rootCmd.AddCommand(NewVCenterCommand())
 	rootCmd.AddCommand(NewPagerDutyCommand())
+	rootCmd.AddCommand(NewAWSCommand())
 
 	rootCmd.AddCommand(NewTemplateCommand())
 	rootCmd.AddCommand(NewDateCommand())
