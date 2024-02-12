@@ -19,15 +19,12 @@ var jiraOptions = vendors.JiraOptions{
 	AccessToken: envGet("JIRA_ACCESS_TOKEN", "").(string),
 }
 
-var jiraIssueCreateOptions = vendors.JiraCreateIssueOptions{
-	ProjectKey: envGet("JIRA_ISSUE_PROJECT_KEY", "").(string),
-	Type:       envGet("JIRA_ISSUE_TYPE", "").(string),
-	Priority:   envGet("JIRA_ISSUE_PRIORITY", "").(string),
-	Assignee:   envGet("JIRA_ISSUE_ASSIGNEE", "").(string),
-	Reporter:   envGet("JIRA_ISSUE_REPORTER", "").(string),
-}
-
-var jiraIssueOptions = vendors.JiraIssueOptions{
+var JiraIssueOptions = vendors.JiraIssueOptions{
+	ProjectKey:   envGet("JIRA_ISSUE_PROJECT_KEY", "").(string),
+	Type:         envGet("JIRA_ISSUE_TYPE", "").(string),
+	Priority:     envGet("JIRA_ISSUE_PRIORITY", "").(string),
+	Assignee:     envGet("JIRA_ISSUE_ASSIGNEE", "").(string),
+	Reporter:     envGet("JIRA_ISSUE_REPORTER", "").(string),
 	IdOrKey:      envGet("JIRA_ISSUE_ID_OR_KEY", "").(string),
 	Summary:      envGet("JIRA_ISSUE_SUMMARY", "").(string),
 	Description:  envGet("JIRA_ISSUE_DESCRIPTION", "").(string),
@@ -89,11 +86,11 @@ func NewJiraCommand() *cobra.Command {
 		Short: "Issue methods",
 	}
 	flags = issueCmd.PersistentFlags()
-	flags.StringVar(&jiraIssueOptions.IdOrKey, "jira-issue-id-or-key", jiraIssueOptions.IdOrKey, "Jira issue ID or key")
-	flags.StringVar(&jiraIssueOptions.Summary, "jira-issue-summary", jiraIssueOptions.Summary, "Jira issue summary")
-	flags.StringVar(&jiraIssueOptions.Description, "jira-issue-description", jiraIssueOptions.Description, "Jira issue description")
-	flags.StringVar(&jiraIssueOptions.CustomFields, "jira-issue-custom-fields", jiraIssueOptions.CustomFields, "Jira issue custom fields file")
-	flags.StringSliceVar(&jiraIssueOptions.Labels, "jira-issue-labels", jiraIssueOptions.Labels, "Jira issue labels")
+	flags.StringVar(&JiraIssueOptions.IdOrKey, "jira-issue-id-or-key", JiraIssueOptions.IdOrKey, "Jira issue ID or key")
+	flags.StringVar(&JiraIssueOptions.Summary, "jira-issue-summary", JiraIssueOptions.Summary, "Jira issue summary")
+	flags.StringVar(&JiraIssueOptions.Description, "jira-issue-description", JiraIssueOptions.Description, "Jira issue description")
+	flags.StringVar(&JiraIssueOptions.CustomFields, "jira-issue-custom-fields", JiraIssueOptions.CustomFields, "Jira issue custom fields file")
+	flags.StringSliceVar(&JiraIssueOptions.Labels, "jira-issue-labels", JiraIssueOptions.Labels, "Jira issue labels")
 	jiraCmd.AddCommand(issueCmd)
 
 	// tools jira issue create --jira-params --create-issue-params
@@ -103,29 +100,29 @@ func NewJiraCommand() *cobra.Command {
 		Run: func(cmd *cobra.Command, args []string) {
 
 			stdout.Debug("Jira creating issue...")
-			common.Debug("Jira", jiraIssueOptions, stdout)
-			common.Debug("Jira", jiraIssueCreateOptions, stdout)
+			common.Debug("Jira", JiraIssueOptions, stdout)
+			common.Debug("Jira", JiraIssueOptions, stdout)
 
-			descriptionBytes, err := utils.Content(jiraIssueOptions.Description)
+			descriptionBytes, err := utils.Content(JiraIssueOptions.Description)
 			if err != nil {
 				stdout.Panic(err)
 			}
-			jiraIssueOptions.Description = string(descriptionBytes)
+			JiraIssueOptions.Description = string(descriptionBytes)
 
-			bytes, err := jiraNew(stdout).CreateIssue(jiraIssueOptions, jiraIssueCreateOptions)
+			bytes, err := jiraNew(stdout).CreateIssue(JiraIssueOptions)
 			if err != nil {
 				stdout.Error(err)
 				return
 			}
-			common.OutputJson(jiraOutput, "Jira", []interface{}{jiraOptions, jiraIssueOptions, jiraIssueCreateOptions}, bytes, stdout)
+			common.OutputJson(jiraOutput, "Jira", []interface{}{jiraOptions, JiraIssueOptions}, bytes, stdout)
 		},
 	}
 	flags = issueCreateCmd.PersistentFlags()
-	flags.StringVar(&jiraIssueCreateOptions.ProjectKey, "jira-issue-project-key", jiraIssueCreateOptions.ProjectKey, "Jira issue project key")
-	flags.StringVar(&jiraIssueCreateOptions.Type, "jira-issue-type", jiraIssueCreateOptions.Type, "Jira issue type")
-	flags.StringVar(&jiraIssueCreateOptions.Priority, "jira-issue-priority", jiraIssueCreateOptions.Priority, "Jira issue priority")
-	flags.StringVar(&jiraIssueCreateOptions.Assignee, "jira-issue-assignee", jiraIssueCreateOptions.Assignee, "Jira issue assignee")
-	flags.StringVar(&jiraIssueCreateOptions.Reporter, "jira-issue-reporter", jiraIssueCreateOptions.Reporter, "Jira issue reporter")
+	flags.StringVar(&JiraIssueOptions.ProjectKey, "jira-issue-project-key", JiraIssueOptions.ProjectKey, "Jira issue project key")
+	flags.StringVar(&JiraIssueOptions.Type, "jira-issue-type", JiraIssueOptions.Type, "Jira issue type")
+	flags.StringVar(&JiraIssueOptions.Priority, "jira-issue-priority", JiraIssueOptions.Priority, "Jira issue priority")
+	flags.StringVar(&JiraIssueOptions.Assignee, "jira-issue-assignee", JiraIssueOptions.Assignee, "Jira issue assignee")
+	flags.StringVar(&JiraIssueOptions.Reporter, "jira-issue-reporter", JiraIssueOptions.Reporter, "Jira issue reporter")
 	issueCmd.AddCommand(issueCreateCmd)
 
 	// tools jira issue add-comment --jira-params --issue-params --add-comment-params
@@ -135,7 +132,7 @@ func NewJiraCommand() *cobra.Command {
 		Run: func(cmd *cobra.Command, args []string) {
 
 			stdout.Debug("Jira issue adding comment...")
-			common.Debug("Jira", jiraIssueOptions, stdout)
+			common.Debug("Jira", JiraIssueOptions, stdout)
 			common.Debug("Jira", jiraIssueAddCommentOptions, stdout)
 
 			bodyBytes, err := utils.Content(jiraIssueAddCommentOptions.Body)
@@ -144,12 +141,12 @@ func NewJiraCommand() *cobra.Command {
 			}
 			jiraIssueAddCommentOptions.Body = string(bodyBytes)
 
-			bytes, err := jiraNew(stdout).IssueAddComment(jiraIssueOptions, jiraIssueAddCommentOptions)
+			bytes, err := jiraNew(stdout).IssueAddComment(JiraIssueOptions, jiraIssueAddCommentOptions)
 			if err != nil {
 				stdout.Error(err)
 				return
 			}
-			common.OutputJson(jiraOutput, "Jira", []interface{}{jiraOptions, jiraIssueOptions, jiraIssueAddCommentOptions}, bytes, stdout)
+			common.OutputJson(jiraOutput, "Jira", []interface{}{jiraOptions, JiraIssueOptions, jiraIssueAddCommentOptions}, bytes, stdout)
 		},
 	}
 	flags = issueAddCommentCmd.PersistentFlags()
@@ -163,7 +160,7 @@ func NewJiraCommand() *cobra.Command {
 		Run: func(cmd *cobra.Command, args []string) {
 
 			stdout.Debug("Jira issue adding attachment...")
-			common.Debug("Jira", jiraIssueOptions, stdout)
+			common.Debug("Jira", JiraIssueOptions, stdout)
 			common.Debug("Jira", jiraIssueAddAttachmentOptions, stdout)
 
 			if utils.IsEmpty(jiraIssueAddAttachmentOptions.Name) && utils.FileExists(jiraIssueAddAttachmentOptions.File) {
@@ -176,12 +173,12 @@ func NewJiraCommand() *cobra.Command {
 			}
 			jiraIssueAddAttachmentOptions.File = string(fileBytes)
 
-			bytes, err := jiraNew(stdout).AddIssueAttachment(jiraIssueOptions, jiraIssueAddAttachmentOptions)
+			bytes, err := jiraNew(stdout).AddIssueAttachment(JiraIssueOptions, jiraIssueAddAttachmentOptions)
 			if err != nil {
 				stdout.Error(err)
 				return
 			}
-			common.OutputJson(jiraOutput, "Jira", []interface{}{jiraOptions, jiraIssueOptions, jiraIssueAddAttachmentOptions}, bytes, stdout)
+			common.OutputJson(jiraOutput, "Jira", []interface{}{jiraOptions, JiraIssueOptions, jiraIssueAddAttachmentOptions}, bytes, stdout)
 		},
 	}
 	flags = issueAddAttachmentCmd.PersistentFlags()
@@ -196,20 +193,20 @@ func NewJiraCommand() *cobra.Command {
 		Run: func(cmd *cobra.Command, args []string) {
 
 			stdout.Debug("Jira issue updating...")
-			common.Debug("Jira", jiraIssueOptions, stdout)
+			common.Debug("Jira", JiraIssueOptions, stdout)
 
-			descriptionBytes, err := utils.Content(jiraIssueOptions.Description)
+			descriptionBytes, err := utils.Content(JiraIssueOptions.Description)
 			if err != nil {
 				stdout.Panic(err)
 			}
-			jiraIssueOptions.Description = string(descriptionBytes)
+			JiraIssueOptions.Description = string(descriptionBytes)
 
-			bytes, err := jiraNew(stdout).UpdateIssue(jiraIssueOptions)
+			bytes, err := jiraNew(stdout).UpdateIssue(JiraIssueOptions)
 			if err != nil {
 				stdout.Error(err)
 				return
 			}
-			common.OutputJson(jiraOutput, "Jira", []interface{}{jiraOptions, jiraIssueOptions}, bytes, stdout)
+			common.OutputJson(jiraOutput, "Jira", []interface{}{jiraOptions, JiraIssueOptions}, bytes, stdout)
 		},
 	}
 	issueCmd.AddCommand(issueUpdateCmd)
@@ -220,24 +217,24 @@ func NewJiraCommand() *cobra.Command {
 		Short: "Transitions change",
 		Run: func(cmd *cobra.Command, args []string) {
 			stdout.Debug("Jira issue updating...")
-			common.Debug("Jira", jiraIssueOptions, stdout)
+			common.Debug("Jira", JiraIssueOptions, stdout)
 
-			statusBytes, err := utils.Content(jiraIssueOptions.Status)
+			statusBytes, err := utils.Content(JiraIssueOptions.Status)
 			if err != nil {
 				stdout.Panic(err)
 			}
-			jiraIssueOptions.Status = string(statusBytes)
+			JiraIssueOptions.Status = string(statusBytes)
 
-			bytes, err := jiraNew(stdout).ChangeIssueTransitions(jiraIssueOptions)
+			bytes, err := jiraNew(stdout).ChangeIssueTransitions(JiraIssueOptions)
 			if err != nil {
 				stdout.Error(err)
 				return
 			}
-			common.OutputJson(jiraOutput, "Jira", []interface{}{jiraOptions, jiraIssueOptions}, bytes, stdout)
+			common.OutputJson(jiraOutput, "Jira", []interface{}{jiraOptions, JiraIssueOptions}, bytes, stdout)
 		},
 	}
 	flags = issueChangeTransitionsCmd.PersistentFlags()
-	flags.StringVar(&jiraIssueOptions.Status, "jira-issue-status", jiraIssueOptions.Status, "Jira issue status")
+	flags.StringVar(&JiraIssueOptions.Status, "jira-issue-status", JiraIssueOptions.Status, "Jira issue status")
 	issueCmd.AddCommand(issueChangeTransitionsCmd)
 
 	issueSearchCmd := &cobra.Command{
@@ -245,7 +242,7 @@ func NewJiraCommand() *cobra.Command {
 		Short: "Search issue",
 		Run: func(cmd *cobra.Command, args []string) {
 			stdout.Debug("Jira issue searching...")
-			common.Debug("Jira", jiraIssueOptions, stdout)
+			common.Debug("Jira", JiraIssueOptions, stdout)
 			common.Debug("Jira", jiraIssueSearchOptions, stdout)
 
 			searchBytes, err := utils.Content(jiraIssueSearchOptions.SearchPattern)
