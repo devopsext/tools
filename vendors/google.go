@@ -222,7 +222,7 @@ func (g *Google) calendarGetEvents(token string, calendarOptions GoogleCalendarO
 	if !utils.IsEmpty(calendarGetEventsOptions.TimeMax) {
 		params.Add("timeMax", calendarGetEventsOptions.TimeMax)
 	}
-	if !utils.IsEmpty(calendarGetEventsOptions.TimeMax) {
+	if !utils.IsEmpty(calendarGetEventsOptions.TimeZone) {
 		params.Add("timeZone", calendarGetEventsOptions.TimeZone)
 	}
 

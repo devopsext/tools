@@ -371,9 +371,8 @@ func (tpl *Template) Join(sep string, a []string) (string, error) {
 	return strings.Join(a, sep), nil
 }
 
-func (tpl *Template) IsEmpty(s string) (bool, error) {
-	s1 := strings.TrimSpace(s)
-	return len(s1) == 0, nil
+func (tpl *Template) IsEmpty(v interface{}) (bool, error) {
+	return utils.IsEmpty(v), nil
 }
 
 func (tpl *Template) Env(key string) (string, error) {
