@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
 	"strings"
@@ -166,16 +167,28 @@ func TruncateString(str string, length int) string {
 	return truncated
 }
 
-func ReadAndMarshal(path string) (map[string]interface{}, error) {
+func ReadAndMarshal(input string) (map[string]interface{}, error) {
+
 	var result map[string]interface{}
 
-	dat, err := os.ReadFile(path)
+	dat, err := os.ReadFile(input)
 	if err != nil {
-		return nil, err
-	}
-	err = json.Unmarshal(dat, &result)
-	if err != nil {
-		return nil, err
+		if errors.Is(err, os.ErrNotExist) {
+
+			err = json.Unmarshal([]byte(input), &result)
+
+			if err != nil {
+				return nil, err
+			}
+		} else {
+			return nil, err
+		}
+	} else {
+
+		err = json.Unmarshal(dat, &result)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	return result, nil
