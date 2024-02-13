@@ -15,16 +15,26 @@ import (
 	"github.com/devopsext/utils"
 )
 
-type JiraCreateIssueOptions struct {
-	ProjectKey string
-	Type       string
-	Priority   string
-	Assignee   string
-	Reporter   string
+type Jira struct {
+	client  *http.Client
+	options JiraOptions
+}
+type JiraOptions struct {
+	URL         string
+	Timeout     int
+	Insecure    bool
+	User        string
+	Password    string
+	AccessToken string
 }
 
 type JiraIssueOptions struct {
 	IdOrKey      string
+	ProjectKey   string
+	Type         string
+	Priority     string
+	Assignee     string
+	Reporter     string
 	Summary      string
 	Description  string
 	CustomFields string
@@ -51,23 +61,35 @@ type JiraSearchAssetsOptions struct {
 	ResultPerPage int
 }
 
-type JiraOptions struct {
-	URL         string
-	Timeout     int
-	Insecure    bool
-	User        string
-	Password    string
-	AccessToken string
+type JiraIssueCreate struct {
+	Fields *JiraIssueFields `json:"fields"`
 }
 
-type JiraIssueProject struct {
-	Key string `json:"key"`
+type JiraIssueUpdate struct {
+	Fields *JiraIssueFields `json:"fields"`
+}
+type JiraIssueFields struct {
+	Project     *JiraIssueProject  `json:"project,omitempty"`
+	IssueType   *JiraIssueType     `json:"issuetype,omitempty"`
+	Summary     string             `json:"summary,omitempty"`
+	Description string             `json:"description,omitempty"`
+	Labels      []string           `json:"labels,omitempty"`
+	Priority    *JiraIssuePriority `json:"priority,omitempty"`
+	Assignee    *JiraIssueAssignee `json:"assignee,omitempty"`
+	Reporter    *JiraIssueReporter `json:"reporter,omitempty"`
+}
+
+type JiraIssueAddComment struct {
+	Body string `json:"body"`
 }
 
 type JiraIssueType struct {
 	Name string `json:"name"`
 }
 
+type JiraIssueProject struct {
+	Key string `json:"key"`
+}
 type JiraIssuePriority struct {
 	Name string `json:"name"`
 }
@@ -86,34 +108,6 @@ type JiraTransition struct {
 
 type JiraIssueTransition struct {
 	Transition *JiraTransition `json:"transition"`
-}
-
-type JiraIssueFields struct {
-	Project     *JiraIssueProject  `json:"project,omitempty"`
-	IssueType   *JiraIssueType     `json:"issuetype,omitempty"`
-	Summary     string             `json:"summary,omitempty"`
-	Description string             `json:"description,omitempty"`
-	Labels      []string           `json:"labels,omitempty"`
-	Priority    *JiraIssuePriority `json:"priority,omitempty"`
-	Assignee    *JiraIssueAssignee `json:"assignee,omitempty"`
-	Reporter    *JiraIssueReporter `json:"reporter,omitempty"`
-}
-
-type JiraIssueCreate struct {
-	Fields *JiraIssueFields `json:"fields"`
-}
-
-type JiraIssueUpdate struct {
-	Fields *JiraIssueFields `json:"fields"`
-}
-
-type JiraIssueAddComment struct {
-	Body string `json:"body"`
-}
-
-type Jira struct {
-	client  *http.Client
-	options JiraOptions
 }
 
 type OutputCode struct {
@@ -165,7 +159,7 @@ func (j *Jira) getAuth(opts JiraOptions) string {
 	return auth
 }
 
-func (j *Jira) CustomCreateIssue(jiraOptions JiraOptions, issueOptions JiraIssueOptions, createOptions JiraCreateIssueOptions) ([]byte, error) {
+func (j *Jira) CustomCreateIssue(jiraOptions JiraOptions, createOptions JiraIssueOptions) ([]byte, error) {
 
 	issue := &JiraIssueCreate{
 		Fields: &JiraIssueFields{
@@ -175,9 +169,8 @@ func (j *Jira) CustomCreateIssue(jiraOptions JiraOptions, issueOptions JiraIssue
 			IssueType: &JiraIssueType{
 				Name: createOptions.Type,
 			},
-			Summary:     issueOptions.Summary,
-			Description: issueOptions.Description,
-			Labels:      issueOptions.Labels,
+			Summary:     createOptions.Summary,
+			Description: createOptions.Description,
 		},
 	}
 
@@ -201,9 +194,9 @@ func (j *Jira) CustomCreateIssue(jiraOptions JiraOptions, issueOptions JiraIssue
 
 	cf := make(map[string]interface{})
 
-	if !utils.IsEmpty(issueOptions.CustomFields) {
+	if !utils.IsEmpty(createOptions.CustomFields) {
 		var err error
-		cf, err = common.ReadAndMarshal(issueOptions.CustomFields)
+		cf, err = common.ReadAndMarshal(createOptions.CustomFields)
 		if err != nil {
 			return nil, err
 		}
@@ -222,8 +215,8 @@ func (j *Jira) CustomCreateIssue(jiraOptions JiraOptions, issueOptions JiraIssue
 	return utils.HttpPostRaw(j.client, u.String(), "application/json", j.getAuth(jiraOptions), req)
 }
 
-func (j *Jira) CreateIssue(issueOptions JiraIssueOptions, issueCreateOptions JiraCreateIssueOptions) ([]byte, error) {
-	return j.CustomCreateIssue(j.options, issueOptions, issueCreateOptions)
+func (j *Jira) CreateIssue(issueCreateOptions JiraIssueOptions) ([]byte, error) {
+	return j.CustomCreateIssue(j.options, issueCreateOptions)
 }
 
 func (j *Jira) CustomAddIssueComment(jiraOptions JiraOptions, issueOptions JiraIssueOptions, addCommentOptions JiraAddIssueCommentOptions) ([]byte, error) {

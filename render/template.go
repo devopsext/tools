@@ -852,11 +852,48 @@ func (tpl *Template) JiraSearchAssets(params map[string]interface{}) ([]byte, er
 
 func (tpl *Template) JiraCreateIssue(params map[string]interface{}) ([]byte, error) {
 
-	if len(params) == 0 {
-		return nil, fmt.Errorf("JiraSearchAssets err => %s", "no params allowed")
+	url, _ := params["url"].(string)
+	timeout, _ := params["timeout"].(int)
+	if timeout == 0 {
+		timeout = 10
+	}
+	insecure, _ := params["insecure"].(bool)
+	user, _ := params["user"].(string)
+	password, _ := params["password"].(string)
+	token, _ := params["token"].(string)
+
+	key, _ := params["projectKey"].(string)
+	summary, _ := params["summary"].(string)
+	description, _ := params["description"].(string)
+	assignee, _ := params["assignee"].(string)
+	issueType, _ := params["issueType"].(string)
+	customFields, _ := params["customFields"].(string)
+
+	jiraOptions := vendors.JiraOptions{
+		URL:         url,
+		Timeout:     timeout,
+		Insecure:    insecure,
+		User:        user,
+		Password:    password,
+		AccessToken: token,
+	}
+	jiraIssueOptions := vendors.JiraIssueOptions{
+		ProjectKey:   key,
+		Summary:      summary,
+		Description:  description,
+		Type:         issueType,
+		Assignee:     assignee,
+		CustomFields: customFields,
 	}
 
-	return []byte("asdadasdad"), nil
+	jira := vendors.NewJira(jiraOptions)
+
+	response, err := jira.CreateIssue(jiraIssueOptions)
+	if err != nil {
+		return nil, err
+	}
+
+	return response, nil
 }
 
 func (tpl *Template) PagerDutyCreateIncident(params map[string]interface{}) ([]byte, error) {
