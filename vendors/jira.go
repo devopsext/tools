@@ -61,30 +61,6 @@ type JiraSearchAssetsOptions struct {
 	ResultPerPage int
 }
 
-type JiraIssueFieldsDailyCase struct {
-	Fields *JiraIssueDailyCaseFields `json:"fields"`
-}
-type JiraIssueDailyCaseFields struct {
-	Project     *JiraIssueProject  `json:"project"`
-	Severity    *JiraSeverity      `json:"customfield_18119,omitempty"`
-	Summary     string             `json:"summary"`
-	Description string             `json:"description"`
-	IssueType   *JiraIssueType     `json:"issuetype"`
-	Assignee    *JiraIssueAssignee `json:"assignee,omitempty"`
-}
-type JiraIssueDailyCase struct {
-	Project     string
-	Severity    string
-	Summary     string
-	Description string
-	IssueType   string
-	Assignee    string
-}
-
-type JiraSeverity struct {
-	Severity string `json:"value"`
-}
-
 type JiraIssueCreate struct {
 	Fields *JiraIssueFields `json:"fields"`
 }
@@ -241,48 +217,6 @@ func (j *Jira) CustomCreateIssue(jiraOptions JiraOptions, createOptions JiraIssu
 
 func (j *Jira) CreateIssue(issueCreateOptions JiraIssueOptions) ([]byte, error) {
 	return j.CustomCreateIssue(j.options, issueCreateOptions)
-}
-
-// Create Daily case
-func (j *Jira) CustomCreateIssueDailyCase(jiraOptions JiraOptions, issueOptions JiraIssueDailyCase) ([]byte, error) {
-
-	issue := &JiraIssueFieldsDailyCase{
-		Fields: &JiraIssueDailyCaseFields{
-			Project: &JiraIssueProject{
-				Key: issueOptions.Project,
-			},
-			Severity: &JiraSeverity{
-				Severity: issueOptions.Severity,
-			},
-			Summary:     issueOptions.Summary,
-			Description: issueOptions.Description,
-			Assignee: &JiraIssueAssignee{
-				Name: issueOptions.Assignee,
-			},
-
-			IssueType: &JiraIssueType{
-				Name: issueOptions.IssueType,
-			},
-		},
-	}
-
-	cf := make(map[string]interface{})
-
-	req, err := jsonJiraMarshal(&issue, cf)
-	if err != nil {
-		return nil, err
-	}
-
-	u, err := url.Parse(jiraOptions.URL)
-	if err != nil {
-		return nil, err
-	}
-	u.Path = path.Join(u.Path, "/rest/api/2/issue")
-	return utils.HttpPostRaw(j.client, u.String(), "application/json", j.getAuth(jiraOptions), req)
-}
-
-func (j *Jira) CreateIssueDailyCase(issueOptions JiraIssueDailyCase) ([]byte, error) {
-	return j.CustomCreateIssueDailyCase(j.options, issueOptions)
 }
 
 func (j *Jira) CustomAddIssueComment(jiraOptions JiraOptions, issueOptions JiraIssueOptions, addCommentOptions JiraAddIssueCommentOptions) ([]byte, error) {
