@@ -846,7 +846,7 @@ func (tpl *Template) JiraSearchAssets(params map[string]interface{}) ([]byte, er
 	return jira.SearchAssets(assetsOptions)
 }
 
-func (tpl *Template) jiraCreateIssue(params map[string]interface{}) ([]byte, error) {
+func (tpl *Template) JiraCreateIssue(params map[string]interface{}) ([]byte, error) {
 
 	url, _ := params["url"].(string)
 	timeout, _ := params["timeout"].(int)
@@ -1108,7 +1108,7 @@ func (tpl *Template) setTemplateFuncs(funcs map[string]any) {
 	funcs["httpGet"] = tpl.HttpGet
 	funcs["httpPost"] = tpl.HttpPost
 	funcs["jiraSearchAssets"] = tpl.JiraSearchAssets
-	funcs["jiraCreateIssue"] = tpl.jiraCreateIssue
+	funcs["jiraCreateIssue"] = tpl.JiraCreateIssue
 	funcs["pagerDutyCreateIncident"] = tpl.PagerDutyCreateIncident
 	funcs["templateRenderFile"] = tpl.TemplateRenderFile
 	funcs["googleCalendarGetEvents"] = tpl.GoogleCalendarGetEvents
