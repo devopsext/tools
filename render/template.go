@@ -1001,9 +1001,11 @@ func (tpl *Template) GoogleCalendarGetEvents(params map[string]interface{}) ([]b
 	timeZone, _ := params["timeZone"].(string)
 
 	calendarGetEventsOptions := vendors.GoogleCalendarGetEventsOptions{
-		TimeMin:  timeMin,
-		TimeMax:  timeMax,
-		TimeZone: timeZone,
+		TimeMin:      timeMin,
+		TimeMax:      timeMax,
+		TimeZone:     timeZone,
+		SingleEvents: true,
+		OrderBy:      "startTime",
 	}
 
 	return google.CalendarGetEvents(calendarOptions, calendarGetEventsOptions)
