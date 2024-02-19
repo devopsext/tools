@@ -8,7 +8,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var EC2Options = vendors.AwsKeys{
+var EC2Options = vendors.AWSKeys{
 	AccessKey: envGet("AWS_ACCESSKEY", "").(string),
 	SecretKey: envGet("AWS_SECRETKEY", "").(string),
 }
@@ -18,11 +18,11 @@ var EC2Output = common.OutputOptions{
 	Query:  envGet("AWS_EC2_OUTPUT_QUERY", "").(string),
 }
 
-func EC2New(stdout *common.Stdout) *vendors.EC2 {
+func EC2New(stdout *common.Stdout) *vendors.AWSEC2 {
 	common.Debug("EC2", EC2Options, stdout)
 	common.Debug("EC2", EC2Output, stdout)
 
-	ec2, err := vendors.NewEC2(EC2Options)
+	ec2, err := vendors.NewAWSEC2(EC2Options)
 	if ec2 == nil || err != nil {
 		stdout.Panic("unable to generate EC2 object", err)
 	}
@@ -57,7 +57,7 @@ func NewEC2Subcommand() *cobra.Command {
 		Run: func(cmd *cobra.Command, args []string) {
 			stdout.Debug("Getting EC2 instances...")
 
-			instances, err := EC2New(stdout).GetAllEC2Instances()
+			instances, err := EC2New(stdout).GetAllAWSEC2Instances()
 			if err != nil {
 				stdout.Error(err)
 				return
