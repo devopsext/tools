@@ -866,6 +866,7 @@ func (tpl *Template) JiraCreateIssue(params map[string]interface{}) ([]byte, err
 	summary, _ := params["summary"].(string)
 	description, _ := params["description"].(string)
 	assignee, _ := params["assignee"].(string)
+	reporter, _ := params["reporter"].(string)
 	issueType, _ := params["issueType"].(string)
 	customFields, _ := params["customFields"].(string)
 
@@ -883,6 +884,7 @@ func (tpl *Template) JiraCreateIssue(params map[string]interface{}) ([]byte, err
 		Description:  description,
 		Type:         issueType,
 		Assignee:     assignee,
+		Reporter:     reporter,
 		CustomFields: customFields,
 	}
 
