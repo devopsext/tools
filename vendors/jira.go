@@ -114,6 +114,74 @@ type OutputCode struct {
 	Code int `json:"code"`
 }
 
+type JiraCreateObjectOptions struct {
+	Description           string
+	Name                  string
+	Verified              bool
+	ObjectTypeId          int
+	ObjectTypeAttributeId int
+}
+
+type JiraObjectAttributeValue struct {
+	Value string `json:"value"`
+}
+
+type JiraObjectAttribute struct {
+	ObjectTypeAttributeId int                        `json:"objectTypeAttributeId"`
+	ObjectAttributeValues []JiraObjectAttributeValue `json:"objectAttributeValues"`
+}
+
+type JiraObject struct {
+	ObjectTypeId int                   `json:"objectTypeId"`
+	Attributes   []JiraObjectAttribute `json:"attributes"`
+}
+
+func (j *Jira) CreateObject(objectCreateOptions JiraCreateObjectOptions) ([]byte, error) {
+	return j.CustomCreateObject(j.options, objectCreateOptions)
+}
+
+func (j *Jira) CustomCreateObject(jiraOptions JiraOptions, createOptions JiraCreateObjectOptions) ([]byte, error) {
+
+	// object := &JiraObject{
+	// 	ObjectTypeId: createOptions.ObjectTypeId,
+	// 	Attributes: []JiraObjectAttribute{
+	// 		{
+	// 			ObjectTypeAttributeId: createOptions.ObjectTypeAttributeId,
+	// 			ObjectAttributeValues: []JiraObjectAttributeValue{
+	// 				{
+	// 					Value: createOptions.Name,
+	// 				},
+	// 			},
+	// 		},
+	// 	},
+	// }
+	object := &JiraObject{
+		ObjectTypeId: 1838,
+		Attributes: []JiraObjectAttribute{
+			{
+				ObjectTypeAttributeId: 23325,
+				ObjectAttributeValues: []JiraObjectAttributeValue{
+					{
+						Value: "A2",
+					},
+				},
+			},
+		},
+	}
+
+	req, err := json.Marshal(object)
+	if err != nil {
+		return nil, err
+	}
+
+	u, err := url.Parse(jiraOptions.URL)
+	if err != nil {
+		return nil, err
+	}
+	u.Path = path.Join(u.Path, "rest/assets/1.0/object/create?objectSchemaId=48")
+	return utils.HttpPostRaw(j.client, u.String(), "application/json", j.getAuth(jiraOptions), req)
+}
+
 // we need custom json marshal for Jira due to possible using of custom fields
 func jsonJiraMarshal(issue interface{}, cf map[string]interface{}) ([]byte, error) {
 	m, err := common.InterfaceToMap("", issue)
