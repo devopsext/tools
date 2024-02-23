@@ -850,6 +850,60 @@ func (tpl *Template) JiraSearchAssets(params map[string]interface{}) ([]byte, er
 	return jira.SearchAssets(assetsOptions)
 }
 
+func (tpl *Template) JiraCreateObject(params map[string]interface{}) ([]byte, error) {
+
+	url, _ := params["url"].(string)
+	timeout, _ := params["timeout"].(int)
+	if timeout == 0 {
+		timeout = 10
+	}
+	insecure, _ := params["insecure"].(bool)
+	user, _ := params["user"].(string)
+	password, _ := params["password"].(string)
+	token, _ := params["token"].(string)
+
+	objectTypeId, _ := params["objectTypeId"].(int)
+	objectSchemeId, _ := params["objectSchemeId"].(string)
+	repositoryId, _ := params["repositoryId"].(int)
+	nameId, _ := params["nameId"].(int)
+	descriptionId, _ := params["descriptionId"].(int)
+	description, _ := params["description"].(string)
+	name, _ := params["name"].(string)
+	repository, _ := params["repository"].(string)
+	titleId, _ := params["titleId"].(int)
+	title, _ := params["title"].(string)
+
+	jiraOptions := vendors.JiraOptions{
+		URL:         url,
+		Timeout:     timeout,
+		Insecure:    insecure,
+		User:        user,
+		Password:    password,
+		AccessToken: token,
+	}
+	jiraIssueOptions := vendors.JiraCreateObjectOptions{
+		Name:           name,
+		ObjectSchemeId: objectSchemeId,
+		ObjectTypeId:   objectTypeId,
+		RepositoryId:   repositoryId,
+		NameId:         nameId,
+		DescriptionId:  descriptionId,
+		Description:    description,
+		Repository:     repository,
+		TitleId:        titleId,
+		Title:          title,
+	}
+
+	jira := vendors.NewJira(jiraOptions)
+
+	response, err := jira.CreateObject(jiraIssueOptions)
+	if err != nil {
+		return nil, err
+	}
+
+	return response, nil
+}
+
 func (tpl *Template) JiraCreateIssue(params map[string]interface{}) ([]byte, error) {
 
 	url, _ := params["url"].(string)
@@ -1162,6 +1216,7 @@ func (tpl *Template) setTemplateFuncs(funcs map[string]any) {
 	funcs["httpPost"] = tpl.HttpPost
 	funcs["jiraSearchAssets"] = tpl.JiraSearchAssets
 	funcs["jiraCreateIssue"] = tpl.JiraCreateIssue
+	funcs["jiraCreateObject"] = tpl.JiraCreateObject
 	funcs["pagerDutyCreateIncident"] = tpl.PagerDutyCreateIncident
 	funcs["templateRenderFile"] = tpl.TemplateRenderFile
 	funcs["googleCalendarGetEvents"] = tpl.GoogleCalendarGetEvents

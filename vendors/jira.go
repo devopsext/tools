@@ -61,6 +61,19 @@ type JiraSearchAssetsOptions struct {
 	ResultPerPage int
 }
 
+type JiraCreateObjectOptions struct {
+	Description    string
+	Name           string
+	Repository     string
+	DescriptionId  int
+	NameId         int
+	RepositoryId   int
+	ObjectSchemeId string
+	ObjectTypeId   int
+	TitleId        int
+	Title          string
+}
+
 type JiraIssueCreate struct {
 	Fields *JiraIssueFields `json:"fields"`
 }
@@ -114,14 +127,6 @@ type OutputCode struct {
 	Code int `json:"code"`
 }
 
-type JiraCreateObjectOptions struct {
-	Description           string
-	Name                  string
-	Verified              bool
-	ObjectTypeId          int
-	ObjectTypeAttributeId int
-}
-
 type JiraObjectAttributeValue struct {
 	Value string `json:"value"`
 }
@@ -142,27 +147,38 @@ func (j *Jira) CreateObject(objectCreateOptions JiraCreateObjectOptions) ([]byte
 
 func (j *Jira) CustomCreateObject(jiraOptions JiraOptions, createOptions JiraCreateObjectOptions) ([]byte, error) {
 
-	// object := &JiraObject{
-	// 	ObjectTypeId: createOptions.ObjectTypeId,
-	// 	Attributes: []JiraObjectAttribute{
-	// 		{
-	// 			ObjectTypeAttributeId: createOptions.ObjectTypeAttributeId,
-	// 			ObjectAttributeValues: []JiraObjectAttributeValue{
-	// 				{
-	// 					Value: createOptions.Name,
-	// 				},
-	// 			},
-	// 		},
-	// 	},
-	// }
 	object := &JiraObject{
-		ObjectTypeId: 1838,
+		ObjectTypeId: createOptions.ObjectTypeId,
 		Attributes: []JiraObjectAttribute{
 			{
-				ObjectTypeAttributeId: 23325,
+				ObjectTypeAttributeId: createOptions.NameId,
 				ObjectAttributeValues: []JiraObjectAttributeValue{
 					{
-						Value: "A2",
+						Value: createOptions.Name,
+					},
+				},
+			},
+			{
+				ObjectTypeAttributeId: createOptions.DescriptionId,
+				ObjectAttributeValues: []JiraObjectAttributeValue{
+					{
+						Value: createOptions.Description,
+					},
+				},
+			},
+			{
+				ObjectTypeAttributeId: createOptions.RepositoryId,
+				ObjectAttributeValues: []JiraObjectAttributeValue{
+					{
+						Value: createOptions.Repository,
+					},
+				},
+			},
+			{
+				ObjectTypeAttributeId: createOptions.TitleId,
+				ObjectAttributeValues: []JiraObjectAttributeValue{
+					{
+						Value: createOptions.Title,
 					},
 				},
 			},
@@ -178,7 +194,11 @@ func (j *Jira) CustomCreateObject(jiraOptions JiraOptions, createOptions JiraCre
 	if err != nil {
 		return nil, err
 	}
-	u.Path = path.Join(u.Path, "rest/assets/1.0/object/create?objectSchemaId=48")
+
+	params := make(url.Values)
+	params.Add("objectSchemaId", createOptions.ObjectSchemeId)
+	u.Path = path.Join(u.Path, "rest/assets/1.0/object/create")
+	u.RawQuery = params.Encode()
 	return utils.HttpPostRaw(j.client, u.String(), "application/json", j.getAuth(jiraOptions), req)
 }
 
