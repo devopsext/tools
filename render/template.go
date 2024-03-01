@@ -850,7 +850,7 @@ func (tpl *Template) JiraSearchAssets(params map[string]interface{}) ([]byte, er
 	return jira.SearchAssets(assetsOptions)
 }
 
-func (tpl *Template) JiraCreateObject(params map[string]interface{}) ([]byte, error) {
+func (tpl *Template) JiraCreateAsset(params map[string]interface{}) ([]byte, error) {
 
 	url, _ := params["url"].(string)
 	timeout, _ := params["timeout"].(int)
@@ -872,6 +872,8 @@ func (tpl *Template) JiraCreateObject(params map[string]interface{}) ([]byte, er
 	repository, _ := params["repository"].(string)
 	titleId, _ := params["titleId"].(int)
 	title, _ := params["title"].(string)
+	tierId, _ := params["tierId"].(int)
+	tier, _ := params["tier"].(string)
 
 	jiraOptions := vendors.JiraOptions{
 		URL:         url,
@@ -881,7 +883,7 @@ func (tpl *Template) JiraCreateObject(params map[string]interface{}) ([]byte, er
 		Password:    password,
 		AccessToken: token,
 	}
-	jiraIssueOptions := vendors.JiraCreateObjectOptions{
+	jiraIssueOptions := vendors.JiraCreateAssetOptions{
 		Name:           name,
 		ObjectSchemeId: objectSchemeId,
 		ObjectTypeId:   objectTypeId,
@@ -892,11 +894,13 @@ func (tpl *Template) JiraCreateObject(params map[string]interface{}) ([]byte, er
 		Repository:     repository,
 		TitleId:        titleId,
 		Title:          title,
+		TierId:         tierId,
+		Tier:           tier,
 	}
 
 	jira := vendors.NewJira(jiraOptions)
 
-	response, err := jira.CreateObject(jiraIssueOptions)
+	response, err := jira.CreateAsset(jiraIssueOptions)
 	if err != nil {
 		return nil, err
 	}
@@ -1216,7 +1220,7 @@ func (tpl *Template) setTemplateFuncs(funcs map[string]any) {
 	funcs["httpPost"] = tpl.HttpPost
 	funcs["jiraSearchAssets"] = tpl.JiraSearchAssets
 	funcs["jiraCreateIssue"] = tpl.JiraCreateIssue
-	funcs["jiraCreateObject"] = tpl.JiraCreateObject
+	funcs["jiraCreateAsset"] = tpl.JiraCreateAsset
 	funcs["pagerDutyCreateIncident"] = tpl.PagerDutyCreateIncident
 	funcs["templateRenderFile"] = tpl.TemplateRenderFile
 	funcs["googleCalendarGetEvents"] = tpl.GoogleCalendarGetEvents

@@ -61,7 +61,7 @@ type JiraSearchAssetsOptions struct {
 	ResultPerPage int
 }
 
-type JiraCreateObjectOptions struct {
+type JiraCreateAssetOptions struct {
 	Description    string
 	Name           string
 	Repository     string
@@ -72,6 +72,8 @@ type JiraCreateObjectOptions struct {
 	ObjectTypeId   int
 	TitleId        int
 	Title          string
+	TierId         int
+	Tier           string
 }
 
 type JiraIssueCreate struct {
@@ -127,32 +129,32 @@ type OutputCode struct {
 	Code int `json:"code"`
 }
 
-type JiraObjectAttributeValue struct {
+type JiraAssetAttributeValue struct {
 	Value string `json:"value"`
 }
 
-type JiraObjectAttribute struct {
-	ObjectTypeAttributeId int                        `json:"objectTypeAttributeId"`
-	ObjectAttributeValues []JiraObjectAttributeValue `json:"objectAttributeValues"`
+type JiraAssetAttribute struct {
+	ObjectTypeAttributeId int                       `json:"objectTypeAttributeId"`
+	ObjectAttributeValues []JiraAssetAttributeValue `json:"objectAttributeValues"`
 }
 
-type JiraObject struct {
-	ObjectTypeId int                   `json:"objectTypeId"`
-	Attributes   []JiraObjectAttribute `json:"attributes"`
+type JiraAsset struct {
+	ObjectTypeId int                  `json:"objectTypeId"`
+	Attributes   []JiraAssetAttribute `json:"attributes"`
 }
 
-func (j *Jira) CreateObject(objectCreateOptions JiraCreateObjectOptions) ([]byte, error) {
-	return j.CustomCreateObject(j.options, objectCreateOptions)
+func (j *Jira) CreateAsset(objectCreateOptions JiraCreateAssetOptions) ([]byte, error) {
+	return j.CustomCreateAsset(j.options, objectCreateOptions)
 }
 
-func (j *Jira) CustomCreateObject(jiraOptions JiraOptions, createOptions JiraCreateObjectOptions) ([]byte, error) {
+func (j *Jira) CustomCreateAsset(jiraOptions JiraOptions, createOptions JiraCreateAssetOptions) ([]byte, error) {
 
-	object := &JiraObject{
+	object := &JiraAsset{
 		ObjectTypeId: createOptions.ObjectTypeId,
-		Attributes: []JiraObjectAttribute{
+		Attributes: []JiraAssetAttribute{
 			{
 				ObjectTypeAttributeId: createOptions.NameId,
-				ObjectAttributeValues: []JiraObjectAttributeValue{
+				ObjectAttributeValues: []JiraAssetAttributeValue{
 					{
 						Value: createOptions.Name,
 					},
@@ -160,15 +162,23 @@ func (j *Jira) CustomCreateObject(jiraOptions JiraOptions, createOptions JiraCre
 			},
 			{
 				ObjectTypeAttributeId: createOptions.DescriptionId,
-				ObjectAttributeValues: []JiraObjectAttributeValue{
+				ObjectAttributeValues: []JiraAssetAttributeValue{
 					{
 						Value: createOptions.Description,
 					},
 				},
 			},
 			{
+				ObjectTypeAttributeId: createOptions.TierId,
+				ObjectAttributeValues: []JiraAssetAttributeValue{
+					{
+						Value: createOptions.Tier,
+					},
+				},
+			},
+			{
 				ObjectTypeAttributeId: createOptions.RepositoryId,
-				ObjectAttributeValues: []JiraObjectAttributeValue{
+				ObjectAttributeValues: []JiraAssetAttributeValue{
 					{
 						Value: createOptions.Repository,
 					},
@@ -176,7 +186,7 @@ func (j *Jira) CustomCreateObject(jiraOptions JiraOptions, createOptions JiraCre
 			},
 			{
 				ObjectTypeAttributeId: createOptions.TitleId,
-				ObjectAttributeValues: []JiraObjectAttributeValue{
+				ObjectAttributeValues: []JiraAssetAttributeValue{
 					{
 						Value: createOptions.Title,
 					},
