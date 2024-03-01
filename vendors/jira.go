@@ -61,6 +61,21 @@ type JiraSearchAssetsOptions struct {
 	ResultPerPage int
 }
 
+type JiraCreateAssetOptions struct {
+	Description    string
+	Name           string
+	Repository     string
+	DescriptionId  int
+	NameId         int
+	RepositoryId   int
+	ObjectSchemeId string
+	ObjectTypeId   int
+	TitleId        int
+	Title          string
+	TierId         int
+	Tier           string
+}
+
 type JiraIssueCreate struct {
 	Fields *JiraIssueFields `json:"fields"`
 }
@@ -112,6 +127,89 @@ type JiraIssueTransition struct {
 
 type OutputCode struct {
 	Code int `json:"code"`
+}
+
+type JiraAssetAttributeValue struct {
+	Value string `json:"value"`
+}
+
+type JiraAssetAttribute struct {
+	ObjectTypeAttributeId int                       `json:"objectTypeAttributeId"`
+	ObjectAttributeValues []JiraAssetAttributeValue `json:"objectAttributeValues"`
+}
+
+type JiraAsset struct {
+	ObjectTypeId int                  `json:"objectTypeId"`
+	Attributes   []JiraAssetAttribute `json:"attributes"`
+}
+
+func (j *Jira) CreateAsset(objectCreateOptions JiraCreateAssetOptions) ([]byte, error) {
+	return j.CustomCreateAsset(j.options, objectCreateOptions)
+}
+
+func (j *Jira) CustomCreateAsset(jiraOptions JiraOptions, createOptions JiraCreateAssetOptions) ([]byte, error) {
+
+	object := &JiraAsset{
+		ObjectTypeId: createOptions.ObjectTypeId,
+		Attributes: []JiraAssetAttribute{
+			{
+				ObjectTypeAttributeId: createOptions.NameId,
+				ObjectAttributeValues: []JiraAssetAttributeValue{
+					{
+						Value: createOptions.Name,
+					},
+				},
+			},
+			{
+				ObjectTypeAttributeId: createOptions.DescriptionId,
+				ObjectAttributeValues: []JiraAssetAttributeValue{
+					{
+						Value: createOptions.Description,
+					},
+				},
+			},
+			{
+				ObjectTypeAttributeId: createOptions.TierId,
+				ObjectAttributeValues: []JiraAssetAttributeValue{
+					{
+						Value: createOptions.Tier,
+					},
+				},
+			},
+			{
+				ObjectTypeAttributeId: createOptions.RepositoryId,
+				ObjectAttributeValues: []JiraAssetAttributeValue{
+					{
+						Value: createOptions.Repository,
+					},
+				},
+			},
+			{
+				ObjectTypeAttributeId: createOptions.TitleId,
+				ObjectAttributeValues: []JiraAssetAttributeValue{
+					{
+						Value: createOptions.Title,
+					},
+				},
+			},
+		},
+	}
+
+	req, err := json.Marshal(object)
+	if err != nil {
+		return nil, err
+	}
+
+	u, err := url.Parse(jiraOptions.URL)
+	if err != nil {
+		return nil, err
+	}
+
+	params := make(url.Values)
+	params.Add("objectSchemaId", createOptions.ObjectSchemeId)
+	u.Path = path.Join(u.Path, "rest/assets/1.0/object/create")
+	u.RawQuery = params.Encode()
+	return utils.HttpPostRaw(j.client, u.String(), "application/json", j.getAuth(jiraOptions), req)
 }
 
 // we need custom json marshal for Jira due to possible using of custom fields
