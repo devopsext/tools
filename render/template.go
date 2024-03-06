@@ -375,6 +375,10 @@ func (tpl *Template) IsEmpty(v interface{}) (bool, error) {
 	return utils.IsEmpty(v), nil
 }
 
+func (tpl *Template) IsNotEmpty(v interface{}) (bool, error) {
+	return !utils.IsEmpty(v), nil
+}
+
 func (tpl *Template) Env(key string) (string, error) {
 	return utils.EnvGet(key, "").(string), nil
 }
@@ -1194,6 +1198,7 @@ func (tpl *Template) setTemplateFuncs(funcs map[string]any) {
 	funcs["split"] = tpl.Split
 	funcs["join"] = tpl.Join
 	funcs["isEmpty"] = tpl.IsEmpty
+	funcs["isNotEmpty"] = tpl.IsNotEmpty
 	funcs["env"] = tpl.Env
 	funcs["getEnv"] = tpl.Env // deprecated
 	funcs["timeFormat"] = tpl.TimeFormat
