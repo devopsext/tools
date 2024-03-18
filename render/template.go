@@ -1006,6 +1006,25 @@ func (tpl *Template) PagerDutyCreateIncident(params map[string]interface{}) ([]b
 	return pagerDuty.CreateIncident(incidentOptions, createOptions)
 }
 
+func (tpl *Template) TemplateRender(name string, obj interface{}) (string, error) {
+
+	opts := TemplateOptions{
+		Content:     tpl.options.Content,
+		Funcs:       tpl.funcs,
+		FilterFuncs: false,
+	}
+	t, err := NewTextTemplate(opts, tpl.logger)
+	if err != nil {
+		return "", err
+	}
+
+	b, err := t.customRender(name, obj)
+	if err != nil {
+		return "", err
+	}
+	return string(b), nil
+}
+
 func (tpl *Template) TemplateRenderFile(path string, obj interface{}) (string, error) {
 
 	content, err := utils.Content(path)
@@ -1227,6 +1246,7 @@ func (tpl *Template) setTemplateFuncs(funcs map[string]any) {
 	funcs["jiraCreateIssue"] = tpl.JiraCreateIssue
 	funcs["jiraCreateAsset"] = tpl.JiraCreateAsset
 	funcs["pagerDutyCreateIncident"] = tpl.PagerDutyCreateIncident
+	funcs["templateRender"] = tpl.TemplateRender
 	funcs["templateRenderFile"] = tpl.TemplateRenderFile
 	funcs["googleCalendarGetEvents"] = tpl.GoogleCalendarGetEvents
 	funcs["googleCalendarInsertEvent"] = tpl.GoogleCalendarInsertEvent
