@@ -1011,7 +1011,7 @@ func (tpl *Template) TemplateRender(name string, obj interface{}) (string, error
 	opts := TemplateOptions{
 		Content:     tpl.options.Content,
 		Funcs:       tpl.funcs,
-		FilterFuncs: false,
+		FilterFuncs: tpl.options.FilterFuncs,
 	}
 	t, err := NewTextTemplate(opts, tpl.logger)
 	if err != nil {
@@ -1035,7 +1035,7 @@ func (tpl *Template) TemplateRenderFile(path string, obj interface{}) (string, e
 	opts := TemplateOptions{
 		Content:     string(content),
 		Funcs:       tpl.funcs,
-		FilterFuncs: false,
+		FilterFuncs: tpl.options.FilterFuncs,
 	}
 	t, err := NewTextTemplate(opts, tpl.logger)
 	if err != nil {
