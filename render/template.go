@@ -963,7 +963,7 @@ func (tpl *Template) JiraCreateIssue(params map[string]interface{}) ([]byte, err
 func (tpl *Template) PagerDutyCreateIncident(params map[string]interface{}) ([]byte, error) {
 
 	if len(params) == 0 {
-		return nil, fmt.Errorf("PagerDutyEscalate err => %s", "no params allowed")
+		return nil, fmt.Errorf("PagerDutyEscalate err => %s", "no params passed")
 	}
 
 	url, _ := params["url"].(string)
@@ -1005,6 +1005,47 @@ func (tpl *Template) PagerDutyCreateIncident(params map[string]interface{}) ([]b
 
 	return pagerDuty.CreateIncident(incidentOptions, createOptions)
 }
+
+func (tpl *Template) PagerDutySendNoteToIncident(params map[string]interface{}) ([]byte, error) {
+
+	if len(params) == 0 {
+		return nil, fmt.Errorf("PagerDutyEscalate err => %s", "no params passed")
+	}
+
+	url, _ := params["url"].(string)
+	timeout, _ := params["timeout"].(int)
+	if timeout == 0 {
+		timeout = 10
+	}
+	insecure, _ := params["insecure"].(bool)
+	token, _ := params["token"].(string)
+
+	pagerDutyOptions := vendors.PagerDutyOptions{
+		URL:      url,
+		Timeout:  timeout,
+		Insecure: insecure,
+		Token:    token,
+	}
+
+	pagerDuty := vendors.NewPagerDuty(pagerDutyOptions, tpl.logger)
+
+	incidentId, _ := params["incidentid"].(string)
+	noteContent, _ := params["notecontent"].(string)
+
+	noteOptions := vendors.PagerDutyIncidentNoteOptions{
+		IncidentID: 	incidentId,
+		NoteContent:	noteContent,
+	}
+
+	from, _ := params["from"].(string)
+
+	createOptions := vendors.PagerDutyCreateIncidentOptions{
+		From: from,
+	}
+
+	return pagerDuty.CreateIncidentNote(noteOptions, createOptions)
+}
+
 
 func (tpl *Template) TemplateRender(name string, obj interface{}) (string, error) {
 
@@ -1246,6 +1287,7 @@ func (tpl *Template) setTemplateFuncs(funcs map[string]any) {
 	funcs["jiraCreateIssue"] = tpl.JiraCreateIssue
 	funcs["jiraCreateAsset"] = tpl.JiraCreateAsset
 	funcs["pagerDutyCreateIncident"] = tpl.PagerDutyCreateIncident
+	funcs["pagerDutySendNoteToIncident"] = tpl.PagerDutySendNoteToIncident
 	funcs["templateRender"] = tpl.TemplateRender
 	funcs["templateRenderFile"] = tpl.TemplateRenderFile
 	funcs["googleCalendarGetEvents"] = tpl.GoogleCalendarGetEvents
