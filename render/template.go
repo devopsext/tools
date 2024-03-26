@@ -912,6 +912,87 @@ func (tpl *Template) JiraCreateAsset(params map[string]interface{}) ([]byte, err
 	return response, nil
 }
 
+func (tpl *Template) JiraAddComment(params map[string]interface{}) ([]byte, error) {
+
+	url, _ := params["url"].(string)
+	timeout, _ := params["timeout"].(int)
+	if timeout == 0 {
+		timeout = 10
+	}
+	insecure, _ := params["insecure"].(bool)
+	user, _ := params["user"].(string)
+	password, _ := params["password"].(string)
+	token, _ := params["token"].(string)
+	body, _ := params["body"].(string)
+	key, _ := params["key"].(string)
+
+	jiraOptions := vendors.JiraOptions{
+		URL:         url,
+		Timeout:     timeout,
+		Insecure:    insecure,
+		User:        user,
+		Password:    password,
+		AccessToken: token,
+	}
+	jiraCommentOptions := vendors.JiraAddIssueCommentOptions{
+
+		Body: body,
+	}
+	jiraIssueOptions := vendors.JiraIssueOptions{
+		IdOrKey: key,
+	}
+	jira := vendors.NewJira(jiraOptions)
+
+	response, err := jira.IssueAddComment(jiraIssueOptions, jiraCommentOptions)
+	if err != nil {
+		return nil, err
+	}
+
+	return response, nil
+}
+
+func (tpl *Template) JiraUpdateIssue(params map[string]interface{}) ([]byte, error) {
+
+	url, _ := params["url"].(string)
+	timeout, _ := params["timeout"].(int)
+	if timeout == 0 {
+		timeout = 10
+	}
+	insecure, _ := params["insecure"].(bool)
+	user, _ := params["user"].(string)
+	password, _ := params["password"].(string)
+	token, _ := params["token"].(string)
+
+	key, _ := params["key"].(string)
+	summary, _ := params["summary"].(string)
+	description, _ := params["description"].(string)
+	customFields, _ := params["customFields"].(string)
+
+	jiraOptions := vendors.JiraOptions{
+		URL:         url,
+		Timeout:     timeout,
+		Insecure:    insecure,
+		User:        user,
+		Password:    password,
+		AccessToken: token,
+	}
+	jiraIssueOptions := vendors.JiraIssueOptions{
+		IdOrKey:      key,
+		Summary:      summary,
+		Description:  description,
+		CustomFields: customFields,
+	}
+
+	jira := vendors.NewJira(jiraOptions)
+
+	response, err := jira.UpdateIssue(jiraIssueOptions)
+	if err != nil {
+		return nil, err
+	}
+
+	return response, nil
+}
+
 func (tpl *Template) JiraCreateIssue(params map[string]interface{}) ([]byte, error) {
 
 	url, _ := params["url"].(string)
@@ -1286,6 +1367,8 @@ func (tpl *Template) setTemplateFuncs(funcs map[string]any) {
 	funcs["jiraSearchAssets"] = tpl.JiraSearchAssets
 	funcs["jiraCreateIssue"] = tpl.JiraCreateIssue
 	funcs["jiraCreateAsset"] = tpl.JiraCreateAsset
+	funcs["jiraAddComment"] = tpl.JiraAddComment
+	funcs["jiraUpdateIssue"] = tpl.JiraUpdateIssue
 	funcs["pagerDutyCreateIncident"] = tpl.PagerDutyCreateIncident
 	funcs["pagerDutySendNoteToIncident"] = tpl.PagerDutySendNoteToIncident
 	funcs["templateRender"] = tpl.TemplateRender
