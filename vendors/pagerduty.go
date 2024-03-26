@@ -22,6 +22,10 @@ type PagerDutyIncidentOptions struct {
 	ServiceID  string
 	PriorityID string
 }
+type PagerDutyIncidentNoteOptions struct{
+	IncidentID string
+	NoteContent string
+}
 
 type PagerDutyGetIncidentsOptions struct {
 	Key   string
@@ -56,6 +60,14 @@ type PagerDutyIncidentRequest struct {
 	Incident *PagerDutyIncident `json:"incident"`
 }
 
+type PagerDutyIncidentNote struct {
+	Content     string     `json:"content,omitempty"`
+}
+
+type PagerDutyIncidentNoteRequest struct {
+	Note *PagerDutyIncidentNote `json:"note"`
+}
+
 type PagerDutyOptions struct {
 	Timeout  int
 	Insecure bool
@@ -72,6 +84,7 @@ type PagerDuty struct {
 const (
 	pagerDutyContentType   = "application/json"
 	pagerDutyIncidentsPath = "/incidents"
+	pagerDutyIncidentNotesPath = "/notes"
 )
 
 func (pd *PagerDuty) getAuth(options PagerDutyOptions) string {
@@ -138,6 +151,40 @@ func (pd *PagerDuty) CustomCreateIncident(options PagerDutyOptions, incidentOpti
 
 func (pd *PagerDuty) CreateIncident(incidentOptions PagerDutyIncidentOptions, createOptions PagerDutyCreateIncidentOptions) ([]byte, error) {
 	return pd.CustomCreateIncident(pd.options, incidentOptions, createOptions)
+}
+
+func (pd *PagerDuty) CustomCreateIncidentNote(options PagerDutyOptions, noteOptions PagerDutyIncidentNoteOptions, createOptions PagerDutyCreateIncidentOptions) ([]byte, error) {
+
+	u, err := url.Parse(options.URL)
+	if err != nil {
+		return nil, err
+	}
+
+	var params = make(url.Values)
+	if !utils.IsEmpty(createOptions.From) {
+		params.Add("from", createOptions.From)
+	}
+	u.RawQuery = params.Encode()
+	u.Path = path.Join(u.Path, pagerDutyIncidentsPath, noteOptions.IncidentID, pagerDutyIncidentNotesPath)
+
+	incidentNote := &PagerDutyIncidentNote{
+		Content: noteOptions.NoteContent,
+	}
+
+	request := &PagerDutyIncidentNoteRequest{
+		Note: incidentNote,
+	}
+
+	data, err := json.Marshal(request)
+	if err != nil {
+		return nil, err
+	}
+
+	return utils.HttpPostRaw(pd.client, u.String(), pagerDutyContentType, pd.getAuth(options), data)
+}
+
+func (pd *PagerDuty) CreateIncidentNote(noteOptions PagerDutyIncidentNoteOptions, createOptions PagerDutyCreateIncidentOptions) ([]byte, error) {
+	return pd.CustomCreateIncidentNote(pd.options, noteOptions, createOptions)
 }
 
 func (pd *PagerDuty) CustomGetIncidents(options PagerDutyOptions, getOptions PagerDutyGetIncidentsOptions) ([]byte, error) {
