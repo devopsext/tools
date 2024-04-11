@@ -84,26 +84,40 @@ type GrafanaDashboardAnnotations struct {
 	GraphTooltip int           `json:"graphTooltip"`
 }
 
+type GrafanaDashboardTemplating struct {
+	List []interface{} `json:"list"`
+}
+
 type GrafanaDashboard struct {
-	ID            int                         `json:"id"`
-	UID           string                      `json:"uid"`
-	Title         string                      `json:"title"`
-	Tags          []string                    `json:"tags"`
-	Timezone      string                      `json:"timezone"`
-	SchemaVersion int                         `json:"schemaVersion"`
-	Version       int                         `json:"version"`
-	GraphTooltip  int                         `json:"graphTooltip"`
-	Time          GrafanaDashboardTime        `json:"time"`
-	Annotations   GrafanaDashboardAnnotations `json:"annotations"`
-	Panels        []interface{}               `json:"panels"`
+	ID            *int                        `json:"id,omitempty"`
+	UID           string                      `json:"uid,omitempty"`
+	Title         string                      `json:"title,omitempty"`
+	Tags          []string                    `json:"tags,omitempty"`
+	Timezone      string                      `json:"timezone,omitempty"`
+	SchemaVersion int                         `json:"schemaVersion,omitempty"`
+	Version       int                         `json:"version,omitempty"`
+	GraphTooltip  int                         `json:"graphTooltip,omitempty"`
+	Time          GrafanaDashboardTime        `json:"time,omitempty"`
+	Annotations   GrafanaDashboardAnnotations `json:"annotations,omitempty"`
+	Templating    GrafanaDashboardTemplating  `json:"templating,omitempty"`
+	Panels        []interface{}               `json:"panels,omitempty"`
 }
 
 type GrafanaBoard struct {
-	Dashboard GrafanaDashboard `json:"dashboard"`
-	FolderID  int              `json:"folderId"`
-	FolderUID string           `json:"folderUid"`
-	Message   string           `json:"message"`
-	Overwrite bool             `json:"overwrite"`
+	Dashboard GrafanaDashboard `json:"dashboard,omitempty"`
+	FolderID  int              `json:"folderId,omitempty"`
+	FolderUID string           `json:"folderUid,omitempty"`
+	Message   string           `json:"message,omitempty"`
+	Overwrite bool             `json:"overwrite,omitempty"`
+	Meta      DashboardMeta    `json:"meta,omitempty"`
+}
+
+type DashboardMeta struct {
+	IsStarred bool   `json:"isStarred"`
+	Slug      string `json:"slug"`
+	Folder    *int64 `json:"folderId"`
+	FolderUID string `json:"folderUid"`
+	URL       string `json:"url"`
 }
 
 type GrafanaAnnotation struct {
@@ -175,6 +189,58 @@ func (g *Grafana) CustomGetDashboards(grafanaOptions GrafanaOptions) ([]byte, er
 
 func (g *Grafana) GetDashboards() ([]byte, error) {
 	return g.CustomGetDashboards(g.options)
+}
+
+func (g Grafana) CustomCopyDashboard(grafanaOptions GrafanaOptions, grafanaCreateOptions GrafanaCreateDahboardOptions) ([]byte, error) {
+	u, err := url.Parse(grafanaOptions.URL)
+	if err != nil {
+		return nil, err
+	}
+	u.Path = path.Join(u.Path, "/api/dashboards/db")
+
+	copyDashboard := &GrafanaBoard{}
+	if !utils.IsEmpty(grafanaCreateOptions.Cloned.UID) {
+		copyOpts := GrafanaOptions{
+			URL:          grafanaOptions.URL,
+			Timeout:      grafanaOptions.Timeout,
+			Insecure:     grafanaOptions.Insecure,
+			APIKey:       grafanaOptions.APIKey,
+			OrgID:        grafanaOptions.OrgID,
+			DashboardUID: grafanaCreateOptions.Cloned.UID,
+		}
+
+		b, err := g.CustomGetDashboards(copyOpts)
+		if err != nil {
+			return nil, err
+		}
+		copyDashboard = &GrafanaBoard{}
+		err = json.Unmarshal(b, copyDashboard)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	copyDashboard.Dashboard.Title = grafanaCreateOptions.Title
+	copyDashboard.FolderUID = grafanaCreateOptions.FolderUID
+	copyDashboard.Dashboard.Tags = grafanaCreateOptions.Tags
+	copyDashboard.FolderID = 0
+	copyDashboard.Overwrite = false
+	copyDashboard.Meta.Folder = nil
+	copyDashboard.Meta.FolderUID = ""
+	copyDashboard.Dashboard.ID = nil
+	copyDashboard.Dashboard.UID = ""
+
+	b, err := json.Marshal(copyDashboard)
+	if err != nil {
+		return nil, err
+	}
+
+	return utils.HttpPostRaw(g.client, u.String(), "application/json", g.getAuth(grafanaOptions), b)
+
+}
+
+func (g *Grafana) CopyDashboard(grafanaCreateOptions GrafanaCreateDahboardOptions) ([]byte, error) {
+	return g.CustomCopyDashboard(g.options, grafanaCreateOptions)
 }
 
 func (g Grafana) CustomCreateAnnotation(grafanaOptions GrafanaOptions, createAnnotationOptions GrafanaCreateAnnotationOptions) ([]byte, error) {
