@@ -1041,6 +1041,136 @@ func (tpl *Template) JiraCreateIssue(params map[string]interface{}) ([]byte, err
 	return response, nil
 }
 
+func (tpl *Template) GrafanaCreateDashboard(params map[string]interface{}) ([]byte, error) {
+
+	url, _ := params["url"].(string)
+	timeout, _ := params["timeout"].(int)
+	if timeout == 0 {
+		timeout = 15
+	}
+	insecure, _ := params["insecure"].(bool)
+	token, _ := params["token"].(string)
+	orgID, _ := params["orgid"].(string)
+	dUID, _ := params["uid"].(string)
+	dSlug, _ := params["slug"].(string)
+	dTimeZone, _ := params["timezone"].(string)
+
+	title, _ := params["title"].(string)
+	fUID, _ := params["fuid"].(string)
+	tag, _ := params["tags"].(string)
+	tags := []string{}
+	if tag != "" {
+		tags = strings.Split(tag, ",")
+	}
+	from, _ := params["from"].(string)
+	to, _ := params["to"].(string)
+
+	clonedUID, _ := params["cloneduid"].(string)
+
+	panelIDS := params["panelids"].(string)
+	var cpanelIDs []string
+	if panelIDS != "" {
+		cpanelIDs = strings.Split(panelIDS, ",")
+	}
+	titles := params["ptitles"].(string)
+	var ptitles []string
+	if titles != "" {
+		ptitles = strings.Split(titles, ",")
+	}
+
+	grafanaOptions := vendors.GrafanaOptions{
+		URL:               url,
+		Timeout:           timeout,
+		Insecure:          insecure,
+		APIKey:            token,
+		OrgID:             orgID,
+		DashboardUID:      dUID,
+		DashboardSlug:     dSlug,
+		DashboardTimezone: dTimeZone,
+	}
+
+	grafanaCreateDashboardOptions := vendors.GrafanaCreateDahboardOptions{
+		Title:     title,
+		FolderUID: fUID,
+		Tags:      tags,
+		From:      from,
+		To:        to,
+		Cloned: vendors.GrafanaClonedDahboardOptions{
+			UID:         clonedUID,
+			PanelIDs:    cpanelIDs,
+			PanelTitles: ptitles,
+			Count:       3,
+			Width:       7,
+			Height:      7,
+		},
+	}
+
+	grafana := vendors.NewGrafana(grafanaOptions)
+
+	response, err := grafana.CreateDashboard(grafanaCreateDashboardOptions)
+	if err != nil {
+		return nil, err
+	}
+	return response, nil
+}
+
+func (tpl *Template) GrafanaCopyDashboard(params map[string]interface{}) ([]byte, error) {
+
+	url, _ := params["url"].(string)
+	timeout, _ := params["timeout"].(int)
+	if timeout == 0 {
+		timeout = 15
+	}
+	insecure, _ := params["insecure"].(bool)
+	token, _ := params["token"].(string)
+	orgID, _ := params["orgid"].(string)
+	dUID, _ := params["uid"].(string)
+	dSlug, _ := params["slug"].(string)
+	dTimeZone, _ := params["timezone"].(string)
+
+	title, _ := params["title"].(string)
+	fUID, _ := params["fuid"].(string)
+	tag, _ := params["tags"].(string)
+	tags := []string{}
+	if tag != "" {
+		tags = strings.Split(tag, ",")
+	}
+	from, _ := params["from"].(string)
+	to, _ := params["to"].(string)
+
+	clonedUID, _ := params["cloneduid"].(string)
+
+	grafanaOptions := vendors.GrafanaOptions{
+		URL:               url,
+		Timeout:           timeout,
+		Insecure:          insecure,
+		APIKey:            token,
+		OrgID:             orgID,
+		DashboardUID:      dUID,
+		DashboardSlug:     dSlug,
+		DashboardTimezone: dTimeZone,
+	}
+
+	grafanaCreateDashboardOptions := vendors.GrafanaCreateDahboardOptions{
+		Title:     title,
+		FolderUID: fUID,
+		Tags:      tags,
+		From:      from,
+		To:        to,
+		Cloned: vendors.GrafanaClonedDahboardOptions{
+			UID: clonedUID,
+		},
+	}
+
+	grafana := vendors.NewGrafana(grafanaOptions)
+
+	response, err := grafana.CopyDashboard(grafanaCreateDashboardOptions)
+	if err != nil {
+		return nil, err
+	}
+	return response, nil
+}
+
 func (tpl *Template) PagerDutyCreateIncident(params map[string]interface{}) ([]byte, error) {
 
 	if len(params) == 0 {
@@ -1114,8 +1244,8 @@ func (tpl *Template) PagerDutySendNoteToIncident(params map[string]interface{}) 
 	noteContent, _ := params["notecontent"].(string)
 
 	noteOptions := vendors.PagerDutyIncidentNoteOptions{
-		IncidentID: 	incidentId,
-		NoteContent:	noteContent,
+		IncidentID:  incidentId,
+		NoteContent: noteContent,
 	}
 
 	from, _ := params["from"].(string)
@@ -1126,7 +1256,6 @@ func (tpl *Template) PagerDutySendNoteToIncident(params map[string]interface{}) 
 
 	return pagerDuty.CreateIncidentNote(noteOptions, createOptions)
 }
-
 
 func (tpl *Template) TemplateRender(name string, obj interface{}) (string, error) {
 
@@ -1369,6 +1498,8 @@ func (tpl *Template) setTemplateFuncs(funcs map[string]any) {
 	funcs["jiraCreateAsset"] = tpl.JiraCreateAsset
 	funcs["jiraAddComment"] = tpl.JiraAddComment
 	funcs["jiraUpdateIssue"] = tpl.JiraUpdateIssue
+	funcs["grafanaCreateDashboard"] = tpl.GrafanaCreateDashboard
+	funcs["grafanaCopyDashboard"] = tpl.GrafanaCopyDashboard
 	funcs["pagerDutyCreateIncident"] = tpl.PagerDutyCreateIncident
 	funcs["pagerDutySendNoteToIncident"] = tpl.PagerDutySendNoteToIncident
 	funcs["templateRender"] = tpl.TemplateRender
