@@ -945,6 +945,87 @@ func (tpl *Template) JiraCreateAsset(params map[string]interface{}) ([]byte, err
 	return response, nil
 }
 
+func (tpl *Template) JiraAddComment(params map[string]interface{}) ([]byte, error) {
+
+	url, _ := params["url"].(string)
+	timeout, _ := params["timeout"].(int)
+	if timeout == 0 {
+		timeout = 10
+	}
+	insecure, _ := params["insecure"].(bool)
+	user, _ := params["user"].(string)
+	password, _ := params["password"].(string)
+	token, _ := params["token"].(string)
+	body, _ := params["body"].(string)
+	key, _ := params["key"].(string)
+
+	jiraOptions := vendors.JiraOptions{
+		URL:         url,
+		Timeout:     timeout,
+		Insecure:    insecure,
+		User:        user,
+		Password:    password,
+		AccessToken: token,
+	}
+	jiraCommentOptions := vendors.JiraAddIssueCommentOptions{
+
+		Body: body,
+	}
+	jiraIssueOptions := vendors.JiraIssueOptions{
+		IdOrKey: key,
+	}
+	jira := vendors.NewJira(jiraOptions)
+
+	response, err := jira.IssueAddComment(jiraIssueOptions, jiraCommentOptions)
+	if err != nil {
+		return nil, err
+	}
+
+	return response, nil
+}
+
+func (tpl *Template) JiraUpdateIssue(params map[string]interface{}) ([]byte, error) {
+
+	url, _ := params["url"].(string)
+	timeout, _ := params["timeout"].(int)
+	if timeout == 0 {
+		timeout = 10
+	}
+	insecure, _ := params["insecure"].(bool)
+	user, _ := params["user"].(string)
+	password, _ := params["password"].(string)
+	token, _ := params["token"].(string)
+
+	key, _ := params["key"].(string)
+	summary, _ := params["summary"].(string)
+	description, _ := params["description"].(string)
+	customFields, _ := params["customFields"].(string)
+
+	jiraOptions := vendors.JiraOptions{
+		URL:         url,
+		Timeout:     timeout,
+		Insecure:    insecure,
+		User:        user,
+		Password:    password,
+		AccessToken: token,
+	}
+	jiraIssueOptions := vendors.JiraIssueOptions{
+		IdOrKey:      key,
+		Summary:      summary,
+		Description:  description,
+		CustomFields: customFields,
+	}
+
+	jira := vendors.NewJira(jiraOptions)
+
+	response, err := jira.UpdateIssue(jiraIssueOptions)
+	if err != nil {
+		return nil, err
+	}
+
+	return response, nil
+}
+
 func (tpl *Template) JiraCreateIssue(params map[string]interface{}) ([]byte, error) {
 
 	url, _ := params["url"].(string)
@@ -993,10 +1074,140 @@ func (tpl *Template) JiraCreateIssue(params map[string]interface{}) ([]byte, err
 	return response, nil
 }
 
+func (tpl *Template) GrafanaCreateDashboard(params map[string]interface{}) ([]byte, error) {
+
+	url, _ := params["url"].(string)
+	timeout, _ := params["timeout"].(int)
+	if timeout == 0 {
+		timeout = 15
+	}
+	insecure, _ := params["insecure"].(bool)
+	token, _ := params["token"].(string)
+	orgID, _ := params["orgid"].(string)
+	dUID, _ := params["uid"].(string)
+	dSlug, _ := params["slug"].(string)
+	dTimeZone, _ := params["timezone"].(string)
+
+	title, _ := params["title"].(string)
+	fUID, _ := params["fuid"].(string)
+	tag, _ := params["tags"].(string)
+	tags := []string{}
+	if tag != "" {
+		tags = strings.Split(tag, ",")
+	}
+	from, _ := params["from"].(string)
+	to, _ := params["to"].(string)
+
+	clonedUID, _ := params["cloneduid"].(string)
+
+	panelIDS := params["panelids"].(string)
+	var cpanelIDs []string
+	if panelIDS != "" {
+		cpanelIDs = strings.Split(panelIDS, ",")
+	}
+	titles := params["ptitles"].(string)
+	var ptitles []string
+	if titles != "" {
+		ptitles = strings.Split(titles, ",")
+	}
+
+	grafanaOptions := vendors.GrafanaOptions{
+		URL:               url,
+		Timeout:           timeout,
+		Insecure:          insecure,
+		APIKey:            token,
+		OrgID:             orgID,
+		DashboardUID:      dUID,
+		DashboardSlug:     dSlug,
+		DashboardTimezone: dTimeZone,
+	}
+
+	grafanaCreateDashboardOptions := vendors.GrafanaCreateDahboardOptions{
+		Title:     title,
+		FolderUID: fUID,
+		Tags:      tags,
+		From:      from,
+		To:        to,
+		Cloned: vendors.GrafanaClonedDahboardOptions{
+			UID:         clonedUID,
+			PanelIDs:    cpanelIDs,
+			PanelTitles: ptitles,
+			Count:       3,
+			Width:       7,
+			Height:      7,
+		},
+	}
+
+	grafana := vendors.NewGrafana(grafanaOptions)
+
+	response, err := grafana.CreateDashboard(grafanaCreateDashboardOptions)
+	if err != nil {
+		return nil, err
+	}
+	return response, nil
+}
+
+func (tpl *Template) GrafanaCopyDashboard(params map[string]interface{}) ([]byte, error) {
+
+	url, _ := params["url"].(string)
+	timeout, _ := params["timeout"].(int)
+	if timeout == 0 {
+		timeout = 15
+	}
+	insecure, _ := params["insecure"].(bool)
+	token, _ := params["token"].(string)
+	orgID, _ := params["orgid"].(string)
+	dUID, _ := params["uid"].(string)
+	dSlug, _ := params["slug"].(string)
+	dTimeZone, _ := params["timezone"].(string)
+
+	title, _ := params["title"].(string)
+	fUID, _ := params["fuid"].(string)
+	tag, _ := params["tags"].(string)
+	tags := []string{}
+	if tag != "" {
+		tags = strings.Split(tag, ",")
+	}
+	from, _ := params["from"].(string)
+	to, _ := params["to"].(string)
+
+	clonedUID, _ := params["cloneduid"].(string)
+
+	grafanaOptions := vendors.GrafanaOptions{
+		URL:               url,
+		Timeout:           timeout,
+		Insecure:          insecure,
+		APIKey:            token,
+		OrgID:             orgID,
+		DashboardUID:      dUID,
+		DashboardSlug:     dSlug,
+		DashboardTimezone: dTimeZone,
+	}
+
+	grafanaCreateDashboardOptions := vendors.GrafanaCreateDahboardOptions{
+		Title:     title,
+		FolderUID: fUID,
+		Tags:      tags,
+		From:      from,
+		To:        to,
+		Cloned: vendors.GrafanaClonedDahboardOptions{
+			UID: clonedUID,
+		},
+	}
+
+	grafana := vendors.NewGrafana(grafanaOptions)
+
+	response, err := grafana.CopyDashboard(grafanaCreateDashboardOptions)
+	if err != nil {
+		return nil, err
+	}
+	return response, nil
+}
+
 func (tpl *Template) PagerDutyCreateIncident(params map[string]interface{}) ([]byte, error) {
 
 	if len(params) == 0 {
-		return nil, fmt.Errorf("PagerDutyEscalate err => %s", "no params allowed")
+		return nil, fmt.Errorf("PagerDutyEscalate err => %s", "no params passed")
 	}
 
 	url, _ := params["url"].(string)
@@ -1037,6 +1248,46 @@ func (tpl *Template) PagerDutyCreateIncident(params map[string]interface{}) ([]b
 	}
 
 	return pagerDuty.CreateIncident(incidentOptions, createOptions)
+}
+
+func (tpl *Template) PagerDutySendNoteToIncident(params map[string]interface{}) ([]byte, error) {
+
+	if len(params) == 0 {
+		return nil, fmt.Errorf("PagerDutyEscalate err => %s", "no params passed")
+	}
+
+	url, _ := params["url"].(string)
+	timeout, _ := params["timeout"].(int)
+	if timeout == 0 {
+		timeout = 10
+	}
+	insecure, _ := params["insecure"].(bool)
+	token, _ := params["token"].(string)
+
+	pagerDutyOptions := vendors.PagerDutyOptions{
+		URL:      url,
+		Timeout:  timeout,
+		Insecure: insecure,
+		Token:    token,
+	}
+
+	pagerDuty := vendors.NewPagerDuty(pagerDutyOptions, tpl.logger)
+
+	incidentId, _ := params["incidentid"].(string)
+	noteContent, _ := params["notecontent"].(string)
+
+	noteOptions := vendors.PagerDutyIncidentNoteOptions{
+		IncidentID:  incidentId,
+		NoteContent: noteContent,
+	}
+
+	from, _ := params["from"].(string)
+
+	createOptions := vendors.PagerDutyCreateIncidentOptions{
+		From: from,
+	}
+
+	return pagerDuty.CreateIncidentNote(noteOptions, createOptions)
 }
 
 func (tpl *Template) TemplateRender(name string, obj interface{}) (string, error) {
@@ -1280,7 +1531,12 @@ func (tpl *Template) setTemplateFuncs(funcs map[string]any) {
 	funcs["jiraSearchAssets"] = tpl.JiraSearchAssets
 	funcs["jiraCreateIssue"] = tpl.JiraCreateIssue
 	funcs["jiraCreateAsset"] = tpl.JiraCreateAsset
+	funcs["jiraAddComment"] = tpl.JiraAddComment
+	funcs["jiraUpdateIssue"] = tpl.JiraUpdateIssue
+	funcs["grafanaCreateDashboard"] = tpl.GrafanaCreateDashboard
+	funcs["grafanaCopyDashboard"] = tpl.GrafanaCopyDashboard
 	funcs["pagerDutyCreateIncident"] = tpl.PagerDutyCreateIncident
+	funcs["pagerDutySendNoteToIncident"] = tpl.PagerDutySendNoteToIncident
 	funcs["templateRender"] = tpl.TemplateRender
 	funcs["templateRenderFile"] = tpl.TemplateRenderFile
 	funcs["googleCalendarGetEvents"] = tpl.GoogleCalendarGetEvents
