@@ -179,3 +179,5 @@ pagerduty.incident
 pagerduty.response
 
 google.sh
+
+catalog.json

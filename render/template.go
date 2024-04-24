@@ -230,6 +230,8 @@ func (tpl *Template) Compare(v1, v2 interface{}) bool {
 			v11, _ := v1.(float64)
 			return v11 == v21
 		}
+	case []interface{}, []string:
+		return utils.Contains(v1, v2)
 	default:
 		v21 := fmt.Sprintf("%v", v2)
 		return v1.(string) == v21
@@ -290,7 +292,7 @@ func (tpl *Template) FindKey(obj interface{}, field string, value interface{}) i
 	return keys[0]
 }
 
-func (tpl *Template) FindObjectByField(obj interface{}, field string, value interface{}) interface{} {
+func (tpl *Template) FindObject(obj interface{}, field string, value interface{}) interface{} {
 
 	if obj == nil {
 		return nil
@@ -313,6 +315,37 @@ func (tpl *Template) FindObjectByField(obj interface{}, field string, value inte
 	}
 
 	return nil
+}
+
+func (tpl *Template) FindObjects(obj interface{}, field string, value interface{}) []interface{} {
+
+	r := []interface{}{}
+	if obj == nil {
+		return r
+	}
+	keys := tpl.FindKeys(obj, field, value)
+	if len(keys) == 0 {
+		return r
+	}
+
+	a, ok := obj.([]interface{})
+	if ok {
+		for _, v := range keys {
+			ka, _ := v.(int)
+			r = append(r, a[ka])
+		}
+		return r
+	}
+
+	m, ok := obj.(map[string]interface{})
+	if ok {
+		for _, v := range keys {
+			km, _ := v.(string)
+			r = append(r, m[km])
+		}
+		return r
+	}
+	return r
 }
 
 // toLower converts the given string (usually by a pipe) to lowercase.
@@ -1205,7 +1238,9 @@ func (tpl *Template) setTemplateFuncs(funcs map[string]any) {
 
 	funcs["findKeys"] = tpl.FindKeys
 	funcs["findKey"] = tpl.FindKey
-	funcs["findObjectByField"] = tpl.FindObjectByField
+	funcs["findObject"] = tpl.FindObject
+	funcs["findObjects"] = tpl.FindObjects
+	funcs["findObjectByField"] = tpl.FindObject
 
 	funcs["replaceAll"] = tpl.ReplaceAll
 	funcs["toLower"] = tpl.ToLower
