@@ -1290,6 +1290,49 @@ func (tpl *Template) PagerDutySendNoteToIncident(params map[string]interface{}) 
 	return pagerDuty.CreateIncidentNote(noteOptions, createOptions)
 }
 
+func (tpl *Template) PrometheusGet(params map[string]interface{}) ([]byte, error) {
+
+	if len(params) == 0 {
+		return nil, fmt.Errorf("PrometheusGet err => %s", "no params allowed")
+	}
+
+	url, _ := params["url"].(string)
+	timeout, _ := params["timeout"].(int)
+	if timeout == 0 {
+		timeout = 5
+	}
+
+	insecure, _ := params["insecure"].(bool)
+	user, _ := params["user"].(string)
+	password, _ := params["password"].(string)
+
+	query, _ := params["query"].(string)
+	if utils.IsEmpty(query) {
+		return nil, fmt.Errorf("PrometheusGet err => %s", "query is empty")
+	}
+
+	from, _ := params["from"].(string)
+	to, _ := params["to"].(string)
+	step, _ := params["step"].(string)
+	prms, _ := params["params"].(string)
+
+	prometheusOptions := vendors.PrometheusOptions{
+		URL:      url,
+		User:     user,
+		Password: password,
+		Timeout:  timeout,
+		Insecure: insecure,
+		Query:    query,
+		From:     from,
+		To:       to,
+		Step:     step,
+		Params:   prms,
+	}
+
+	prometheus := vendors.NewPrometheus(prometheusOptions)
+	return prometheus.Get()
+}
+
 func (tpl *Template) TemplateRender(name string, obj interface{}) (string, error) {
 
 	opts := TemplateOptions{
@@ -1542,6 +1585,8 @@ func (tpl *Template) setTemplateFuncs(funcs map[string]any) {
 	funcs["googleCalendarGetEvents"] = tpl.GoogleCalendarGetEvents
 	funcs["googleCalendarInsertEvent"] = tpl.GoogleCalendarInsertEvent
 	funcs["googleCalendarDeleteEvents"] = tpl.GoogleCalendarDeleteEvents
+
+	funcs["prometheusGet"] = tpl.PrometheusGet
 }
 
 func (tpl *Template) filterFuncsByContent(funcs map[string]any, content string) map[string]any {
