@@ -1316,6 +1316,8 @@ func (tpl *Template) PrometheusGet(params map[string]interface{}) ([]byte, error
 	step, _ := params["step"].(string)
 	prms, _ := params["params"].(string)
 
+	noerror, _ := params["noerror"].(bool)
+
 	prometheusOptions := vendors.PrometheusOptions{
 		URL:      url,
 		User:     user,
@@ -1330,7 +1332,12 @@ func (tpl *Template) PrometheusGet(params map[string]interface{}) ([]byte, error
 	}
 
 	prometheus := vendors.NewPrometheus(prometheusOptions)
-	return prometheus.Get()
+
+	d, err := prometheus.Get()
+	if noerror {
+		err = nil
+	}
+	return d, err
 }
 
 func (tpl *Template) TemplateRender(name string, obj interface{}) (string, error) {
