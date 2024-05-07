@@ -22,6 +22,7 @@ import (
 	"github.com/araddon/dateparse"
 	"github.com/devopsext/tools/common"
 	"github.com/devopsext/tools/vendors"
+	trends "github.com/devopsext/trends-back/trends"
 	utils "github.com/devopsext/utils"
 
 	"github.com/tidwall/gjson"
@@ -1522,6 +1523,14 @@ func (tpl *Template) GoogleCalendarDeleteEvents(params map[string]interface{}) (
 	return google.CalendarDeleteEvents(calendarOptions, calendarGetEventsOptions)
 }
 
+func (tpl *Template) GetTrendsSummary() (string, error) {
+	return trends.GetTrendsSummary()
+}
+
+func (tpl *Template) GetTrends() ([]string, error) {
+	return trends.GetTrends()
+}
+
 func (tpl *Template) setTemplateFuncs(funcs map[string]any) {
 
 	funcs["logError"] = tpl.LogError
@@ -1592,6 +1601,8 @@ func (tpl *Template) setTemplateFuncs(funcs map[string]any) {
 	funcs["googleCalendarGetEvents"] = tpl.GoogleCalendarGetEvents
 	funcs["googleCalendarInsertEvent"] = tpl.GoogleCalendarInsertEvent
 	funcs["googleCalendarDeleteEvents"] = tpl.GoogleCalendarDeleteEvents
+	funcs["getTrendsSummary"] = tpl.GetTrendsSummary
+	funcs["getTrends"] = tpl.GetTrends
 
 	funcs["prometheusGet"] = tpl.PrometheusGet
 }
