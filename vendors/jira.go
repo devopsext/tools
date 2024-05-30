@@ -56,7 +56,7 @@ type JiraSearchIssueOptions struct {
 	MaxResults    int
 }
 
-type JiraSearchAssetsOptions struct {
+type JiraSearchAssetOptions struct {
 	SearchPattern string
 	ResultPerPage int
 }
@@ -74,6 +74,11 @@ type JiraCreateAssetOptions struct {
 	Title          string
 	TierId         int
 	Tier           string
+}
+
+type JiraUpdateAssetOptions struct {
+	ObjectId string
+	Json     string
 }
 
 type JiraIssueCreate struct {
@@ -141,75 +146,6 @@ type JiraAssetAttribute struct {
 type JiraAsset struct {
 	ObjectTypeId int                  `json:"objectTypeId"`
 	Attributes   []JiraAssetAttribute `json:"attributes"`
-}
-
-func (j *Jira) CreateAsset(objectCreateOptions JiraCreateAssetOptions) ([]byte, error) {
-	return j.CustomCreateAsset(j.options, objectCreateOptions)
-}
-
-func (j *Jira) CustomCreateAsset(jiraOptions JiraOptions, createOptions JiraCreateAssetOptions) ([]byte, error) {
-
-	object := &JiraAsset{
-		ObjectTypeId: createOptions.ObjectTypeId,
-		Attributes: []JiraAssetAttribute{
-			{
-				ObjectTypeAttributeId: createOptions.NameId,
-				ObjectAttributeValues: []JiraAssetAttributeValue{
-					{
-						Value: createOptions.Name,
-					},
-				},
-			},
-			{
-				ObjectTypeAttributeId: createOptions.DescriptionId,
-				ObjectAttributeValues: []JiraAssetAttributeValue{
-					{
-						Value: createOptions.Description,
-					},
-				},
-			},
-			{
-				ObjectTypeAttributeId: createOptions.TierId,
-				ObjectAttributeValues: []JiraAssetAttributeValue{
-					{
-						Value: createOptions.Tier,
-					},
-				},
-			},
-			{
-				ObjectTypeAttributeId: createOptions.RepositoryId,
-				ObjectAttributeValues: []JiraAssetAttributeValue{
-					{
-						Value: createOptions.Repository,
-					},
-				},
-			},
-			{
-				ObjectTypeAttributeId: createOptions.TitleId,
-				ObjectAttributeValues: []JiraAssetAttributeValue{
-					{
-						Value: createOptions.Title,
-					},
-				},
-			},
-		},
-	}
-
-	req, err := json.Marshal(object)
-	if err != nil {
-		return nil, err
-	}
-
-	u, err := url.Parse(jiraOptions.URL)
-	if err != nil {
-		return nil, err
-	}
-
-	params := make(url.Values)
-	params.Add("objectSchemaId", createOptions.ObjectSchemeId)
-	u.Path = path.Join(u.Path, "rest/assets/1.0/object/create")
-	u.RawQuery = params.Encode()
-	return utils.HttpPostRaw(j.client, u.String(), "application/json", j.getAuth(jiraOptions), req)
 }
 
 // we need custom json marshal for Jira due to possible using of custom fields
@@ -481,7 +417,7 @@ func (j *Jira) SearchIssue(options JiraSearchIssueOptions) ([]byte, error) {
 	return j.CustomSearchIssue(j.options, options)
 }
 
-func (j *Jira) CustomSearchAssets(jiraOptions JiraOptions, search JiraSearchAssetsOptions) ([]byte, error) {
+func (j *Jira) CustomSearchAssets(jiraOptions JiraOptions, search JiraSearchAssetOptions) ([]byte, error) {
 
 	params := make(url.Values)
 	params.Add("qlQuery", search.SearchPattern)
@@ -531,8 +467,95 @@ func (j *Jira) CustomSearchAssets(jiraOptions JiraOptions, search JiraSearchAsse
 	return json.Marshal(result)
 }
 
-func (j *Jira) SearchAssets(options JiraSearchAssetsOptions) ([]byte, error) {
+func (j *Jira) SearchAssets(options JiraSearchAssetOptions) ([]byte, error) {
 	return j.CustomSearchAssets(j.options, options)
+}
+
+func (j *Jira) CustomCreateAsset(jiraOptions JiraOptions, createOptions JiraCreateAssetOptions) ([]byte, error) {
+
+	object := &JiraAsset{
+		ObjectTypeId: createOptions.ObjectTypeId,
+		Attributes: []JiraAssetAttribute{
+			{
+				ObjectTypeAttributeId: createOptions.NameId,
+				ObjectAttributeValues: []JiraAssetAttributeValue{
+					{
+						Value: createOptions.Name,
+					},
+				},
+			},
+			{
+				ObjectTypeAttributeId: createOptions.DescriptionId,
+				ObjectAttributeValues: []JiraAssetAttributeValue{
+					{
+						Value: createOptions.Description,
+					},
+				},
+			},
+			{
+				ObjectTypeAttributeId: createOptions.TierId,
+				ObjectAttributeValues: []JiraAssetAttributeValue{
+					{
+						Value: createOptions.Tier,
+					},
+				},
+			},
+			{
+				ObjectTypeAttributeId: createOptions.RepositoryId,
+				ObjectAttributeValues: []JiraAssetAttributeValue{
+					{
+						Value: createOptions.Repository,
+					},
+				},
+			},
+			{
+				ObjectTypeAttributeId: createOptions.TitleId,
+				ObjectAttributeValues: []JiraAssetAttributeValue{
+					{
+						Value: createOptions.Title,
+					},
+				},
+			},
+		},
+	}
+
+	req, err := json.Marshal(object)
+	if err != nil {
+		return nil, err
+	}
+
+	u, err := url.Parse(jiraOptions.URL)
+	if err != nil {
+		return nil, err
+	}
+
+	params := make(url.Values)
+	params.Add("objectSchemaId", createOptions.ObjectSchemeId)
+	u.Path = path.Join(u.Path, "rest/assets/1.0/object/create")
+	u.RawQuery = params.Encode()
+	return utils.HttpPostRaw(j.client, u.String(), "application/json", j.getAuth(jiraOptions), req)
+}
+
+func (j *Jira) CreateAsset(createOptions JiraCreateAssetOptions) ([]byte, error) {
+	return j.CustomCreateAsset(j.options, createOptions)
+}
+
+func (j *Jira) CustomUpdateAsset(jiraOptions JiraOptions, updateOptions JiraUpdateAssetOptions) ([]byte, error) {
+
+	u, err := url.Parse(jiraOptions.URL)
+	if err != nil {
+		return nil, err
+	}
+
+	params := make(url.Values)
+	u.Path = path.Join(u.Path, fmt.Sprintf("rest/assets/1.0/object/%s", updateOptions.ObjectId))
+	u.RawQuery = params.Encode()
+
+	return utils.HttpPutRaw(j.client, u.String(), "application/json", j.getAuth(jiraOptions), []byte(updateOptions.Json))
+}
+
+func (j *Jira) UpdateAsset(updateOptions JiraUpdateAssetOptions) ([]byte, error) {
+	return j.CustomUpdateAsset(j.options, updateOptions)
 }
 
 func NewJira(options JiraOptions) *Jira {

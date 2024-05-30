@@ -47,9 +47,19 @@ var jiraIssueSearchOptions = vendors.JiraSearchIssueOptions{
 	MaxResults:    envGet("JIRA_ISSUE_SEARCH_MAX_RESULTS", 50).(int),
 }
 
-var jiraAssetsSearchOptions = vendors.JiraSearchAssetsOptions{
-	SearchPattern: envGet("JIRA_ASSETS_SEARCH_PATTERN", "").(string),
-	ResultPerPage: envGet("JIRA_ASSETS_SEARCH_RESULT_PER_PAGE", 50).(int),
+var jiraAssetSearchOptions = vendors.JiraSearchAssetOptions{
+	SearchPattern: envGet("JIRA_ASSET_SEARCH_PATTERN", "").(string),
+	ResultPerPage: envGet("JIRA_ASSET_SEARCH_RESULT_PER_PAGE", 50).(int),
+}
+
+var jiraAssetCreateOptions = vendors.JiraCreateAssetOptions{
+	Name:        envGet("JIRA_ASSET_CREATE_NAME", "").(string),
+	Description: envGet("JIRA_ASSET_CREATE_DESCRIPTION", "").(string),
+}
+
+var jiraAssetUpdateOptions = vendors.JiraUpdateAssetOptions{
+	ObjectId: envGet("JIRA_ASSET_OBJECT_ID", "").(string),
+	Json:     envGet("JIRA_ASSET_JSON", "").(string),
 }
 
 var jiraOutput = common.OutputOptions{
@@ -264,37 +274,84 @@ func NewJiraCommand() *cobra.Command {
 	flags.IntVar(&jiraIssueSearchOptions.MaxResults, "jira-issue-search-max-results", jiraIssueSearchOptions.MaxResults, "Jira issue search max results")
 	issueCmd.AddCommand((issueSearchCmd))
 
-	assetsCmd := &cobra.Command{
-		Use:   "assets",
-		Short: "Assets methods",
+	assetCmd := &cobra.Command{
+		Use:   "asset",
+		Short: "Asset methods",
 	}
-	flags = assetsCmd.PersistentFlags()
-	flags.StringVar(&jiraAssetsSearchOptions.SearchPattern, "jira-assets-search-pattern", jiraAssetsSearchOptions.SearchPattern, "Jira assets search pattern")
-	flags.IntVar(&jiraAssetsSearchOptions.ResultPerPage, "jira-assets-search-results-per-page", jiraAssetsSearchOptions.ResultPerPage, "Jira assets result per page")
-	jiraCmd.AddCommand(assetsCmd)
+	jiraCmd.AddCommand(assetCmd)
 
-	assetsSearchCmd := &cobra.Command{
+	assetSearchCmd := &cobra.Command{
 		Use:   "search",
 		Short: "Search assets",
 		Run: func(cmd *cobra.Command, args []string) {
-			stdout.Debug("Jira assets searching...")
-			common.Debug("Jira", jiraAssetsSearchOptions, stdout)
+			stdout.Debug("Jira asset searching...")
+			common.Debug("Jira", jiraAssetSearchOptions, stdout)
 
-			searchBytes, err := utils.Content(jiraAssetsSearchOptions.SearchPattern)
+			searchBytes, err := utils.Content(jiraAssetSearchOptions.SearchPattern)
 			if err != nil {
 				stdout.Panic(err)
 			}
-			jiraAssetsSearchOptions.SearchPattern = string(searchBytes)
+			jiraAssetSearchOptions.SearchPattern = string(searchBytes)
 
-			bytes, err := jiraNew(stdout).SearchAssets(jiraAssetsSearchOptions)
+			bytes, err := jiraNew(stdout).SearchAssets(jiraAssetSearchOptions)
 			if err != nil {
 				stdout.Error(err)
 				return
 			}
-			common.OutputJson(jiraOutput, "Jira", []interface{}{jiraOptions, jiraAssetsSearchOptions}, bytes, stdout)
+			common.OutputJson(jiraOutput, "Jira", []interface{}{jiraOptions, jiraAssetSearchOptions}, bytes, stdout)
 		},
 	}
-	assetsCmd.AddCommand(assetsSearchCmd)
+	flags = assetSearchCmd.PersistentFlags()
+	flags.StringVar(&jiraAssetSearchOptions.SearchPattern, "jira-asset-search-pattern", jiraAssetSearchOptions.SearchPattern, "Jira asset search pattern")
+	flags.IntVar(&jiraAssetSearchOptions.ResultPerPage, "jira-asset-search-results-per-page", jiraAssetSearchOptions.ResultPerPage, "Jira asset result per page")
+	assetCmd.AddCommand(assetSearchCmd)
+
+	assetCreateCmd := &cobra.Command{
+		Use:   "create",
+		Short: "Create asset",
+		Run: func(cmd *cobra.Command, args []string) {
+			stdout.Debug("Jira asset creating...")
+			common.Debug("Jira", jiraAssetCreateOptions, stdout)
+
+			bytes, err := jiraNew(stdout).CreateAsset(jiraAssetCreateOptions)
+			if err != nil {
+				stdout.Error(err)
+				return
+			}
+			common.OutputJson(jiraOutput, "Jira", []interface{}{jiraOptions, jiraAssetCreateOptions}, bytes, stdout)
+		},
+	}
+	flags = assetCreateCmd.PersistentFlags()
+	flags.StringVar(&jiraAssetCreateOptions.Name, "jira-asset-create-name", jiraAssetCreateOptions.Name, "Jira asset name")
+	flags.StringVar(&jiraAssetCreateOptions.Description, "jira-asset-create-rdescription", jiraAssetCreateOptions.Description, "Jira asset description")
+	// ... all options should be added, like value, etc.
+	assetCmd.AddCommand(assetCreateCmd)
+
+	assetUpdateCmd := &cobra.Command{
+		Use:   "update",
+		Short: "Update asset",
+		Run: func(cmd *cobra.Command, args []string) {
+			stdout.Debug("Jira asset updating...")
+			common.Debug("Jira", jiraAssetUpdateOptions, stdout)
+
+			jsonBytes, err := utils.Content(jiraAssetUpdateOptions.Json)
+			if err != nil {
+				stdout.Panic(err)
+			}
+			jiraAssetUpdateOptions.Json = string(jsonBytes)
+
+			bytes, err := jiraNew(stdout).UpdateAsset(jiraAssetUpdateOptions)
+			if err != nil {
+				stdout.Error(err)
+				return
+			}
+			common.OutputJson(jiraOutput, "Jira", []interface{}{jiraOptions, jiraAssetUpdateOptions}, bytes, stdout)
+		},
+	}
+	flags = assetUpdateCmd.PersistentFlags()
+	flags.StringVar(&jiraAssetUpdateOptions.ObjectId, "jira-asset-update-object-id", jiraAssetUpdateOptions.ObjectId, "Jira asset object id")
+	flags.StringVar(&jiraAssetUpdateOptions.Json, "jira-asset-update-json", jiraAssetUpdateOptions.Json, "Jira asset json")
+	assetCmd.AddCommand(assetUpdateCmd)
 
 	return &jiraCmd
 }
