@@ -181,7 +181,7 @@ func (tpl *Template) RegexMatchObjectByField(obj interface{}, field, value strin
 		return nil
 	}
 	key := tpl.RegexMatchFindKey(obj, field, value)
-	if key == value {
+	if key == nil {
 		return nil
 	}
 
@@ -298,7 +298,7 @@ func (tpl *Template) FindObject(obj interface{}, field string, value interface{}
 		return nil
 	}
 	key := tpl.FindKey(obj, field, value)
-	if key == value {
+	if key == nil {
 		return nil
 	}
 
