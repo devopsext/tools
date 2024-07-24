@@ -42,6 +42,7 @@ type Template struct {
 	options TemplateOptions
 	logger  common.Logger
 	funcs   template.FuncMap
+	tpl     interface{}
 }
 
 type TextTemplate struct {
@@ -52,6 +53,31 @@ type TextTemplate struct {
 type HtmlTemplate struct {
 	Template
 	template *htmlTemplate.Template
+}
+
+func (tpl *Template) ParserLine() (int, error) {
+
+	var i interface{} = tpl.tpl
+
+	line := 0
+
+	txt, ok := i.(*txtTemplate.Template)
+	if ok {
+		line = int(txt.Tree.Root.Pos)
+
+		for _, v := range txt.Root.Nodes {
+
+			l, c := txt.ErrorContext(v)
+			tpl.logger.Debug("%s | %d | %s = %s", v.String(), v.Position(), l, c)
+		}
+	}
+
+	html, ok := i.(htmlTemplate.Template)
+	if ok {
+		line = int(html.Tree.Root.Pos)
+	}
+
+	return line, nil
 }
 
 // put errors to logger
@@ -355,7 +381,7 @@ func (tpl *Template) ToLower(s string) (string, error) {
 
 // toTitle converts the given string (usually by a pipe) to titlecase.
 func (tpl *Template) ToTitle(s string) (string, error) {
-	return strings.Title(s), nil
+	return strings.ToTitle(s), nil
 }
 
 // toUpper converts the given string (usually by a pipe) to uppercase.
@@ -524,42 +550,42 @@ func (tpl *Template) Jsonata(data interface{}, query string) (string, error) {
 
 func (tpl *Template) Gjson(obj interface{}, path string) (string, error) {
 
-	if utils.IsEmpty(path) {
-		err := errors.New("path is empty")
-		return "", err
-	}
-
 	if obj == nil {
 		err := errors.New("object is not defined")
 		return "", err
 	}
 
-	json := ""
+	if utils.IsEmpty(path) {
+		err := errors.New("path is empty")
+		return "", err
+	}
+
+	var value gjson.Result
 	v, ok := obj.(string)
 	if ok {
+
 		if _, err := os.Stat(v); err == nil {
 			bytes, err := os.ReadFile(v)
 			if err != nil {
 				return "", err
 			}
-			json = string(bytes)
+			value = gjson.GetBytes(bytes, path)
+		} else {
+			value = gjson.Get(v, path)
+		}
+	} else {
+
+		data, ok := obj.([]byte)
+		if ok {
+			value = gjson.GetBytes(data, path)
+		} else {
+			bytes, err := common.JsonMarshal(obj)
+			if err != nil {
+				return "", err
+			}
+			value = gjson.GetBytes(bytes, path)
 		}
 	}
-
-	if utils.IsEmpty(json) {
-		bytes, err := common.JsonMarshal(obj)
-		if err != nil {
-			return "", err
-		}
-		json = string(bytes)
-	}
-
-	if utils.IsEmpty(json) {
-		err := errors.New("json is empty")
-		return "", err
-	}
-
-	value := gjson.Get(json, path)
 	return value.String(), nil
 }
 
@@ -770,6 +796,12 @@ func (tpl *Template) DateParse(d string) (time.Time, error) {
 func (tpl *Template) Sleep(ms int) error {
 	time.Sleep(time.Duration(ms) * time.Millisecond)
 	return nil
+}
+
+func (tpl *Template) Error(format string, a ...any) (string, error) {
+
+	err := fmt.Errorf(format, a...)
+	return err.Error(), err
 }
 
 // url, contentType, authorization string, timeout int
@@ -1524,6 +1556,8 @@ func (tpl *Template) GoogleCalendarDeleteEvents(params map[string]interface{}) (
 
 func (tpl *Template) setTemplateFuncs(funcs map[string]any) {
 
+	funcs["parserLine"] = tpl.ParserLine
+
 	funcs["logError"] = tpl.LogError
 	funcs["logWarn"] = tpl.LogWarn
 	funcs["logDebug"] = tpl.LogDebug
@@ -1575,6 +1609,7 @@ func (tpl *Template) setTemplateFuncs(funcs map[string]any) {
 	funcs["tagValue"] = tpl.TagValue
 	funcs["dateParse"] = tpl.DateParse
 	funcs["sleep"] = tpl.Sleep
+	funcs["error"] = tpl.Error
 
 	funcs["httpGet"] = tpl.HttpGet
 	funcs["httpPost"] = tpl.HttpPost
@@ -1681,6 +1716,7 @@ func NewTextTemplate(options TemplateOptions, logger common.Logger) (*TextTempla
 		}
 	}
 
+	tpl.tpl = t
 	tpl.template = t
 	tpl.funcs = funcs
 	tpl.options = options
@@ -1762,6 +1798,7 @@ func NewHtmlTemplate(options TemplateOptions, logger common.Logger) (*HtmlTempla
 		}
 	}
 
+	tpl.tpl = t
 	tpl.template = t
 	tpl.funcs = funcs
 	tpl.options = options
