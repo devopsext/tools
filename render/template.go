@@ -207,7 +207,7 @@ func (tpl *Template) RegexMatchObjectByField(obj interface{}, field, value strin
 		return nil
 	}
 	key := tpl.RegexMatchFindKey(obj, field, value)
-	if key == value {
+	if key == nil {
 		return nil
 	}
 
@@ -324,7 +324,7 @@ func (tpl *Template) FindObject(obj interface{}, field string, value interface{}
 		return nil
 	}
 	key := tpl.FindKey(obj, field, value)
-	if key == value {
+	if key == nil {
 		return nil
 	}
 
@@ -1075,6 +1075,9 @@ func (tpl *Template) JiraCreateIssue(params map[string]interface{}) ([]byte, err
 	description, _ := params["description"].(string)
 	assignee, _ := params["assignee"].(string)
 	reporter, _ := params["reporter"].(string)
+	labels := strings.Split(params["labels"].(string), ",")
+	priority, _ := params["priority"].(string)
+	components, _ := params["components"].(string)
 	issueType, _ := params["issueType"].(string)
 	customFields, _ := params["customFields"].(string)
 
@@ -1091,6 +1094,9 @@ func (tpl *Template) JiraCreateIssue(params map[string]interface{}) ([]byte, err
 		Summary:      summary,
 		Description:  description,
 		Type:         issueType,
+		Priority:     priority,
+		Labels:       labels,
+		Components:   components,
 		Assignee:     assignee,
 		Reporter:     reporter,
 		CustomFields: customFields,

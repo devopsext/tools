@@ -10,6 +10,7 @@ import (
 	"net/url"
 	"path"
 	"strconv"
+	"strings"
 
 	"github.com/devopsext/tools/common"
 	"github.com/devopsext/utils"
@@ -39,6 +40,7 @@ type JiraIssueOptions struct {
 	Description  string
 	CustomFields string
 	Status       string
+	Components   string
 	Labels       []string
 }
 
@@ -89,14 +91,15 @@ type JiraIssueUpdate struct {
 	Fields *JiraIssueFields `json:"fields"`
 }
 type JiraIssueFields struct {
-	Project     *JiraIssueProject  `json:"project,omitempty"`
-	IssueType   *JiraIssueType     `json:"issuetype,omitempty"`
-	Summary     string             `json:"summary,omitempty"`
-	Description string             `json:"description,omitempty"`
-	Labels      []string           `json:"labels,omitempty"`
-	Priority    *JiraIssuePriority `json:"priority,omitempty"`
-	Assignee    *JiraIssueAssignee `json:"assignee,omitempty"`
-	Reporter    *JiraIssueReporter `json:"reporter,omitempty"`
+	Project     *JiraIssueProject      `json:"project,omitempty"`
+	IssueType   *JiraIssueType         `json:"issuetype,omitempty"`
+	Summary     string                 `json:"summary,omitempty"`
+	Description string                 `json:"description,omitempty"`
+	Labels      []string               `json:"labels,omitempty"`
+	Priority    *JiraIssuePriority     `json:"priority,omitempty"`
+	Components  *[]JiraIssueComponents `json:"components,omitempty"`
+	Assignee    *JiraIssueAssignee     `json:"assignee,omitempty"`
+	Reporter    *JiraIssueReporter     `json:"reporter,omitempty"`
 }
 
 type JiraIssueAddComment struct {
@@ -111,6 +114,10 @@ type JiraIssueProject struct {
 	Key string `json:"key"`
 }
 type JiraIssuePriority struct {
+	Name string `json:"name"`
+}
+
+type JiraIssueComponents struct {
 	Name string `json:"name"`
 }
 
@@ -214,6 +221,10 @@ func (j *Jira) CustomCreateIssue(jiraOptions JiraOptions, createOptions JiraIssu
 		}
 	}
 
+	if len(createOptions.Labels) > 0 {
+		issue.Fields.Labels = createOptions.Labels
+	}
+
 	if !utils.IsEmpty(createOptions.Assignee) {
 		issue.Fields.Assignee = &JiraIssueAssignee{
 			Name: createOptions.Assignee,
@@ -234,6 +245,16 @@ func (j *Jira) CustomCreateIssue(jiraOptions JiraOptions, createOptions JiraIssu
 		if err != nil {
 			return nil, err
 		}
+	}
+
+	if !utils.IsEmpty(createOptions.Components) {
+		components := make([]JiraIssueComponents, 0)
+		for _, v := range strings.Split(createOptions.Components, ",") {
+			components = append(components, JiraIssueComponents{
+				Name: v,
+			})
+		}
+		issue.Fields.Components = &components
 	}
 
 	req, err := jsonJiraMarshal(&issue, cf)
