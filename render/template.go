@@ -793,9 +793,9 @@ func (tpl *Template) DateParse(d string) (time.Time, error) {
 	return t, nil
 }
 
-func (tpl *Template) Sleep(ms int) error {
+func (tpl *Template) Sleep(ms int) string {
 	time.Sleep(time.Duration(ms) * time.Millisecond)
-	return nil
+	return ""
 }
 
 func (tpl *Template) Error(format string, a ...any) (string, error) {
