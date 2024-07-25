@@ -1016,6 +1016,81 @@ func (tpl *Template) JiraAddComment(params map[string]interface{}) ([]byte, erro
 	return response, nil
 }
 
+func (tpl *Template) JiraGetIssueTransition(params map[string]interface{}) ([]byte, error) {
+
+	url, _ := params["url"].(string)
+	timeout, _ := params["timeout"].(int)
+	if timeout == 0 {
+		timeout = 10
+	}
+	insecure, _ := params["insecure"].(bool)
+	user, _ := params["user"].(string)
+	password, _ := params["password"].(string)
+	token, _ := params["token"].(string)
+
+	key, _ := params["key"].(string)
+
+	jiraOptions := vendors.JiraOptions{
+		URL:         url,
+		Timeout:     timeout,
+		Insecure:    insecure,
+		User:        user,
+		Password:    password,
+		AccessToken: token,
+	}
+	jiraIssueOptions := vendors.JiraIssueOptions{
+		IdOrKey: key,
+	}
+
+	jira := vendors.NewJira(jiraOptions)
+
+	response, err := jira.GetIssueTransitions(jiraOptions, jiraIssueOptions)
+	if err != nil {
+		return nil, err
+	}
+
+	return response, nil
+}
+
+func (tpl *Template) JiraIssueTransition(params map[string]interface{}) ([]byte, error) {
+
+	url, _ := params["url"].(string)
+	timeout, _ := params["timeout"].(int)
+	if timeout == 0 {
+		timeout = 10
+	}
+	insecure, _ := params["insecure"].(bool)
+	user, _ := params["user"].(string)
+	password, _ := params["password"].(string)
+	token, _ := params["token"].(string)
+
+	transitionId, _ := params["id"].(string)
+	key, _ := params["key"].(string)
+
+	jiraOptions := vendors.JiraOptions{
+		URL:         url,
+		Timeout:     timeout,
+		Insecure:    insecure,
+		User:        user,
+		Password:    password,
+		AccessToken: token,
+	}
+
+	jiraIssueOptions := vendors.JiraIssueOptions{
+		TransitionID: transitionId,
+		IdOrKey:      key,
+	}
+
+	jira := vendors.NewJira(jiraOptions)
+
+	response, err := jira.CustomChangeIssueTransitions(jiraOptions, jiraIssueOptions)
+	if err != nil {
+		return nil, err
+	}
+
+	return response, nil
+}
+
 func (tpl *Template) JiraUpdateIssue(params map[string]interface{}) ([]byte, error) {
 
 	url, _ := params["url"].(string)
@@ -1624,6 +1699,8 @@ func (tpl *Template) setTemplateFuncs(funcs map[string]any) {
 	funcs["jiraCreateAsset"] = tpl.JiraCreateAsset
 	funcs["jiraAddComment"] = tpl.JiraAddComment
 	funcs["jiraUpdateIssue"] = tpl.JiraUpdateIssue
+	funcs["jiraIssueTransition"] = tpl.JiraIssueTransition
+	funcs["jiraGetIssueTransition"] = tpl.JiraGetIssueTransition
 	funcs["grafanaCreateDashboard"] = tpl.GrafanaCreateDashboard
 	funcs["grafanaCopyDashboard"] = tpl.GrafanaCopyDashboard
 	funcs["pagerDutyCreateIncident"] = tpl.PagerDutyCreateIncident
