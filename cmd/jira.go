@@ -30,7 +30,7 @@ var JiraIssueOptions = vendors.JiraIssueOptions{
 	Description:  envGet("JIRA_ISSUE_DESCRIPTION", "").(string),
 	CustomFields: envGet("JIRA_ISSUE_CUSTOM_FIELDS", "").(string),
 	Labels:       strings.Split(envGet("JIRA_ISSUE_LABELS", "").(string), ","),
-	Status:       envGet("JIRA_ISSUE_STATUS", "").(string),
+	TransitionID: envGet("JIRA_ISSUE_STATUS", "").(string),
 }
 
 var jiraIssueAddCommentOptions = vendors.JiraAddIssueCommentOptions{
@@ -229,11 +229,11 @@ func NewJiraCommand() *cobra.Command {
 			stdout.Debug("Jira issue updating...")
 			common.Debug("Jira", JiraIssueOptions, stdout)
 
-			statusBytes, err := utils.Content(JiraIssueOptions.Status)
+			statusBytes, err := utils.Content(JiraIssueOptions.TransitionID)
 			if err != nil {
 				stdout.Panic(err)
 			}
-			JiraIssueOptions.Status = string(statusBytes)
+			JiraIssueOptions.TransitionID = string(statusBytes)
 
 			bytes, err := jiraNew(stdout).ChangeIssueTransitions(JiraIssueOptions)
 			if err != nil {
@@ -244,7 +244,7 @@ func NewJiraCommand() *cobra.Command {
 		},
 	}
 	flags = issueChangeTransitionsCmd.PersistentFlags()
-	flags.StringVar(&JiraIssueOptions.Status, "jira-issue-status", JiraIssueOptions.Status, "Jira issue status")
+	flags.StringVar(&JiraIssueOptions.TransitionID, "jira-issue-status", JiraIssueOptions.TransitionID, "Jira issue status")
 	issueCmd.AddCommand(issueChangeTransitionsCmd)
 
 	issueSearchCmd := &cobra.Command{
