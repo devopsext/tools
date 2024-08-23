@@ -66,6 +66,7 @@ func Execute() {
 	rootCmd.AddCommand(NewVCenterCommand())
 	rootCmd.AddCommand(NewPagerDutyCommand())
 	rootCmd.AddCommand(NewAWSCommand())
+	rootCmd.AddCommand(NewSite24x7Command())
 
 	rootCmd.AddCommand(NewTemplateCommand())
 	rootCmd.AddCommand(NewDateCommand())

@@ -22,8 +22,8 @@ type PagerDutyIncidentOptions struct {
 	ServiceID  string
 	PriorityID string
 }
-type PagerDutyIncidentNoteOptions struct{
-	IncidentID string
+type PagerDutyIncidentNoteOptions struct {
+	IncidentID  string
 	NoteContent string
 }
 
@@ -61,7 +61,7 @@ type PagerDutyIncidentRequest struct {
 }
 
 type PagerDutyIncidentNote struct {
-	Content     string     `json:"content,omitempty"`
+	Content string `json:"content,omitempty"`
 }
 
 type PagerDutyIncidentNoteRequest struct {
@@ -82,8 +82,8 @@ type PagerDuty struct {
 }
 
 const (
-	pagerDutyContentType   = "application/json"
-	pagerDutyIncidentsPath = "/incidents"
+	pagerDutyContentType       = "application/json"
+	pagerDutyIncidentsPath     = "/incidents"
 	pagerDutyIncidentNotesPath = "/notes"
 )
 

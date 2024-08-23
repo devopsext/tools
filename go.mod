@@ -1,6 +1,6 @@
 module github.com/devopsext/tools
 
-go 1.22
+go 1.23
 
 //replace github.com/devopsext/utils => ./../utils
 
@@ -8,12 +8,12 @@ require (
 	github.com/Masterminds/sprig/v3 v3.2.2
 	github.com/araddon/dateparse v0.0.0-20210429162001-6b43995a97de
 	github.com/blues/jsonata-go v1.5.4
-	github.com/devopsext/utils v0.4.2
+	github.com/devopsext/utils v0.4.3
 	github.com/google/uuid v1.1.1
 	github.com/sirupsen/logrus v1.8.1
 	github.com/spf13/cobra v1.4.0
 	github.com/tidwall/gjson v1.17.1
-	golang.org/x/text v0.3.0
+	golang.org/x/oauth2 v0.22.0
 )
 
 require (
