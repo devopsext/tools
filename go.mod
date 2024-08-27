@@ -10,10 +10,10 @@ require (
 	github.com/blues/jsonata-go v1.5.4
 	github.com/devopsext/utils v0.4.3
 	github.com/google/uuid v1.1.1
+	github.com/jinzhu/copier v0.4.0
 	github.com/sirupsen/logrus v1.8.1
 	github.com/spf13/cobra v1.4.0
 	github.com/tidwall/gjson v1.17.1
-	golang.org/x/oauth2 v0.22.0
 )
 
 require (

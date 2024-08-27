@@ -8,9 +8,11 @@ import (
 	"net/http"
 	"net/url"
 	"path"
+	"strings"
 
 	"github.com/devopsext/tools/common"
 	"github.com/devopsext/utils"
+	"github.com/jinzhu/copier"
 )
 
 type Site24x7MonitorOptions struct {
@@ -27,13 +29,30 @@ type Site24x7WebsiteMonitorOptions struct {
 	UserAgent             string
 	UseNameServer         bool
 	NotificationProfileID string
+	ThresholdProfileID    string
 	UserGroupIDs          []string
+}
+
+type Site24x7LocationProfileOptions struct {
+	ID                   string
+	Name                 string
+	LocationID           string
+	SecondaryLocationIDs []string
 }
 
 type Site24x7LogReportOptions struct {
 	Site24x7MonitorOptions
 	StartDate string
 	EndDate   string
+}
+
+type Site24x7LocationProfile struct {
+	ProfileName                 string   `json:"profile_name"`
+	PrimaryLocation             string   `json:"primary_location"`
+	SecondaryCheckFrequency     string   `json:"secondary_check_frequency,omitempty"`
+	SecondaryLocations          []string `json:"secondary_locations,omitempty"`
+	RestrictAltLoc              bool     `json:"restrict_alt_loc,omitempty"`
+	OuterRegionsLOcationConsent bool     `json:"outer_regions_location_consent,omitempty"`
 }
 
 type Site24x7WebsiteMonitor struct {
@@ -63,6 +82,39 @@ type Site24x7AuthReponse struct {
 type Site24x7Reponse struct {
 	Code    int    `json:"code"`
 	Message string `json:"message"`
+}
+
+type Site24x7LocationTemplateDataLocation struct {
+	LocationID  string `json:"location_id"`
+	DisplayName string `json:"display_name"`
+	CityName    string `json:"city_name"`
+	CityShort   string `json:"city_short"`
+	CountryName string `json:"country_name"`
+	Continent   string `json:"continent"`
+	UseIpv6     bool   `json:"use_ipv6"`
+	ProbInfo    string `json:"probe_info"`
+}
+
+type Site24x7LocationTemplateData struct {
+	Locations []*Site24x7LocationTemplateDataLocation `json:"locations,omitempty"`
+}
+
+type Site24x7LocationTemplateReponse struct {
+	Site24x7Reponse
+	Data *Site24x7LocationTemplateData `json:"data,omitempty"`
+}
+
+type Site24x7LocationProfileData struct {
+	ProfileID               string   `json:"profile_id"`
+	ProfileName             string   `json:"profile_name"`
+	PrimaryLocation         string   `json:"primary_location"`
+	SecondaryCheckFrequency string   `json:"secondary_check_frequency,omitempty"`
+	SecondaryLocations      []string `json:"secondary_locations,omitempty"`
+}
+
+type Site24x7LocationProfileReponse struct {
+	Site24x7Reponse
+	Data *Site24x7LocationProfileData `json:"data,omitempty"`
 }
 
 type Site24x7PollingStatusData struct {
@@ -122,8 +174,18 @@ const (
 	Site24x7MonitorPollNow       = "/monitor/poll_now"
 	Site24x7MonitorStatusPollNow = "/monitor/status_poll_now"
 	Site24x7LogReports           = "/reports/log_reports"
+	Site24x7LocationTemplate     = "/location_template"
+	Site24x7LocationProfiles     = "/location_profiles"
 	Site24x7ContentType          = "application/json"
 )
+
+func (s *Site24x7) CheckResponse(resp Site24x7Reponse) error {
+
+	if resp.Code != 0 {
+		return fmt.Errorf("%s [%d]", resp.Message, resp.Code)
+	}
+	return nil
+}
 
 // go to https://api-console.zoho.com/ and generate code with Site24x7.Admin.All scope
 // do curl with params according https://www.site24x7.com/help/api/#authentication page
@@ -191,6 +253,13 @@ func (s *Site24x7) getAccessToken(opts Site24x7Options) (string, error) {
 	return r.AccessToken, nil
 }
 
+func (s *Site24x7) cloneSite24x7Options(opts Site24x7Options) Site24x7Options {
+
+	r := Site24x7Options{}
+	copier.Copy(&r, &opts)
+	return r
+}
+
 func (s *Site24x7) CustomGetAccessToken(opts Site24x7Options) (string, error) {
 
 	if !utils.IsEmpty(opts.AccessToken) {
@@ -199,9 +268,153 @@ func (s *Site24x7) CustomGetAccessToken(opts Site24x7Options) (string, error) {
 	return s.getAccessToken(opts)
 }
 
+func (s *Site24x7) CustomGetLocationTemplate(site24x7Options Site24x7Options) ([]byte, error) {
+
+	at, err := s.CustomGetAccessToken(site24x7Options)
+	if err != nil {
+		return nil, err
+	}
+
+	u, err := url.Parse(Site24x7ApiURL)
+	if err != nil {
+		return nil, err
+	}
+	u.Path = path.Join(u.Path, Site24x7LocationTemplate)
+
+	return utils.HttpGetRaw(s.client, u.String(), Site24x7ContentType, s.getAuth(at))
+}
+
+func (s *Site24x7) GetLocationTemplate() ([]byte, error) {
+	return s.CustomGetLocationTemplate(s.options)
+}
+
+func (s *Site24x7) CustomCreateLocationProfile(site24x7Options Site24x7Options, createLocationOptions Site24x7LocationProfileOptions) ([]byte, error) {
+
+	at, err := s.CustomGetAccessToken(site24x7Options)
+	if err != nil {
+		return nil, err
+	}
+
+	u, err := url.Parse(Site24x7ApiURL)
+	if err != nil {
+		return nil, err
+	}
+	u.Path = path.Join(u.Path, Site24x7LocationProfiles)
+
+	r := &Site24x7LocationProfile{
+		ProfileName:        createLocationOptions.Name,
+		PrimaryLocation:    createLocationOptions.LocationID,
+		SecondaryLocations: createLocationOptions.SecondaryLocationIDs,
+	}
+
+	req, err := json.Marshal(&r)
+	if err != nil {
+		return nil, err
+	}
+
+	return utils.HttpPostRaw(s.client, u.String(), Site24x7ContentType, s.getAuth(at), req)
+}
+
+func (s *Site24x7) CreateLocationProfile(options Site24x7LocationProfileOptions) ([]byte, error) {
+	return s.CustomCreateLocationProfile(s.options, options)
+}
+
+func (s *Site24x7) CustomDeleteLocationProfile(site24x7Options Site24x7Options, deleteLocationOptions Site24x7LocationProfileOptions) ([]byte, error) {
+
+	at, err := s.CustomGetAccessToken(site24x7Options)
+	if err != nil {
+		return nil, err
+	}
+
+	u, err := url.Parse(Site24x7ApiURL)
+	if err != nil {
+		return nil, err
+	}
+	u.Path = path.Join(u.Path, Site24x7LocationProfiles, deleteLocationOptions.ID)
+
+	return utils.HttpDeleteRaw(s.client, u.String(), Site24x7ContentType, s.getAuth(at), nil)
+}
+
+func (s *Site24x7) DeleteLocationProfile(options Site24x7LocationProfileOptions) ([]byte, error) {
+	return s.CustomDeleteLocationProfile(s.options, options)
+}
+
+func (s *Site24x7) FindLocationByCountry(locations []*Site24x7LocationTemplateDataLocation, country string) *Site24x7LocationTemplateDataLocation {
+
+	for _, l := range locations {
+
+		short := common.CountryShort(l.CountryName)
+		if short == country {
+			return l
+		}
+	}
+	return nil
+}
+
 func (s *Site24x7) CustomCreateWebsiteMonitor(site24x7Options Site24x7Options, createMonitorOptions Site24x7WebsiteMonitorOptions) ([]byte, error) {
 
 	at, err := s.CustomGetAccessToken(site24x7Options)
+	if err != nil {
+		return nil, err
+	}
+
+	opts := s.cloneSite24x7Options(site24x7Options)
+	opts.AccessToken = at
+
+	d, err := s.CustomGetLocationTemplate(opts)
+	if err != nil {
+		return nil, err
+	}
+
+	ltr := Site24x7LocationTemplateReponse{}
+	err = json.Unmarshal(d, &ltr)
+	if err != nil {
+		return nil, err
+	}
+
+	err = s.CheckResponse(ltr.Site24x7Reponse)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(createMonitorOptions.Countries) == 0 {
+		return nil, fmt.Errorf("no countries defined")
+	}
+
+	primary := s.FindLocationByCountry(ltr.Data.Locations, createMonitorOptions.Countries[0])
+	if primary == nil {
+		return nil, fmt.Errorf("no primary location found %s", createMonitorOptions.Countries[0])
+	}
+
+	secondaryIDs := []string{}
+	for i := 1; i < len(createMonitorOptions.Countries); i++ {
+		secondary := s.FindLocationByCountry(ltr.Data.Locations, createMonitorOptions.Countries[i])
+		if secondary != nil {
+			secondaryIDs = append(secondaryIDs, secondary.LocationID)
+		}
+	}
+
+	countries := strings.Join(createMonitorOptions.Countries, ",")
+	name := fmt.Sprintf("%s [%s]", createMonitorOptions.Name, countries)
+
+	lopts := Site24x7LocationProfileOptions{
+		Name:                 name,
+		LocationID:           primary.LocationID,
+		SecondaryLocationIDs: secondaryIDs,
+	}
+
+	d, err = s.CustomCreateLocationProfile(opts, lopts)
+	if err != nil {
+		return nil, err
+	}
+
+	lr := Site24x7LocationProfileReponse{}
+	err = json.Unmarshal(d, &lr)
+	if err != nil {
+		return nil, err
+	}
+
+	err = s.CheckResponse(ltr.Site24x7Reponse)
 	if err != nil {
 		return nil, err
 	}
@@ -218,9 +431,9 @@ func (s *Site24x7) CustomCreateWebsiteMonitor(site24x7Options Site24x7Options, c
 		Website:               createMonitorOptions.URL,
 		CheckFrequency:        createMonitorOptions.Frequency,
 		Timeout:               createMonitorOptions.Timeout,
-		LocationProfileID:     "195603000111268001",
-		NotificationProfileID: "195603000111268003",
-		ThresholdProfileID:    "195603000111268005",
+		LocationProfileID:     lr.Data.ProfileID,
+		NotificationProfileID: createMonitorOptions.NotificationProfileID,
+		ThresholdProfileID:    createMonitorOptions.ThresholdProfileID,
 		UserGroupIDs:          createMonitorOptions.UserGroupIDs,
 		HttpMethod:            createMonitorOptions.Method,
 		UserAgent:             createMonitorOptions.UserAgent,
@@ -278,7 +491,7 @@ func (s *Site24x7) PollMonitor(options Site24x7MonitorOptions) ([]byte, error) {
 	return s.CustomPollMonitor(s.options, options)
 }
 
-func (s *Site24x7) CustomPollingStatus(site24x7Options Site24x7Options, pollMonitorOptions Site24x7MonitorOptions) ([]byte, error) {
+func (s *Site24x7) CustomGetPollingStatus(site24x7Options Site24x7Options, pollMonitorOptions Site24x7MonitorOptions) ([]byte, error) {
 
 	at, err := s.CustomGetAccessToken(site24x7Options)
 	if err != nil {
@@ -294,11 +507,11 @@ func (s *Site24x7) CustomPollingStatus(site24x7Options Site24x7Options, pollMoni
 	return utils.HttpGetRaw(s.client, u.String(), Site24x7ContentType, s.getAuth(at))
 }
 
-func (s *Site24x7) PollingStatus(options Site24x7MonitorOptions) ([]byte, error) {
-	return s.CustomPollingStatus(s.options, options)
+func (s *Site24x7) GetPollingStatus(options Site24x7MonitorOptions) ([]byte, error) {
+	return s.CustomGetPollingStatus(s.options, options)
 }
 
-func (s *Site24x7) CustomLogReport(site24x7Options Site24x7Options, logReportOptions Site24x7LogReportOptions) ([]byte, error) {
+func (s *Site24x7) CustomGetLogReport(site24x7Options Site24x7Options, logReportOptions Site24x7LogReportOptions) ([]byte, error) {
 
 	at, err := s.CustomGetAccessToken(site24x7Options)
 	if err != nil {
@@ -326,8 +539,8 @@ func (s *Site24x7) CustomLogReport(site24x7Options Site24x7Options, logReportOpt
 	return utils.HttpGetRaw(s.client, u.String(), Site24x7ContentType, s.getAuth(at))
 }
 
-func (s *Site24x7) LogReport(options Site24x7LogReportOptions) ([]byte, error) {
-	return s.CustomLogReport(s.options, options)
+func (s *Site24x7) GetLogReport(options Site24x7LogReportOptions) ([]byte, error) {
+	return s.CustomGetLogReport(s.options, options)
 }
 
 func NewSite24x7(options Site24x7Options, logger common.Logger) *Site24x7 {

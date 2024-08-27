@@ -12,6 +12,10 @@ var site24x7MonitorOptions = vendors.Site24x7MonitorOptions{
 	ID: envGet("SITE24X7_MONITOR_ID", "").(string),
 }
 
+var site24x7LocationProfileOptions = vendors.Site24x7LocationProfileOptions{
+	ID: envGet("SITE24X7_LOCATION_PROFILE_ID", "").(string),
+}
+
 var site24x7WebsiteMonitorOptions = vendors.Site24x7WebsiteMonitorOptions{
 	Name:                  envGet("SITE24X7_WEBSITE_MONITOR_NAME", "").(string),
 	URL:                   envGet("SITE24X7_WEBSITE_MONITOR_URL", "").(string),
@@ -21,6 +25,7 @@ var site24x7WebsiteMonitorOptions = vendors.Site24x7WebsiteMonitorOptions{
 	Countries:             strings.Split(envGet("SITE24X7_WEBSITE_MONITOR_COUNTRIES", "").(string), ","),
 	UserAgent:             envGet("SITE24X7_WEBSITE_MONITOR_USER_AGENT", "").(string),
 	UseNameServer:         envGet("SITE24X7_WEBSITE_MONITOR_USE_NAME_SERVER", false).(bool),
+	UserGroupIDs:          strings.Split(envGet("SITE24X7_WEBSITE_MONITOR_USER_GROUP_IDS", "").(string), ","),
 	NotificationProfileID: envGet("SITE24X7_WEBSITE_MONITOR_USER_AGENT", "").(string),
 }
 
@@ -100,6 +105,8 @@ func NewSite24x7Command() *cobra.Command {
 	flags.StringVar(&site24x7WebsiteMonitorOptions.UserAgent, "site24x7-website-monitor-user-agent", site24x7WebsiteMonitorOptions.UserAgent, "Site24x7 website monitor user agent")
 	flags.BoolVar(&site24x7WebsiteMonitorOptions.UseNameServer, "site24x7-website-monitor-use-name-server", site24x7WebsiteMonitorOptions.UseNameServer, "Site24x7 website monitor use name server")
 	flags.StringSliceVar(&site24x7WebsiteMonitorOptions.UserGroupIDs, "site24x7-website-monitor-user-group-ids", site24x7WebsiteMonitorOptions.UserGroupIDs, "Site24x7 website monitor user group ids")
+	flags.StringVar(&site24x7WebsiteMonitorOptions.NotificationProfileID, "site24x7-website-monitor-notification-profile-id", site24x7WebsiteMonitorOptions.NotificationProfileID, "Site24x7 website monitor notification profile id")
+	flags.StringVar(&site24x7WebsiteMonitorOptions.ThresholdProfileID, "site24x7-website-monitor-threshold-profile-id", site24x7WebsiteMonitorOptions.ThresholdProfileID, "Site24x7 website monitor threshold profile id")
 	site24x7Cmd.AddCommand(site24x7CreateMonitorCmd)
 
 	site24x7DeleteMonitorCmd := &cobra.Command{
@@ -143,14 +150,14 @@ func NewSite24x7Command() *cobra.Command {
 	site24x7Cmd.AddCommand(site24x7PollMonitorCmd)
 
 	site24x7PollingStatusCmd := &cobra.Command{
-		Use:   "polling-status",
-		Short: "Polling status",
+		Use:   "get-polling-status",
+		Short: "Get polling status",
 		Run: func(cmd *cobra.Command, args []string) {
 
-			stdout.Debug("Polling status...")
+			stdout.Debug("Getting polling status...")
 			common.Debug("Site24x7", site24x7MonitorOptions, stdout)
 
-			bytes, err := site24x7New(stdout).PollingStatus(site24x7MonitorOptions)
+			bytes, err := site24x7New(stdout).GetPollingStatus(site24x7MonitorOptions)
 			if err != nil {
 				stdout.Error("Error: %v %s", err, string(bytes))
 				return
@@ -163,14 +170,14 @@ func NewSite24x7Command() *cobra.Command {
 	site24x7Cmd.AddCommand(site24x7PollingStatusCmd)
 
 	site24x7LogReportCmd := &cobra.Command{
-		Use:   "log-report",
-		Short: "Logging report",
+		Use:   "get-log-report",
+		Short: "Getting log report",
 		Run: func(cmd *cobra.Command, args []string) {
 
-			stdout.Debug("Logging report...")
+			stdout.Debug("Getting log report...")
 			common.Debug("Site24x7", site24x7LogReportOptions, stdout)
 
-			bytes, err := site24x7New(stdout).LogReport(site24x7LogReportOptions)
+			bytes, err := site24x7New(stdout).GetLogReport(site24x7LogReportOptions)
 			if err != nil {
 				stdout.Error("Error: %v %s", err, string(bytes))
 				return
@@ -183,6 +190,26 @@ func NewSite24x7Command() *cobra.Command {
 	flags.StringVar(&site24x7LogReportOptions.StartDate, "site24x7-log-report-start-date", site24x7LogReportOptions.StartDate, "Site24x7 log report start date")
 	flags.StringVar(&site24x7LogReportOptions.EndDate, "site24x7-log-report-end-date", site24x7LogReportOptions.EndDate, "Site24x7 log report end date")
 	site24x7Cmd.AddCommand(site24x7LogReportCmd)
+
+	site24x7DeleteLocationProfileCmd := &cobra.Command{
+		Use:   "delete-location-profile",
+		Short: "Delete location profile",
+		Run: func(cmd *cobra.Command, args []string) {
+
+			stdout.Debug("Deleting location profile...")
+			common.Debug("Site24x7", site24x7LocationProfileOptions, stdout)
+
+			bytes, err := site24x7New(stdout).DeleteLocationProfile(site24x7LocationProfileOptions)
+			if err != nil {
+				stdout.Error("Error: %v %s", err, string(bytes))
+				return
+			}
+			common.OutputJson(site24x7Output, "site24x7", []interface{}{site24x7Options, site24x7LocationProfileOptions}, bytes, stdout)
+		},
+	}
+	flags = site24x7DeleteLocationProfileCmd.PersistentFlags()
+	flags.StringVar(&site24x7LocationProfileOptions.ID, "site24x7-location-profile-id", site24x7LocationProfileOptions.ID, "Site24x7 location profile id")
+	site24x7Cmd.AddCommand(site24x7DeleteLocationProfileCmd)
 
 	return site24x7Cmd
 }
