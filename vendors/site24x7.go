@@ -117,6 +117,16 @@ type Site24x7LocationProfileReponse struct {
 	Data *Site24x7LocationProfileData `json:"data,omitempty"`
 }
 
+type Site24x7WebsiteMonitorData struct {
+	MonitorID         string `json:"monitor_id"`
+	LocationProfileID string `json:"location_profile_id"`
+}
+
+type Site24x7WebsiteMonitorResponse struct {
+	Site24x7Reponse
+	Data *Site24x7WebsiteMonitorData `json:"data,omitempty"`
+}
+
 type Site24x7PollingStatusData struct {
 	Status     string `json:"status"`
 	MonmitorID string `json:"monitor_id"`
