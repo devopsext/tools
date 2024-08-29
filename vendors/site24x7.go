@@ -84,6 +84,11 @@ type Site24x7Reponse struct {
 	Message string `json:"message"`
 }
 
+type Site24x7ErrorReponse struct {
+	ErrorCode int    `json:"error_code"`
+	Message   string `json:"message"`
+}
+
 type Site24x7LocationTemplateDataLocation struct {
 	LocationID  string `json:"location_id"`
 	DisplayName string `json:"display_name"`
@@ -197,6 +202,21 @@ func (s *Site24x7) CheckResponse(resp Site24x7Reponse) error {
 	return nil
 }
 
+func (s *Site24x7) CheckError(data []byte, e error) error {
+
+	r := Site24x7ErrorReponse{}
+
+	err := json.Unmarshal(data, &r)
+	if err != nil {
+		return err
+	}
+
+	if r.ErrorCode != 0 {
+		return fmt.Errorf("%s [%d]", r.Message, r.ErrorCode)
+	}
+	return e
+}
+
 // go to https://api-console.zoho.com/ and generate code with Site24x7.Admin.All scope
 // do curl with params according https://www.site24x7.com/help/api/#authentication page
 // copy refresh token and put into the options
@@ -237,13 +257,13 @@ func (s *Site24x7) getTokenAuth(opts Site24x7Options) (*Site24x7AuthReponse, err
 		return nil, err
 	}
 
-	bytes, err := utils.HttpPostRaw(s.client, u.String(), w.FormDataContentType(), "", body.Bytes())
+	d, err := utils.HttpPostRaw(s.client, u.String(), w.FormDataContentType(), "", body.Bytes())
 	if err != nil {
-		return nil, err
+		return nil, s.CheckError(d, err)
 	}
 
 	var r Site24x7AuthReponse
-	err = json.Unmarshal(bytes, &r)
+	err = json.Unmarshal(d, &r)
 	if err != nil {
 		return nil, err
 	}
@@ -373,7 +393,7 @@ func (s *Site24x7) CustomCreateWebsiteMonitor(site24x7Options Site24x7Options, c
 
 	d, err := s.CustomGetLocationTemplate(opts)
 	if err != nil {
-		return nil, err
+		return nil, s.CheckError(d, err)
 	}
 
 	ltr := Site24x7LocationTemplateReponse{}
@@ -415,7 +435,7 @@ func (s *Site24x7) CustomCreateWebsiteMonitor(site24x7Options Site24x7Options, c
 
 	d, err = s.CustomCreateLocationProfile(opts, lopts)
 	if err != nil {
-		return nil, err
+		return nil, s.CheckError(d, err)
 	}
 
 	lr := Site24x7LocationProfileReponse{}
@@ -435,12 +455,22 @@ func (s *Site24x7) CustomCreateWebsiteMonitor(site24x7Options Site24x7Options, c
 	}
 	u.Path = path.Join(u.Path, Site24x7Monitors)
 
+	frequency := createMonitorOptions.Frequency
+	if utils.IsEmpty(frequency) {
+		frequency = "1440"
+	}
+
+	timeout := createMonitorOptions.Timeout
+	if utils.IsEmpty(timeout) {
+		timeout = 30
+	}
+
 	r := &Site24x7WebsiteMonitor{
 		DisplayName:           createMonitorOptions.Name,
 		Type:                  "URL",
 		Website:               createMonitorOptions.URL,
-		CheckFrequency:        createMonitorOptions.Frequency,
-		Timeout:               createMonitorOptions.Timeout,
+		CheckFrequency:        frequency,
+		Timeout:               timeout,
 		LocationProfileID:     lr.Data.ProfileID,
 		NotificationProfileID: createMonitorOptions.NotificationProfileID,
 		ThresholdProfileID:    createMonitorOptions.ThresholdProfileID,
