@@ -210,6 +210,11 @@ const (
 	Site24x7ContentType          = "application/json"
 )
 
+const (
+	Site24x7DataCollectionTypeNormal  = "1"
+	Site24x7DataCollectionTypePollNow = "3"
+)
+
 func (s *Site24x7) CheckResponse(resp Site24x7Reponse) error {
 
 	if resp.Code != 0 {
