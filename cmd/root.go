@@ -22,8 +22,30 @@ var stdoutOptions = common.StdoutOptions{
 	TextColors:      envGet("STDOUT_TEXT_COLORS", true).(bool),
 }
 
-func envGet(s string, d interface{}) interface{} {
-	return utils.EnvGet(fmt.Sprintf("%s_%s", APPNAME, s), d)
+func getOnlyEnv(key string) string {
+	value, ok := os.LookupEnv(key)
+	if ok {
+		return value
+	}
+	return fmt.Sprintf("$%s", key)
+}
+
+func envGet(s string, def interface{}) interface{} {
+	return utils.EnvGet(fmt.Sprintf("%s_%s", APPNAME, s), def)
+}
+
+func envStringExpand(s string, def string) string {
+	snew := envGet(s, def).(string)
+	return os.Expand(snew, getOnlyEnv)
+}
+
+func envFileContentExpand(s string, def string) string {
+	snew := envGet(s, def).(string)
+	bytes, err := utils.Content(snew)
+	if err != nil {
+		return def
+	}
+	return os.Expand(string(bytes), getOnlyEnv)
 }
 
 func Execute() {
