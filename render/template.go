@@ -1635,6 +1635,275 @@ func (tpl *Template) GoogleCalendarDeleteEvents(params map[string]interface{}) (
 	return google.CalendarDeleteEvents(calendarOptions, calendarGetEventsOptions)
 }
 
+func (tpl *Template) SSHRun(params map[string]interface{}) (string, error) {
+
+	/*
+	   /bin/systemctl restart docker.service
+	   /bin/systemctl restart kubelet.service
+	   /usr/sbin/shutdown -r now
+	*/
+
+	user, _ := params["user"].(string)
+	address, _ := params["address"].(string)
+	command, _ := params["command"].(string)
+	privateKeyPath, _ := params["path"].(string)
+
+	var privateKey []byte
+	if utils.IsEmpty(privateKeyPath) {
+		privateKey, _ = params["privateKey"].([]byte)
+	} else {
+		pk, err := os.ReadFile(privateKeyPath)
+		if err != nil {
+			return "", err
+		}
+		privateKey = pk
+	}
+
+	sshOptions := vendors.SSHOptions{
+		User:       user,
+		Address:    address,
+		PrivateKey: privateKey,
+		Command:    command,
+	}
+
+	ssh := vendors.NewSSH(sshOptions)
+	response, err := ssh.Run(sshOptions)
+	if err != nil {
+		return "", err
+	}
+
+	return response, nil
+
+}
+
+func (tpl *Template) VMrestart(params map[string]interface{}) ([]byte, error) {
+
+	user, _ := params["user"].(string)
+	url, _ := params["url"].(string)
+	password, _ := params["password"].(string)
+	vms := strings.Split(params["vms"].(string), ",")
+	timeout, _ := params["timeout"].(int)
+	if timeout == 0 {
+		timeout = 20
+	}
+	insecure, _ := params["insecure"].(bool)
+
+	vcenterOptions := vendors.VCenterOptions{
+		URL:      url,
+		User:     user,
+		Password: password,
+		Timeout:  timeout,
+		Insecure: insecure,
+	}
+
+	vmNames := vendors.VCenterVMNameOptions{
+		Names: vms,
+	}
+
+	vcenterOptions, err := vendors.InitializeVCenterSession(vcenterOptions)
+	if err != nil {
+		return nil, err
+	}
+
+	vcenter := vendors.NewVCenter(vcenterOptions)
+
+	var vi vendors.VMsResponse
+
+	vmInfo, err := vcenter.GetVMsByName(vmNames)
+	if err != nil {
+		return nil, err
+	}
+	err = json.Unmarshal(vmInfo, &vi)
+	if err != nil {
+		return nil, err
+	}
+
+	var response []byte
+
+	if len(vi.Value) > 0 {
+		for _, vm := range vi.Value {
+			response, err = vcenter.RestartVM(vm.VM)
+			if err != nil {
+				return nil, err
+			}
+		}
+	}
+
+	return response, nil
+
+}
+
+func (tpl *Template) VMstop(params map[string]interface{}) ([]byte, error) {
+
+	user, _ := params["user"].(string)
+	url, _ := params["url"].(string)
+	password, _ := params["password"].(string)
+	vms := strings.Split(params["vms"].(string), ",")
+	timeout, _ := params["timeout"].(int)
+	if timeout == 0 {
+		timeout = 20
+	}
+	insecure, _ := params["insecure"].(bool)
+
+	vcenterOptions := vendors.VCenterOptions{
+		URL:      url,
+		User:     user,
+		Password: password,
+		Timeout:  timeout,
+		Insecure: insecure,
+	}
+
+	vmNames := vendors.VCenterVMNameOptions{
+		Names: vms,
+	}
+
+	vcenterOptions, err := vendors.InitializeVCenterSession(vcenterOptions)
+	if err != nil {
+		return nil, err
+	}
+
+	vcenter := vendors.NewVCenter(vcenterOptions)
+
+	var vi vendors.VMsResponse
+
+	vmInfo, err := vcenter.GetVMsByName(vmNames)
+	if err != nil {
+		return nil, err
+	}
+	err = json.Unmarshal(vmInfo, &vi)
+	if err != nil {
+		return nil, err
+	}
+
+	var response []byte
+
+	if len(vi.Value) > 0 {
+		for _, vm := range vi.Value {
+			response, err = vcenter.StopVM(vm.VM)
+			if err != nil {
+				return nil, err
+			}
+		}
+	}
+
+	return response, nil
+
+}
+
+func (tpl *Template) VMstart(params map[string]interface{}) ([]byte, error) {
+
+	user, _ := params["user"].(string)
+	url, _ := params["url"].(string)
+	password, _ := params["password"].(string)
+	vms := strings.Split(params["vms"].(string), ",")
+	timeout, _ := params["timeout"].(int)
+	if timeout == 0 {
+		timeout = 20
+	}
+	insecure, _ := params["insecure"].(bool)
+
+	vcenterOptions := vendors.VCenterOptions{
+		URL:      url,
+		User:     user,
+		Password: password,
+		Timeout:  timeout,
+		Insecure: insecure,
+	}
+
+	vmNames := vendors.VCenterVMNameOptions{
+		Names: vms,
+	}
+
+	vcenterOptions, err := vendors.InitializeVCenterSession(vcenterOptions)
+	if err != nil {
+		return nil, err
+	}
+
+	vcenter := vendors.NewVCenter(vcenterOptions)
+
+	var vi vendors.VMsResponse
+
+	vmInfo, err := vcenter.GetVMsByName(vmNames)
+	if err != nil {
+		return nil, err
+	}
+	err = json.Unmarshal(vmInfo, &vi)
+	if err != nil {
+		return nil, err
+	}
+
+	var response []byte
+
+	if len(vi.Value) > 0 {
+		for _, vm := range vi.Value {
+			response, err = vcenter.StartVM(vm.VM)
+			if err != nil {
+				return nil, err
+			}
+		}
+	}
+
+	return response, nil
+
+}
+
+func (tpl *Template) VMstatus(params map[string]interface{}) ([]byte, error) {
+
+	user, _ := params["user"].(string)
+	url, _ := params["url"].(string)
+	password, _ := params["password"].(string)
+	vms := strings.Split(params["vms"].(string), ",")
+	timeout, _ := params["timeout"].(int)
+	if timeout == 0 {
+		timeout = 20
+	}
+	insecure, _ := params["insecure"].(bool)
+
+	vcenterOptions := vendors.VCenterOptions{
+		URL:      url,
+		User:     user,
+		Password: password,
+		Timeout:  timeout,
+		Insecure: insecure,
+	}
+
+	vmNames := vendors.VCenterVMNameOptions{
+		Names: vms,
+	}
+
+	vcenterOptions, err := vendors.InitializeVCenterSession(vcenterOptions)
+	if err != nil {
+		return nil, err
+	}
+
+	vcenter := vendors.NewVCenter(vcenterOptions)
+
+	var vi vendors.VMsResponse
+
+	vmInfo, err := vcenter.GetVMsByName(vmNames)
+	if err != nil {
+		return nil, err
+	}
+	err = json.Unmarshal(vmInfo, &vi)
+	if err != nil {
+		return nil, err
+	}
+
+	var response []byte
+
+	if len(vi.Value) > 0 {
+		for _, vm := range vi.Value {
+			response, err = vcenter.GetVM(vm.VM)
+			if err != nil {
+				return nil, err
+			}
+		}
+	}
+
+	return response, nil
+
+}
+
 func (tpl *Template) setTemplateFuncs(funcs map[string]any) {
 
 	funcs["parserLine"] = tpl.ParserLine
@@ -1710,6 +1979,11 @@ func (tpl *Template) setTemplateFuncs(funcs map[string]any) {
 	funcs["googleCalendarGetEvents"] = tpl.GoogleCalendarGetEvents
 	funcs["googleCalendarInsertEvent"] = tpl.GoogleCalendarInsertEvent
 	funcs["googleCalendarDeleteEvents"] = tpl.GoogleCalendarDeleteEvents
+	funcs["sshRun"] = tpl.SSHRun
+	funcs["vmRestart"] = tpl.VMrestart
+	funcs["vmStart"] = tpl.VMstart
+	funcs["vmStop"] = tpl.VMstop
+	funcs["vmStatus"] = tpl.VMstatus
 
 	funcs["prometheusGet"] = tpl.PrometheusGet
 }
