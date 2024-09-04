@@ -1676,7 +1676,7 @@ func (tpl *Template) SSHRun(params map[string]interface{}) (string, error) {
 
 }
 
-func (tpl *Template) VMrestart(params map[string]interface{}) ([]byte, error) {
+func (tpl *Template) VMRestart(params map[string]interface{}) ([]byte, error) {
 
 	user, _ := params["user"].(string)
 	url, _ := params["url"].(string)
@@ -1733,7 +1733,7 @@ func (tpl *Template) VMrestart(params map[string]interface{}) ([]byte, error) {
 
 }
 
-func (tpl *Template) VMstop(params map[string]interface{}) ([]byte, error) {
+func (tpl *Template) VMStop(params map[string]interface{}) ([]byte, error) {
 
 	user, _ := params["user"].(string)
 	url, _ := params["url"].(string)
@@ -1790,7 +1790,7 @@ func (tpl *Template) VMstop(params map[string]interface{}) ([]byte, error) {
 
 }
 
-func (tpl *Template) VMstart(params map[string]interface{}) ([]byte, error) {
+func (tpl *Template) VMStart(params map[string]interface{}) ([]byte, error) {
 
 	user, _ := params["user"].(string)
 	url, _ := params["url"].(string)
@@ -1847,7 +1847,7 @@ func (tpl *Template) VMstart(params map[string]interface{}) ([]byte, error) {
 
 }
 
-func (tpl *Template) VMstatus(params map[string]interface{}) ([]byte, error) {
+func (tpl *Template) VMStatus(params map[string]interface{}) ([]byte, error) {
 
 	user, _ := params["user"].(string)
 	url, _ := params["url"].(string)
@@ -1980,10 +1980,10 @@ func (tpl *Template) setTemplateFuncs(funcs map[string]any) {
 	funcs["googleCalendarInsertEvent"] = tpl.GoogleCalendarInsertEvent
 	funcs["googleCalendarDeleteEvents"] = tpl.GoogleCalendarDeleteEvents
 	funcs["sshRun"] = tpl.SSHRun
-	funcs["vmRestart"] = tpl.VMrestart
-	funcs["vmStart"] = tpl.VMstart
-	funcs["vmStop"] = tpl.VMstop
-	funcs["vmStatus"] = tpl.VMstatus
+	funcs["vmRestart"] = tpl.VMRestart
+	funcs["vmStart"] = tpl.VMStart
+	funcs["vmStop"] = tpl.VMStop
+	funcs["vmStatus"] = tpl.VMStatus
 
 	funcs["prometheusGet"] = tpl.PrometheusGet
 }
