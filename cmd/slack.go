@@ -13,11 +13,11 @@ var slackOptions = vendors.SlackOptions{
 	Timeout:  envGet("SLACK_TIMEOUT", 30).(int),
 	Insecure: envGet("SLACK_INSECURE", false).(bool),
 	Token:    envGet("SLACK_TOKEN", "").(string),
-	Channel:  envGet("SLACK_CHANNEL", "").(string),
-	ParentTS: envGet("SLACK_THREAD", "").(string),
 }
 
 var slackMessageOptions = vendors.SlackMessageOptions{
+	Channel:     envGet("SLACK_CHANNEL", "").(string),
+	Thread:      envGet("SLACK_THREAD", "").(string),
 	Title:       envGet("SLACK_TITLE", "").(string),
 	Text:        envGet("SLACK_TEXT", "").(string),
 	Attachments: envGet("SLACK_ATTACHMENTS", "").(string),
@@ -25,6 +25,8 @@ var slackMessageOptions = vendors.SlackMessageOptions{
 }
 
 var slackFileOptions = vendors.SlackFileOptions{
+	Channel: envGet("SLACK_CHANNEL", "").(string),
+	Thread:  envGet("SLACK_THREAD", "").(string),
 	Title:   envGet("SLACK_TITLE", "").(string),
 	Text:    envGet("SLACK_TEXT", "").(string),
 	Name:    envGet("SLACK_NAME", "").(string),
@@ -69,8 +71,6 @@ func NewSlackCommand() *cobra.Command {
 	flags.IntVar(&slackOptions.Timeout, "slack-timeout", slackOptions.Timeout, "Slack timeout")
 	flags.BoolVar(&slackOptions.Insecure, "slack-insecure", slackOptions.Insecure, "Slack insecure")
 	flags.StringVar(&slackOptions.Token, "slack-token", slackOptions.Token, "Slack token")
-	flags.StringVar(&slackOptions.Channel, "slack-channel", slackOptions.Channel, "Slack channel")
-	flags.StringVar(&slackOptions.ParentTS, "slack-thread", slackOptions.ParentTS, "Slack thread")
 	flags.StringVar(&slackOutput.Output, "slack-output", slackOutput.Output, "Slack output")
 	flags.StringVar(&slackOutput.Query, "slack-output-query", slackOutput.Query, "Slack output query")
 
@@ -97,6 +97,8 @@ func NewSlackCommand() *cobra.Command {
 		},
 	}
 	flags = sendMessage.PersistentFlags()
+	flags.StringVar(&slackMessageOptions.Channel, "slack-channel", slackMessageOptions.Channel, "Slack channel")
+	flags.StringVar(&slackMessageOptions.Thread, "slack-thread", slackMessageOptions.Thread, "Slack thread")
 	flags.StringVar(&slackMessageOptions.Title, "slack-title", slackMessageOptions.Title, "Slack title")
 	flags.StringVar(&slackMessageOptions.Text, "slack-text", slackMessageOptions.Text, "Slack text")
 	flags.StringVar(&slackMessageOptions.Attachments, "slack-attachments", slackMessageOptions.Attachments, "Slack attachments json")
@@ -132,6 +134,8 @@ func NewSlackCommand() *cobra.Command {
 		},
 	}
 	flags = sendFile.PersistentFlags()
+	flags.StringVar(&slackFileOptions.Channel, "slack-channel", slackFileOptions.Channel, "Slack channel")
+	flags.StringVar(&slackFileOptions.Thread, "slack-thread", slackFileOptions.Thread, "Slack thread")
 	flags.StringVar(&slackFileOptions.Title, "slack-title", slackFileOptions.Title, "Slack title")
 	flags.StringVar(&slackFileOptions.Text, "slack-text", slackFileOptions.Text, "Slack text")
 	flags.StringVar(&slackFileOptions.Name, "slack-name", slackFileOptions.Name, "Slack file name")

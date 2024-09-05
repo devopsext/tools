@@ -29,11 +29,11 @@ type SlackOptions struct {
 	Timeout  int
 	Insecure bool
 	Token    string
-	Channel  string
-	ParentTS string
 }
 
 type SlackMessageOptions struct {
+	Channel     string
+	Thread      string
 	Title       string
 	Text        string
 	Attachments string
@@ -41,6 +41,8 @@ type SlackMessageOptions struct {
 }
 
 type SlackFileOptions struct {
+	Channel string
+	Thread  string
 	Title   string
 	Text    string
 	Name    string
@@ -49,7 +51,31 @@ type SlackFileOptions struct {
 }
 
 type SlackReactionOptions struct {
-	Name string
+	Channel string
+	Thread  string
+	Name    string
+}
+
+type SlackMessageBlock struct {
+	Type    string `json:"type"`
+	BlockID string `json:"block_id"`
+}
+
+type SlackMessage struct {
+	Subtype string               `json:"subtype"`
+	Text    string               `json:"text"`
+	Type    string               `json:"type"`
+	TS      string               `json:"ts"`
+	BotID   string               `json:"bot_id,omitempty"`
+	UserID  string               `json:"user_id,omitempty"`
+	Blocks  []*SlackMessageBlock `json:"blocks,omitempty"`
+}
+
+type SlackMessageResponse struct {
+	OK      bool          `json:"ok"`
+	Channel string        `json:"channel"`
+	TS      string        `json:"ts"`
+	Message *SlackMessage `json:"message,omitempty"`
 }
 
 type SlackOutputOptions struct {
@@ -309,12 +335,12 @@ func (s *Slack) CustomSendMessage(slackOptions SlackOptions, messageOptions Slac
 		w.Close()
 	}()
 
-	if err := w.WriteField("channel", slackOptions.Channel); err != nil {
+	if err := w.WriteField("channel", messageOptions.Channel); err != nil {
 		return nil, err
 	}
 
-	if !utils.IsEmpty(slackOptions.ParentTS) {
-		if err := w.WriteField("thread_ts", slackOptions.ParentTS); err != nil {
+	if !utils.IsEmpty(messageOptions.Thread) {
+		if err := w.WriteField("thread_ts", messageOptions.Thread); err != nil {
 			return nil, err
 		}
 	}
@@ -360,12 +386,12 @@ func (s *Slack) CustomSendFile(slackOptions SlackOptions, fileOptions SlackFileO
 		w.Close()
 	}()
 
-	if err := w.WriteField("channels", slackOptions.Channel); err != nil {
+	if err := w.WriteField("channels", fileOptions.Channel); err != nil {
 		return nil, err
 	}
 
-	if !utils.IsEmpty(slackOptions.ParentTS) {
-		if err := w.WriteField("thread_ts", slackOptions.ParentTS); err != nil {
+	if !utils.IsEmpty(fileOptions.Thread) {
+		if err := w.WriteField("thread_ts", fileOptions.Thread); err != nil {
 			return nil, err
 		}
 	}
@@ -412,7 +438,7 @@ func (s *Slack) CustomAddReaction(slackOptions SlackOptions, reactionOptions Sla
 		w.Close()
 	}()
 
-	if err := w.WriteField("channel", slackOptions.Channel); err != nil {
+	if err := w.WriteField("channel", reactionOptions.Channel); err != nil {
 		return nil, err
 	}
 
@@ -420,8 +446,10 @@ func (s *Slack) CustomAddReaction(slackOptions SlackOptions, reactionOptions Sla
 		return nil, err
 	}
 
-	if err := w.WriteField("timestamp", slackOptions.ParentTS); err != nil {
-		return nil, err
+	if !utils.IsEmpty(reactionOptions.Thread) {
+		if err := w.WriteField("timestamp", reactionOptions.Thread); err != nil {
+			return nil, err
+		}
 	}
 
 	if err := w.Close(); err != nil {
