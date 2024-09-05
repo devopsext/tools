@@ -11,6 +11,7 @@ import (
 	"net"
 	"net/http"
 	"os"
+	"path/filepath"
 	"regexp"
 	"sort"
 	"strconv"
@@ -824,6 +825,20 @@ func (tpl *Template) DateParse(d string) (time.Time, error) {
 	return t, nil
 }
 
+func (tpl *Template) DurationBetween(start, end time.Time) map[string]int {
+    duration := end.Sub(start)
+
+    days := int(duration.Hours()) / 24
+    hours := int(duration.Hours()) % 24
+    minutes := int(duration.Minutes()) % 60
+
+    return map[string]int{
+        "Days": days,
+        "Hours": hours,
+        "Minutes": minutes,
+    }
+}
+
 func (tpl *Template) NowFmt(f string) string {
 
 	t := time.Now()
@@ -844,6 +859,42 @@ func (tpl *Template) Error(format string, a ...any) (string, error) {
 }
 
 // url, contentType, authorization string, timeout int
+func (tpl *Template) HttpGetHeader(params map[string]interface{}) (map[string][]string, error) {
+	if len(params) == 0 {
+		return nil, fmt.Errorf("HttpGetHeader err => %s", "no params allowed")
+	}
+
+	url, ok := params["url"].(string)
+	if !ok || url == "" {
+		return nil, fmt.Errorf("HttpGetHeader err => %s", "invalid or missing URL")
+	}
+	timeout, ok := params["timeout"].(int)
+	if !ok || timeout <= 0 {
+		timeout = 5
+	}
+
+	insecure, _ := params["insecure"].(bool)
+
+	var transport = &http.Transport{
+		Dial:                (&net.Dialer{Timeout: time.Duration(timeout) * time.Second}).Dial,
+		TLSHandshakeTimeout: time.Duration(timeout) * time.Second,
+		TLSClientConfig:     &tls.Config{InsecureSkipVerify: insecure},
+	}
+
+	client := http.Client{
+		Timeout:   time.Duration(timeout) * time.Second,
+		Transport: transport,
+	}
+
+	// Call the GetHeaders function
+	headers, err := utils.HttpGetHeader(&client, url)
+	if err != nil {
+		return nil, fmt.Errorf("HttpGetHeader err => %w", err)
+	}
+
+	return headers, nil
+}
+
 func (tpl *Template) HttpGet(params map[string]interface{}) ([]byte, error) {
 
 	if len(params) == 0 {
@@ -1715,6 +1766,32 @@ func (tpl *Template) SSHRun(params map[string]interface{}) (string, error) {
 
 }
 
+func (tpl *Template) ListFilesWithModTime(rootDir string) (map[string]string, error) {
+    filesMap := make(map[string]string)
+
+    // Walk through the directory tree
+    err := filepath.Walk(rootDir, func(path string, info os.FileInfo, err error) error {
+        if err != nil {
+            // Handle the error (e.g., skip the file or directory)
+            fmt.Println("Error accessing", path, ":", err)
+            return nil
+        }
+
+        if !info.IsDir() {
+            // Extract and collect filename and last modified date
+            filename := filepath.Base(path)
+            filesMap[filename] = info.ModTime().Format(time.RFC3339)
+        }
+        return nil
+    })
+
+    if err != nil {
+        return nil, fmt.Errorf("error walking the directory: %w", err)
+    }
+
+    return filesMap, nil
+}
+
 func (tpl *Template) VMRestart(params map[string]interface{}) ([]byte, error) {
 
 	user, _ := params["user"].(string)
@@ -1999,10 +2076,12 @@ func (tpl *Template) setTemplateFuncs(funcs map[string]any) {
 	funcs["tagExists"] = tpl.TagExists
 	funcs["tagValue"] = tpl.TagValue
 	funcs["dateParse"] = tpl.DateParse
+	funcs["durationBetween"] = tpl.DurationBetween
 	funcs["nowFmt"] = tpl.NowFmt
 	funcs["sleep"] = tpl.Sleep
 	funcs["error"] = tpl.Error
 
+	funcs["httpGetHeader"] = tpl.HttpGetHeader
 	funcs["httpGet"] = tpl.HttpGet
 	funcs["httpPost"] = tpl.HttpPost
 	funcs["jiraSearchAssets"] = tpl.JiraSearchAssets
@@ -2022,6 +2101,7 @@ func (tpl *Template) setTemplateFuncs(funcs map[string]any) {
 	funcs["googleCalendarInsertEvent"] = tpl.GoogleCalendarInsertEvent
 	funcs["googleCalendarDeleteEvents"] = tpl.GoogleCalendarDeleteEvents
 	funcs["sshRun"] = tpl.SSHRun
+	funcs["listFilesWithModTime"] = tpl.ListFilesWithModTime
 	funcs["vmRestart"] = tpl.VMRestart
 	funcs["vmStart"] = tpl.VMStart
 	funcs["vmStop"] = tpl.VMStop
