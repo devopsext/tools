@@ -129,6 +129,7 @@ type Site24x7LocationProfilesReponse struct {
 type Site24x7WebsiteMonitorData struct {
 	MonitorID         string `json:"monitor_id"`
 	LocationProfileID string `json:"location_profile_id"`
+	DisplayName       string `json:"display_name"`
 }
 
 type Site24x7WebsiteMonitorResponse struct {
