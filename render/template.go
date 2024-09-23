@@ -793,7 +793,7 @@ func (tpl *Template) DateParse(d string) (time.Time, error) {
 	return t, nil
 }
 
-func (tpl *Template) nowFmt(f string) string {
+func (tpl *Template) NowFmt(f string) string {
 
 	t := time.Now()
 	s := t.Format(f)
@@ -1966,7 +1966,7 @@ func (tpl *Template) setTemplateFuncs(funcs map[string]any) {
 	funcs["tagExists"] = tpl.TagExists
 	funcs["tagValue"] = tpl.TagValue
 	funcs["dateParse"] = tpl.DateParse
-	funcs["nowFmt"] = tpl.nowFmt
+	funcs["nowFmt"] = tpl.NowFmt
 	funcs["sleep"] = tpl.Sleep
 	funcs["error"] = tpl.Error
 
