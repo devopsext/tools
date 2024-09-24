@@ -12,6 +12,7 @@ import (
 	"net/http"
 	"os"
 	"regexp"
+	"sort"
 	"strconv"
 	"strings"
 	"text/template"
@@ -372,6 +373,36 @@ func (tpl *Template) FindObjects(obj interface{}, field string, value interface{
 		return r
 	}
 	return r
+}
+
+func (tpl *Template) CountOccurrences(list []interface{}) map[string]int {
+	occurrences := make(map[string]int)
+	for _, item := range list {
+		occurrences[item.(string)]++
+	}
+
+	return occurrences
+}
+
+func (tpl *Template) SortOccurrences(occurrences map[string]int, sep string, count int) []string {
+	keys := make([]string, 0, len(occurrences))
+	for k := range occurrences {
+		keys = append(keys, k)
+	}
+
+	sort.Slice(keys, func(i, j int) bool {
+		return occurrences[keys[i]] > occurrences[keys[j]]
+	})
+
+	sortedKeyValues := make([]string, 0, len(keys))
+	for _, k := range keys {
+		sortedKeyValues = append(sortedKeyValues, k+sep+strconv.Itoa(occurrences[k]))
+	}
+
+	if count > len(sortedKeyValues) {
+		return sortedKeyValues
+	}
+	return sortedKeyValues[:count]
 }
 
 // toLower converts the given string (usually by a pipe) to lowercase.
@@ -1934,6 +1965,8 @@ func (tpl *Template) setTemplateFuncs(funcs map[string]any) {
 	funcs["findObject"] = tpl.FindObject
 	funcs["findObjects"] = tpl.FindObjects
 	funcs["findObjectByField"] = tpl.FindObject
+	funcs["countOccurrences"] = tpl.CountOccurrences
+	funcs["sortOccurrences"] = tpl.SortOccurrences
 
 	funcs["replaceAll"] = tpl.ReplaceAll
 	funcs["toLower"] = tpl.ToLower
