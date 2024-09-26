@@ -859,7 +859,7 @@ func (tpl *Template) Error(format string, a ...any) (string, error) {
 }
 
 // url, contentType, authorization string, timeout int
-func (tpl *Template) HttpGetHeader(params map[string]interface{}) (map[string][]string, error) {
+func (tpl *Template) HttpGetHeader(params map[string]interface{}) ([]byte, error) {
 	if len(params) == 0 {
 		return nil, fmt.Errorf("HttpGetHeader err => %s", "no params allowed")
 	}
@@ -892,7 +892,12 @@ func (tpl *Template) HttpGetHeader(params map[string]interface{}) (map[string][]
 		return nil, fmt.Errorf("HttpGetHeader err => %w", err)
 	}
 
-	return headers, nil
+    headersBytes, err := json.Marshal(headers)
+    if err != nil {
+        return nil, fmt.Errorf("HttpGetHeader err => %w", err)
+    }
+
+	return headersBytes, nil
 }
 
 func (tpl *Template) HttpGet(params map[string]interface{}) ([]byte, error) {
