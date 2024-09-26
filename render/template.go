@@ -1637,33 +1637,18 @@ func (tpl *Template) GoogleCalendarDeleteEvents(params map[string]interface{}) (
 
 func (tpl *Template) SSHRun(params map[string]interface{}) ([]byte, error) {
 
-	/*
-		   /bin/systemctl restart docker.service
-		   /bin/systemctl restart kubelet.service
-		   /usr/sbin/shutdown -r now
-			 /bin/systemctl restart metrics.service
-			 /bin/systemctl start metrics.service
-			 /bin/systemctl stop metrics.service
-	*/
-
 	user, _ := params["user"].(string)
 	host, _ := params["host"].(string)
 	command, _ := params["command"].(string)
-	privateKeyPath, _ := params["path"].(string)
+	key, _ := params["key"].(string)
 	timeout, _ := params["timeout"].(int)
 	if timeout == 0 {
 		timeout = 40
 	}
 
-	var privateKey []byte
-	if utils.IsEmpty(privateKeyPath) {
-		privateKey, _ = params["privateKey"].([]byte)
-	} else {
-		pk, err := os.ReadFile(privateKeyPath)
-		if err != nil {
-			return nil, err
-		}
-		privateKey = pk
+	privateKey, err := utils.Content(key)
+	if err != nil {
+		return nil, err
 	}
 
 	sshOptions := vendors.SSHOptions{
