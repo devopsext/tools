@@ -2,8 +2,10 @@ package vendors
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"net"
+	"time"
 
 	"golang.org/x/crypto/ssh"
 )
@@ -16,12 +18,13 @@ type SSHOptions struct {
 	Address    string
 	PrivateKey []byte
 	Command    string
+	Timeout    int
 }
 
-func (s *SSH) Run(options SSHOptions) (string, error) {
+func (s *SSH) Run(options SSHOptions) ([]byte, error) {
 	key, err := ssh.ParsePrivateKey(options.PrivateKey)
 	if err != nil {
-		return "", fmt.Errorf("failed to parse private key: %w", err)
+		return nil, fmt.Errorf("failed to parse private key: %w", err)
 	}
 
 	config := &ssh.ClientConfig{
@@ -39,21 +42,39 @@ func (s *SSH) Run(options SSHOptions) (string, error) {
 
 	client, err := ssh.Dial("tcp", net.JoinHostPort(options.Address, "22"), config)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 	defer client.Close()
 
 	session, err := client.NewSession()
 	if err != nil {
-		return "", err
+		return nil, err
 	}
-	defer session.Close() // Ensure session is closed
+	defer session.Close()
 
 	var b bytes.Buffer
 	session.Stdout = &b
 
-	err = session.Run(options.Command)
-	return b.String(), err
+	ctx := context.Background()
+	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(options.Timeout)*time.Second)
+	defer cancel()
+
+	done := make(chan error, 1)
+	go func() {
+
+		done <- session.Run(options.Command)
+	}()
+
+	select {
+	case <-ctx.Done():
+		return nil, fmt.Errorf("SSH command timed out after %d seconds", options.Timeout)
+	case err := <-done:
+		if err != nil {
+			return nil, fmt.Errorf("SSH command failed: %w", err)
+		}
+	}
+
+	return b.Bytes(), err
 }
 
 func NewSSH(options SSHOptions) *SSH {
