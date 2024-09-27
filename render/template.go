@@ -1730,41 +1730,34 @@ func (tpl *Template) GoogleCalendarDeleteEvents(params map[string]interface{}) (
 	return google.CalendarDeleteEvents(calendarOptions, calendarGetEventsOptions)
 }
 
-func (tpl *Template) SSHRun(params map[string]interface{}) (string, error) {
-
-	/*
-	   /bin/systemctl restart docker.service
-	   /bin/systemctl restart kubelet.service
-	   /usr/sbin/shutdown -r now
-	*/
+func (tpl *Template) SSHRun(params map[string]interface{}) ([]byte, error) {
 
 	user, _ := params["user"].(string)
-	address, _ := params["address"].(string)
+	host, _ := params["host"].(string)
 	command, _ := params["command"].(string)
-	privateKeyPath, _ := params["path"].(string)
+	key, _ := params["key"].(string)
+	timeout, _ := params["timeout"].(int)
+	if timeout == 0 {
+		timeout = 40
+	}
 
-	var privateKey []byte
-	if utils.IsEmpty(privateKeyPath) {
-		privateKey, _ = params["privateKey"].([]byte)
-	} else {
-		pk, err := os.ReadFile(privateKeyPath)
-		if err != nil {
-			return "", err
-		}
-		privateKey = pk
+	privateKey, err := utils.Content(key)
+	if err != nil {
+		return nil, err
 	}
 
 	sshOptions := vendors.SSHOptions{
 		User:       user,
-		Address:    address,
+		Address:    host,
 		PrivateKey: privateKey,
 		Command:    command,
+		Timeout:    timeout,
 	}
 
 	ssh := vendors.NewSSH(sshOptions)
 	response, err := ssh.Run(sshOptions)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
 	return response, nil
