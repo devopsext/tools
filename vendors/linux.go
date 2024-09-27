@@ -41,16 +41,18 @@ func (s *SSH) Run(options SSHOptions) ([]byte, error) {
 	}
 
 	client, err := ssh.Dial("tcp", net.JoinHostPort(options.Address, "22"), config)
-	defer client.Close()
+
 	if err != nil {
 		return nil, err
 	}
+	defer client.Close()
 
 	session, err := client.NewSession()
-	defer session.Close()
+
 	if err != nil {
 		return nil, err
 	}
+	defer session.Close()
 
 	var b bytes.Buffer
 	session.Stdout = &b
