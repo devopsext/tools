@@ -11,6 +11,7 @@ import (
 	"net/url"
 	"path/filepath"
 	"sort"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -19,15 +20,24 @@ import (
 const (
 	iSO8601BasicFormat          = "20060102T150405Z"
 	iSO8601BasicFormatShort     = "20060102"
+	defaultAWSEC2AssumeRoleURL  = "https://sts.us-east-1.amazonaws.com/?Action=AssumeRole&Version=2011-06-15"
 	defaultAWSEC2RegionsURL     = "https://ec2.us-east-1.amazonaws.com/?Action=DescribeRegions&Version=2016-11-15"
 	defaultAWSAccountDetailsURL = "https://sts.us-east-1.amazonaws.com/?Action=GetCallerIdentity&Version=2011-06-15"
 )
 
 var lf = []byte{'\n'}
 
+type AWSOptions struct {
+	Accounts     string
+	Role        string
+	RoleTimeout string
+	AWSKeys
+}
+
 type AWSKeys struct {
-	AccessKey string
-	SecretKey string
+	AccessKey    string
+	SecretKey    string
+	SessionToken string
 }
 
 type AWSClient struct {
@@ -48,6 +58,13 @@ type AWSRegion struct {
 	RegionEndpoint string `xml:"regionEndpoint"`
 }
 
+type awsAssumeRoleResponse struct {
+	XMLName      xml.Name `xml:"https://sts.amazonaws.com/doc/2011-06-15/ AssumeRoleResponse"`
+	AccessKey    string   `xml:"AssumeRoleResult>Credentials>AccessKeyId"`
+	SecretKey    string   `xml:"AssumeRoleResult>Credentials>SecretAccessKey"`
+	SessionToken string   `xml:"AssumeRoleResult>Credentials>SessionToken"`
+}
+
 type awsDescribeRegionsResponse struct {
 	XMLName    xml.Name `xml:"http://ec2.amazonaws.com/doc/2016-11-15/ DescribeRegionsResponse"`
 	RequestId  string   `xml:"requestId"`
@@ -64,6 +81,7 @@ type awsEC2describeInstancesResponse struct {
 type awsEC2InstanceMetadata struct {
 	InstanceId string `xml:"instanceId"`
 	KeyName    string `xml:"keyName"`
+	PrivateIpAddress  string `xml:"privateIpAddress"`
 	IpAddress  string `xml:"ipAddress"`
 	Platform   string `xml:"platformDetails"`
 	Tags       []struct {
@@ -78,12 +96,15 @@ type awsAccountMetadata struct {
 }
 
 type awsBase struct {
-	clients []*AWSClient // Per AWS design, one client is needed per region
-	keys    AWSKeys
+	clients     []*AWSClient // Per AWS design, one client is needed per region
+	account     string
+	role        string
+	roleTimeout int
+	keys        AWSKeys
 }
 
 type AWSEC2 struct {
-	awsBase
+	baseConfigs []awsBase
 }
 
 type AWSEC2Instance struct {
@@ -99,25 +120,76 @@ type AWSEC2Instance struct {
 
 // NewAWSEC2 creates a new instance of AWSEC2 with the given AWS keys.
 // It retrieves available regions and generates clients for each region.
-func NewAWSEC2(keys AWSKeys) (*AWSEC2, error) {
-	if keys.AccessKey == "" || keys.SecretKey == "" {
-		return nil, fmt.Errorf("cannot create ec2 object, aws keys not present")
+func NewAWSEC2(opts AWSOptions) (*AWSEC2, error) {
+	if opts.AccessKey == "" || opts.SecretKey == "" || opts.Role == "" || opts.Accounts == "" {
+		return nil, fmt.Errorf("cannot create ec2 object, aws keys, role or account not present")
 	}
-	ec2 := AWSEC2{
-		awsBase{
-			keys: keys,
-		},
-	}
-	regions, err := ec2.getAvailableAWSRegions()
-	if err != nil {
-		return nil, err
-	}
-	err = ec2.generateAWSClients(regions, keys)
-	if err != nil {
-		return nil, err
+	roleTimeout, _ := strconv.Atoi(opts.RoleTimeout)
+    baseConfigs := make([]awsBase, 0, 4)
+    for _, account := range strings.Split(opts.Accounts, ",") {
+        baseConfigs = append(baseConfigs, awsBase {
+			account:     strings.TrimSpace(account),
+			role:        opts.Role,
+			roleTimeout: roleTimeout,
+			keys:        opts.AWSKeys,
+        })
+    }
+
+    for i := range baseConfigs {
+        err := baseConfigs[i].assumeAWSRole()
+        if err != nil {
+            return nil, err
+        }
+        regions, err := baseConfigs[i].getAvailableAWSRegions()
+        if err != nil {
+            return nil, err
+        }
+        err = baseConfigs[i].generateAWSClients(regions)
+        if err != nil {
+            return nil, err
+        }
+    }
+    ec2 := AWSEC2 {
+        baseConfigs: baseConfigs,
+    }
+	return &ec2, nil
+}
+
+func (e *awsBase) assumeAWSRole() error {
+	assumeRoleParameters := "&RoleSessionName=sre_discovery" +
+		"&RoleArn=arn:aws:iam::" + e.account + ":role/" + e.role +
+		"&DurationSeconds=3600"
+
+	assumeRoleURL := fmt.Sprintf("%s%s", defaultAWSEC2AssumeRoleURL, assumeRoleParameters)
+	client := &AWSClient{
+		Keys:       &e.keys,
+		HttpClient: http.DefaultClient,
+		Url:        assumeRoleURL,
 	}
 
-	return &ec2, nil
+	r, err := http.NewRequest("GET", client.Url, nil)
+	if err != nil {
+		return err
+	}
+	resp, err := client.Do(r)
+	if err != nil {
+		return err
+	}
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return err
+	}
+	response := awsAssumeRoleResponse{}
+	err = xml.Unmarshal(body, &response)
+	if err != nil {
+		return err
+	}
+
+	e.keys.AccessKey = response.AccessKey
+	e.keys.SecretKey = response.SecretKey
+	e.keys.SessionToken = response.SessionToken
+
+	return nil
 }
 
 // getAvailableRegions retrieves available AWS regions using the given AWS keys.
@@ -149,13 +221,13 @@ func (e *awsBase) getAvailableAWSRegions() ([]AWSRegion, error) {
 }
 
 // generateClients generates AWS clients for the given regions and AWS keys.
-func (e *awsBase) generateAWSClients(regions []AWSRegion, keys AWSKeys) error {
+func (e *awsBase) generateAWSClients(regions []AWSRegion) error {
 	clients := make([]*AWSClient, 0)
 
 	for _, region := range regions {
 		client := AWSClient{
 			Region:     region.RegionName,
-			Keys:       &keys,
+			Keys:       &e.keys,
 			HttpClient: http.DefaultClient,
 			Url:        "https://" + region.RegionEndpoint + "/?Action=DescribeInstances&Version=2016-11-15",
 		}
@@ -172,56 +244,62 @@ func (e *AWSEC2) GetAllAWSEC2Instances() ([]AWSEC2Instance, error) {
 	var errs []error
 	instances := make([]AWSEC2Instance, 0)
 
-	for _, c := range e.clients {
-		wg.Add(1)
-		go func(c *AWSClient) {
-			defer wg.Done()
-			r, err := http.NewRequest("GET", c.Url, nil)
-			if err != nil {
-				errs = append(errs, err)
-				return
-			}
+    for _, cfg := range e.baseConfigs {
+        for _, c := range cfg.clients {
+            wg.Add(1)
+            go func(c *AWSClient) {
+                defer wg.Done()
+                r, err := http.NewRequest("GET", c.Url, nil)
+                if err != nil {
+                    errs = append(errs, err)
+                    return
+                }
 
-			resp, err := c.Do(r)
-			if err != nil {
-				errs = append(errs, err)
-				return
-			}
-			defer resp.Body.Close()
+                resp, err := c.Do(r)
+                if err != nil {
+                    errs = append(errs, err)
+                    return
+                }
+                defer resp.Body.Close()
 
-			body, err := io.ReadAll(resp.Body)
-			if err != nil {
-				errs = append(errs, err)
-				return
-			}
+                body, err := io.ReadAll(resp.Body)
+                if err != nil {
+                    errs = append(errs, err)
+                    return
+                }
 
-			response := awsEC2describeInstancesResponse{}
-			err = xml.Unmarshal(body, &response)
-			if err != nil {
-				errs = append(errs, err)
-				return
-			}
-			for _, instance := range response.InstanceItems {
-				host := instance.InstanceId
-				for _, tag := range instance.Tags {
-					if tag.Key == "Name" {
-						host = strings.ReplaceAll(strings.TrimSpace(tag.Value), " ", "_")
-					}
-				}
+                response := awsEC2describeInstancesResponse{}
+                err = xml.Unmarshal(body, &response)
+                if err != nil {
+                    errs = append(errs, err)
+                    return
+                }
+                for _, instance := range response.InstanceItems {
+                    host := instance.InstanceId
+                    for _, tag := range instance.Tags {
+                        if tag.Key == "Name" {
+                            host = strings.ReplaceAll(strings.TrimSpace(tag.Value), " ", "_")
+                        }
+                    }
+                    ip := instance.IpAddress;
+                    if ip == "" {
+                        ip = instance.PrivateIpAddress;
+                    }
 
-				instances = append(instances, AWSEC2Instance{
-					AccountID: c.AccountID,
-					Host:      host,
-					IP:        instance.IpAddress,
-					Region:    c.Region,
-					OS:        instance.Platform,
-					Vendor:    "aws",
-					Server:    instance.InstanceId,
-					Cluster:   "aws",
-				})
-			}
-		}(c)
-	}
+                    instances = append(instances, AWSEC2Instance{
+                        AccountID: c.AccountID,
+                        Host:      host,
+                        IP:        ip,
+                        Region:    c.Region,
+                        OS:        instance.Platform,
+                        Vendor:    "aws",
+                        Server:    instance.InstanceId,
+                        Cluster:   "aws",
+                    })
+                }
+            }(c)
+        }
+    }
 	wg.Wait()
 
 	if len(errs) > 0 {
@@ -261,6 +339,9 @@ func (c *AWSClient) getAWSAccountID() error {
 
 // Do executes the HTTP request with AWS authentication using the standard AWS4 format.
 func (c *AWSClient) Do(req *http.Request) (*http.Response, error) {
+	if c.Keys.SessionToken != "" {
+		req.Header.Set("X-Amz-Security-Token", c.Keys.SessionToken)
+	}
 	c.awsSignRequest(c.Keys, req)
 	return c.HttpClient.Do(req)
 }
