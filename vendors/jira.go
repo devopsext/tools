@@ -56,6 +56,7 @@ type JiraAddIssueAttachmentOptions struct {
 type JiraSearchIssueOptions struct {
 	SearchPattern string
 	MaxResults    int
+	Fields        []string
 }
 
 type JiraSearchAssetOptions struct {
@@ -444,6 +445,7 @@ func (j *Jira) CustomSearchIssue(jiraOptions JiraOptions, search JiraSearchIssue
 	params.Add("jql", search.SearchPattern)
 	params.Add("maxResults", strconv.Itoa(search.MaxResults))
 	params.Add("validateQuery", "strict")
+	params.Add("fields", strings.Join(search.Fields, ","))
 
 	u, err := url.Parse(jiraOptions.URL)
 	if err != nil {

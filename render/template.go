@@ -826,17 +826,17 @@ func (tpl *Template) DateParse(d string) (time.Time, error) {
 }
 
 func (tpl *Template) DurationBetween(start, end time.Time) map[string]int {
-    duration := end.Sub(start)
+	duration := end.Sub(start)
 
-    days := int(duration.Hours()) / 24
-    hours := int(duration.Hours()) % 24
-    minutes := int(duration.Minutes()) % 60
+	days := int(duration.Hours()) / 24
+	hours := int(duration.Hours()) % 24
+	minutes := int(duration.Minutes()) % 60
 
-    return map[string]int{
-        "Days": days,
-        "Hours": hours,
-        "Minutes": minutes,
-    }
+	return map[string]int{
+		"Days":    days,
+		"Hours":   hours,
+		"Minutes": minutes,
+	}
 }
 
 func (tpl *Template) NowFmt(f string) string {
@@ -892,10 +892,10 @@ func (tpl *Template) HttpGetHeader(params map[string]interface{}) ([]byte, error
 		return nil, fmt.Errorf("HttpGetHeader err => %w", err)
 	}
 
-    headersBytes, err := json.Marshal(headers)
-    if err != nil {
-        return nil, fmt.Errorf("HttpGetHeader err => %w", err)
-    }
+	headersBytes, err := json.Marshal(headers)
+	if err != nil {
+		return nil, fmt.Errorf("HttpGetHeader err => %w", err)
+	}
 
 	return headersBytes, nil
 }
@@ -1221,6 +1221,46 @@ func (tpl *Template) JiraUpdateIssue(params map[string]interface{}) ([]byte, err
 	jira := vendors.NewJira(jiraOptions)
 
 	response, err := jira.UpdateIssue(jiraIssueOptions)
+	if err != nil {
+		return nil, err
+	}
+
+	return response, nil
+}
+
+func (tpl *Template) JiraSearchIssue(params map[string]interface{}) ([]byte, error) {
+
+	url, _ := params["url"].(string)
+	timeout, _ := params["timeout"].(int)
+	if timeout == 0 {
+		timeout = 10
+	}
+	insecure, _ := params["insecure"].(bool)
+	user, _ := params["user"].(string)
+	password, _ := params["password"].(string)
+	token, _ := params["token"].(string)
+
+	jql, _ := params["jql"].(string)
+	fields := strings.Split(params["fields"].(string), ",")
+	maxResults, _ := params["maxResults"].(int)
+
+	jiraOptions := vendors.JiraOptions{
+		URL:         url,
+		Timeout:     timeout,
+		Insecure:    insecure,
+		User:        user,
+		Password:    password,
+		AccessToken: token,
+	}
+	jiraSearchOptions := vendors.JiraSearchIssueOptions{
+		SearchPattern: jql,
+		MaxResults:    maxResults,
+		Fields:        fields,
+	}
+
+	jira := vendors.NewJira(jiraOptions)
+
+	response, err := jira.SearchIssue(jiraSearchOptions)
 	if err != nil {
 		return nil, err
 	}
@@ -1765,29 +1805,29 @@ func (tpl *Template) SSHRun(params map[string]interface{}) ([]byte, error) {
 }
 
 func (tpl *Template) ListFilesWithModTime(rootDir string) (map[string]string, error) {
-    filesMap := make(map[string]string)
+	filesMap := make(map[string]string)
 
-    // Walk through the directory tree
-    err := filepath.Walk(rootDir, func(path string, info os.FileInfo, err error) error {
-        if err != nil {
-            // Handle the error (e.g., skip the file or directory)
-            fmt.Println("Error accessing", path, ":", err)
-            return nil
-        }
+	// Walk through the directory tree
+	err := filepath.Walk(rootDir, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			// Handle the error (e.g., skip the file or directory)
+			fmt.Println("Error accessing", path, ":", err)
+			return nil
+		}
 
-        if !info.IsDir() {
-            // Extract and collect filename and last modified date
-            filename := filepath.Base(path)
-            filesMap[filename] = info.ModTime().Format(time.RFC3339)
-        }
-        return nil
-    })
+		if !info.IsDir() {
+			// Extract and collect filename and last modified date
+			filename := filepath.Base(path)
+			filesMap[filename] = info.ModTime().Format(time.RFC3339)
+		}
+		return nil
+	})
 
-    if err != nil {
-        return nil, fmt.Errorf("error walking the directory: %w", err)
-    }
+	if err != nil {
+		return nil, fmt.Errorf("error walking the directory: %w", err)
+	}
 
-    return filesMap, nil
+	return filesMap, nil
 }
 
 func (tpl *Template) VMRestart(params map[string]interface{}) ([]byte, error) {
@@ -2084,6 +2124,7 @@ func (tpl *Template) setTemplateFuncs(funcs map[string]any) {
 	funcs["httpPost"] = tpl.HttpPost
 	funcs["jiraSearchAssets"] = tpl.JiraSearchAssets
 	funcs["jiraCreateIssue"] = tpl.JiraCreateIssue
+	funcs["jiraSearchIssue"] = tpl.JiraSearchIssue
 	funcs["jiraCreateAsset"] = tpl.JiraCreateAsset
 	funcs["jiraAddComment"] = tpl.JiraAddComment
 	funcs["jiraUpdateIssue"] = tpl.JiraUpdateIssue
