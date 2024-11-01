@@ -8,9 +8,14 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var EC2Options = vendors.AWSKeys{
-	AccessKey: envGet("AWS_ACCESSKEY", "").(string),
-	SecretKey: envGet("AWS_SECRETKEY", "").(string),
+var EC2Options = vendors.AWSOptions{
+	Accounts:     envGet("AWS_ACCOUNTS", "").(string),
+	Role:        envGet("AWS_ROLE", "").(string),
+	RoleTimeout: envGet("AWS_ROLE_TIMEOUT", "300").(string),
+	AWSKeys: vendors.AWSKeys{
+		AccessKey: envGet("AWS_ACCESSKEY", "").(string),
+		SecretKey: envGet("AWS_SECRETKEY", "").(string),
+	},
 }
 
 var EC2Output = common.OutputOptions{
@@ -48,6 +53,9 @@ func NewEC2Subcommand() *cobra.Command {
 	flags := EC2Cmd.PersistentFlags()
 	flags.StringVar(&EC2Options.AccessKey, "aws-accesskey", EC2Options.AccessKey, "Access key for AWS")
 	flags.StringVar(&EC2Options.SecretKey, "aws-secretkey", EC2Options.SecretKey, "Secret key for AWS")
+	flags.StringVar(&EC2Options.Role, "aws-role", EC2Options.Role, "Role to assume for AWS")
+	flags.StringVar(&EC2Options.RoleTimeout, "aws-role-timeout", EC2Options.RoleTimeout, "AWS Role timeout")
+	flags.StringVar(&EC2Options.Accounts, "aws-accounts", EC2Options.Accounts, "AWS account numbers, comma-separated")
 	flags.StringVar(&EC2Output.Output, "ec2-output", EC2Output.Output, "EC2 output")
 	flags.StringVar(&EC2Output.Query, "ec2-output-query", EC2Output.Query, "EC2 output query")
 
