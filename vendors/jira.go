@@ -226,7 +226,7 @@ func (j *Jira) CustomCreateIssue(jiraOptions JiraOptions, createOptions JiraIssu
 		}
 	}
 
-	if len(createOptions.Labels) > 0 {
+	if (!utils.IsEmpty(createOptions.Labels)) && (len(createOptions.Labels) > 0) {
 		issue.Fields.Labels = createOptions.Labels
 	}
 
