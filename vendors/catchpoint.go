@@ -18,6 +18,7 @@ const catchpointAPIVersion = "v3.2"
 const (
 	catchpointAPIInstantTest = "instanttests"
 	catchpointAPINodesGroups = "nodes/groups/"
+	catchpointAPINodesAll    = "nodes/all"
 )
 
 type Catchpoint struct {
@@ -31,15 +32,30 @@ type CatchpointOptions struct {
 	Insecure bool
 }
 
-type InstantTestNodes struct {
+type CatchpointNodesGetAllOptions struct {
+	Name        string
+	Targeted    bool
+	Active      bool
+	Paused      bool
+	NetworkType int
+	City        string
+	Country     string
+	IPv6        bool
+	ASN         string
+	AsNumber    int
+	PageNumber  int
+	PageSize    int
+}
+
+type CatchpointInstantTestNodes struct {
 	ID                int    `json:"id"`
 	Name              string `json:"name"`
 	InstantTestStatus string `json:"instantTestStatus"`
 }
 
 type CatchpointIstantTestData struct {
-	ID               int               `json:"id"`
-	InstantTestNodes *InstantTestNodes `json:"instantTestNodes"`
+	ID               int                         `json:"id"`
+	InstantTestNodes *CatchpointInstantTestNodes `json:"instantTestNodes"`
 }
 
 type CatchpointIstantTestResponse struct {
@@ -169,6 +185,61 @@ func (c *Catchpoint) InstantTest(options CatchpointInstantTestOptions) ([]byte, 
 
 func (c *Catchpoint) InstantTestWithNodeGroup(options CatchpointInstantTestWithNodeGroupOptions) ([]byte, error) {
 	return c.CustomInstantTestWithNodeGroup(c.options, options)
+}
+
+func (c *Catchpoint) SearchNodesWithOptions(options CatchpointNodesGetAllOptions) ([]byte, error) {
+	return c.CustomSearchNodesWithOptions(c.options, options)
+}
+
+func (c *Catchpoint) CustomSearchNodesWithOptions(catchpointOptions CatchpointOptions, catchpointNodesGetAllOptions CatchpointNodesGetAllOptions) ([]byte, error) {
+
+	params := make(url.Values)
+	if !utils.IsEmpty(catchpointNodesGetAllOptions.Name) {
+		params.Add("name", catchpointNodesGetAllOptions.Name)
+	}
+	if !utils.IsEmpty(catchpointNodesGetAllOptions.Targeted) {
+		params.Add("targeted", strconv.FormatBool(catchpointNodesGetAllOptions.Targeted))
+	}
+	if !utils.IsEmpty(catchpointNodesGetAllOptions.Active) {
+		params.Add("active", strconv.FormatBool(catchpointNodesGetAllOptions.Active))
+	}
+	if !utils.IsEmpty(catchpointNodesGetAllOptions.Paused) {
+		params.Add("paused", strconv.FormatBool(catchpointNodesGetAllOptions.Paused))
+	}
+	if !utils.IsEmpty(catchpointNodesGetAllOptions.NetworkType) {
+		params.Add("networkType", strconv.Itoa(catchpointNodesGetAllOptions.NetworkType))
+	}
+	if !utils.IsEmpty(catchpointNodesGetAllOptions.City) {
+		params.Add("city", catchpointNodesGetAllOptions.City)
+	}
+	if !utils.IsEmpty(catchpointNodesGetAllOptions.Country) {
+		params.Add("country", catchpointNodesGetAllOptions.Country)
+	}
+	if !utils.IsEmpty(catchpointNodesGetAllOptions.IPv6) {
+		params.Add("ipv6", strconv.FormatBool(catchpointNodesGetAllOptions.IPv6))
+	}
+	if !utils.IsEmpty(catchpointNodesGetAllOptions.ASN) {
+		params.Add("asn", catchpointNodesGetAllOptions.ASN)
+	}
+	if !utils.IsEmpty(catchpointNodesGetAllOptions.AsNumber) {
+		params.Add("asNumber", strconv.Itoa(catchpointNodesGetAllOptions.AsNumber))
+	}
+	if !utils.IsEmpty(catchpointNodesGetAllOptions.PageNumber) {
+		params.Add("pageNumber", strconv.Itoa(catchpointNodesGetAllOptions.PageNumber))
+	}
+	if !utils.IsEmpty(catchpointNodesGetAllOptions.PageSize) {
+		params.Add("pageSize", strconv.Itoa(catchpointNodesGetAllOptions.PageSize))
+	}
+
+	u, err := url.Parse(catchpointAPIURL + catchpointAPIVersion)
+	if err != nil {
+		return nil, err
+	}
+
+	u.Path = path.Join(u.Path, catchpointAPINodesAll)
+	u.RawQuery = params.Encode()
+
+	return utils.HttpGetRaw(c.client, u.String(), "application/json", c.getAuth(catchpointOptions))
 }
 
 func (c *Catchpoint) CustomInstantTestWithNodeGroup(catchpointOptions CatchpointOptions, catchpointInstantTestWithNodeGroupOptions CatchpointInstantTestWithNodeGroupOptions) ([]byte, error) {
