@@ -77,9 +77,14 @@ type CatchpointReponse struct {
 	Completed bool                 `json:"completed"`
 }
 
+type CatchpointSearchNodesWithOptionsData struct {
+	Nodes *[]Node `json:"nodes"`
+}
+
 type CatchpointSearchNodesWithOptionsResponse struct {
-	Data     *[]Node              `json:"data"`
-	Messages *[]CatchpointMessage `json:"messages"`
+	Data      *CatchpointSearchNodesWithOptionsData `json:"data"`
+	Messages  *[]CatchpointMessage                  `json:"messages"`
+	Completed bool                                  `json:"completed"`
 }
 
 type CatchpointInstantTestOptions struct {
@@ -125,10 +130,16 @@ type CatchpointNetworkType struct {
 	Name string `json:"name"`
 }
 
+type CatchpointCountry struct {
+	ID   int    `json:"id"`
+	Name string `json:"name"`
+}
+
 type Node struct {
 	ID          int                    `json:"id"`
 	Name        string                 `json:"name"`
 	NetworkType *CatchpointNetworkType `json:"networkType"`
+	Country     *CatchpointCountry     `json:"country"`
 }
 
 type NodeGroupItem struct {
