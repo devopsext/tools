@@ -59,7 +59,16 @@ type CatchpointIstantTestData struct {
 }
 
 type CatchpointIstantTestResponse struct {
-	Data      *CatchpointIstantTestData `json:"data,omitempty"`
+	Data              *CatchpointIstantTestData `json:"data,omitempty"`
+	CatchpointReponse *CatchpointReponse
+}
+
+type CatchpointErrorMessage struct {
+	Message string `json:"message"`
+}
+
+type CatchpointReponse struct {
+	Errors    *[]CatchpointErrorMessage `json:"errors"`
 	Completed bool                      `json:"completed"`
 }
 
@@ -89,27 +98,27 @@ type CatchpointNodeGroup struct {
 	ID int `json:"id"`
 }
 
-type HTTPMethodType struct {
+type CatchpointHTTPMethodType struct {
 	ID int `json:"id"`
 }
 
-type InstantTestType struct {
+type CatchpointInstantTestType struct {
 	ID int `json:"id"`
 }
 
-type MonitorType struct {
+type CatchpointMonitorType struct {
 	ID int `json:"id"`
 }
 
-type NetworkType struct {
+type CatchpointNetworkType struct {
 	ID   int    `json:"id"`
 	Name string `json:"name"`
 }
 
 type Node struct {
-	ID          int          `json:"id"`
-	Name        string       `json:"name"`
-	NetworkType *NetworkType `json:"networkType"`
+	ID          int                    `json:"id"`
+	Name        string                 `json:"name"`
+	NetworkType *CatchpointNetworkType `json:"networkType"`
 }
 
 type NodeGroupItem struct {
@@ -133,29 +142,29 @@ type NodeGroup struct {
 }
 
 type CatchpointInstantTest struct {
-	URL             string           `json:"url"`
-	NodesIds        *[]ID            `json:"nodesIds"`
-	HTTPMethodType  *HTTPMethodType  `json:"httpMethodType"`
-	InstantTestType *InstantTestType `json:"instantTestType"`
-	MonitorType     *MonitorType     `json:"monitorType"`
+	URL             string                     `json:"url"`
+	NodesIds        *[]ID                      `json:"nodesIds"`
+	HTTPMethodType  *CatchpointHTTPMethodType  `json:"httpMethodType"`
+	InstantTestType *CatchpointInstantTestType `json:"instantTestType"`
+	MonitorType     *CatchpointMonitorType     `json:"monitorType"`
 }
 
 type CatchpointInstantTestWithNodeGroup struct {
-	URL             string           `json:"url"`
-	NodeGroupID     int              `json:"nodesIds"`
-	HTTPMethodType  *HTTPMethodType  `json:"httpMethodType"`
-	InstantTestType *InstantTestType `json:"instantTestType"`
-	MonitorType     *MonitorType     `json:"monitorType"`
+	URL             string                     `json:"url"`
+	NodeGroupID     int                        `json:"nodesIds"`
+	HTTPMethodType  *CatchpointHTTPMethodType  `json:"httpMethodType"`
+	InstantTestType *CatchpointInstantTestType `json:"instantTestType"`
+	MonitorType     *CatchpointMonitorType     `json:"monitorType"`
 }
 
-type CatchpointResponsePayload struct {
-	Tests []struct {
-		ID          int    `json:"id"`
-		Status      string `json:"status"`
-		ResultURL   string `json:"resultUrl"`
-		Description string `json:"description"`
-	} `json:"tests"`
-}
+// type CatchpointResponsePayload struct {
+// 	Tests []struct {
+// 		ID          int    `json:"id"`
+// 		Status      string `json:"status"`
+// 		ResultURL   string `json:"resultUrl"`
+// 		Description string `json:"description"`
+// 	} `json:"tests"`
+// }
 
 func (c *Catchpoint) apiURL(cmd string) string {
 	return catchpointAPIURL + catchpointAPIVersion + "/" + cmd
@@ -169,6 +178,20 @@ func (c *Catchpoint) getAuth(opts CatchpointOptions) string {
 		return auth
 	}
 	return auth
+}
+
+func (c *Catchpoint) CheckError(data []byte, e error) error {
+	r := &CatchpointReponse{}
+
+	err := json.Unmarshal(data, &r)
+	if err != nil {
+		return err
+	}
+
+	if !r.Completed {
+		return fmt.Errorf("%s", r.Errors)
+	}
+	return e
 }
 
 func (c *Catchpoint) GetNodesFromGroup(options CatchpointNodeGroup) ([]byte, error) {
@@ -265,9 +288,9 @@ func (c *Catchpoint) CustomInstantTestWithNodeGroup(catchpointOptions Catchpoint
 	body := &CatchpointInstantTest{
 		URL:             catchpointInstantTestWithNodeGroupOptions.URL,
 		NodesIds:        &ids,
-		InstantTestType: &InstantTestType{ID: catchpointInstantTestWithNodeGroupOptions.InstantTestType},
-		HTTPMethodType:  &HTTPMethodType{ID: catchpointInstantTestWithNodeGroupOptions.HTTPMethodType},
-		MonitorType:     &MonitorType{ID: catchpointInstantTestWithNodeGroupOptions.MonitorType},
+		InstantTestType: &CatchpointInstantTestType{ID: catchpointInstantTestWithNodeGroupOptions.InstantTestType},
+		HTTPMethodType:  &CatchpointHTTPMethodType{ID: catchpointInstantTestWithNodeGroupOptions.HTTPMethodType},
+		MonitorType:     &CatchpointMonitorType{ID: catchpointInstantTestWithNodeGroupOptions.MonitorType},
 	}
 
 	req, err := json.Marshal(body)
@@ -311,9 +334,9 @@ func (c *Catchpoint) CustomInstantTest(catchpointOptions CatchpointOptions, catc
 	body := &CatchpointInstantTest{
 		URL:             catchpointInstantTestOptions.URL,
 		NodesIds:        &ids,
-		InstantTestType: &InstantTestType{ID: catchpointInstantTestOptions.InstantTestType},
-		HTTPMethodType:  &HTTPMethodType{ID: catchpointInstantTestOptions.HTTPMethodType},
-		MonitorType:     &MonitorType{ID: catchpointInstantTestOptions.MonitorType},
+		InstantTestType: &CatchpointInstantTestType{ID: catchpointInstantTestOptions.InstantTestType},
+		HTTPMethodType:  &CatchpointHTTPMethodType{ID: catchpointInstantTestOptions.HTTPMethodType},
+		MonitorType:     &CatchpointMonitorType{ID: catchpointInstantTestOptions.MonitorType},
 	}
 
 	req, err := json.Marshal(body)
