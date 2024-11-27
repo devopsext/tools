@@ -31,6 +31,22 @@ type CatchpointOptions struct {
 	Insecure bool
 }
 
+type InstantTestNodes struct {
+	ID                int    `json:"id"`
+	Name              string `json:"name"`
+	InstantTestStatus string `json:"instantTestStatus"`
+}
+
+type CatchpointIstantTestData struct {
+	ID               int               `json:"id"`
+	InstantTestNodes *InstantTestNodes `json:"instantTestNodes"`
+}
+
+type CatchpointIstantTestResponse struct {
+	Data      *CatchpointIstantTestData `json:"data,omitempty"`
+	Completed bool                      `json:"completed"`
+}
+
 type CatchpointInstantTestOptions struct {
 	URL             string
 	NodesIds        string
