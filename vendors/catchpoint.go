@@ -178,14 +178,42 @@ type CatchpointInstantTestWithNodeGroup struct {
 	MonitorType     *CatchpointMonitorType     `json:"monitorType"`
 }
 
-// type CatchpointResponsePayload struct {
-// 	Tests []struct {
-// 		ID          int    `json:"id"`
-// 		Status      string `json:"status"`
-// 		ResultURL   string `json:"resultUrl"`
-// 		Description string `json:"description"`
-// 	} `json:"tests"`
-// }
+type CatchpointInstantTestResultHostsFields struct {
+	Name  string `json:"name"`
+	Index int    `json:"index"`
+}
+
+type CatchpointInstantTestResultHostsMetrics struct {
+	HostName string `json:"hostName"`
+	Items    *[]int `json:"items"`
+}
+
+type CatchpointInstantTestResultHosts struct {
+	Fields  *[]CatchpointInstantTestResultHostsFields  `json:"fields"`
+	Metrics *[]CatchpointInstantTestResultHostsMetrics `json:"metrics"`
+}
+
+type CatchpointInstantTestResult struct {
+	Hosts *CatchpointInstantTestResultHosts `json:"hosts"`
+}
+
+type CatchpointInstantTestResultRecord struct {
+	TestResult  *CatchpointInstantTestResult `json:"testResult"`
+	ID          int                          `json:"id"`
+	Node        *Node                        `json:"node"`
+	MonitorType *CatchpointMonitorType       `json:"monitorType"`
+	PublicLink  string                       `json:"publicLink"`
+}
+
+type CatchpointInstantTestResultData struct {
+	InstantTestStatus string                             `json:"instantTestStatus"`
+	InstantTestRecord *CatchpointInstantTestResultRecord `json:"instantTestRecord"`
+}
+
+type CatchpointInstantTestTesultReponse struct {
+	Reponse *CatchpointReponse
+	Data    *CatchpointInstantTestResultData `json:"data,omitempty"`
+}
 
 func (c *Catchpoint) apiURL(cmd string) string {
 	return catchpointAPIURL + catchpointAPIVersion + "/" + cmd
