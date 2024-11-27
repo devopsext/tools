@@ -63,13 +63,23 @@ type CatchpointIstantTestResponse struct {
 	CatchpointReponse *CatchpointReponse
 }
 
-type CatchpointErrorMessage struct {
+type CatchpointMessage struct {
 	Message string `json:"message"`
 }
 
+type CatchpointError struct {
+	Error string `json:"error"`
+}
+
 type CatchpointReponse struct {
-	Errors    *[]CatchpointErrorMessage `json:"errors"`
-	Completed bool                      `json:"completed"`
+	Errors    *[]CatchpointError   `json:"errors"`
+	Messages  *[]CatchpointMessage `json:"messages"`
+	Completed bool                 `json:"completed"`
+}
+
+type CatchpointSearchNodesWithOptionsResponse struct {
+	Data     *[]Node              `json:"data"`
+	Messages *[]CatchpointMessage `json:"messages"`
 }
 
 type CatchpointInstantTestOptions struct {
