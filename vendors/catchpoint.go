@@ -32,7 +32,7 @@ type CatchpointOptions struct {
 	Insecure bool
 }
 
-type CatchpointNodesGetAllOptions struct {
+type CatchpointSearchNodesWithOptions struct {
 	Name        string
 	Targeted    bool
 	Active      bool
@@ -210,11 +210,11 @@ func (c *Catchpoint) InstantTestWithNodeGroup(options CatchpointInstantTestWithN
 	return c.CustomInstantTestWithNodeGroup(c.options, options)
 }
 
-func (c *Catchpoint) SearchNodesWithOptions(options CatchpointNodesGetAllOptions) ([]byte, error) {
+func (c *Catchpoint) SearchNodesWithOptions(options CatchpointSearchNodesWithOptions) ([]byte, error) {
 	return c.CustomSearchNodesWithOptions(c.options, options)
 }
 
-func (c *Catchpoint) CustomSearchNodesWithOptions(catchpointOptions CatchpointOptions, catchpointNodesGetAllOptions CatchpointNodesGetAllOptions) ([]byte, error) {
+func (c *Catchpoint) CustomSearchNodesWithOptions(catchpointOptions CatchpointOptions, catchpointNodesGetAllOptions CatchpointSearchNodesWithOptions) ([]byte, error) {
 
 	params := make(url.Values)
 	if !utils.IsEmpty(catchpointNodesGetAllOptions.Name) {
