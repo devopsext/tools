@@ -185,7 +185,7 @@ type CatchpointInstantTestResultHostsFields struct {
 
 type CatchpointInstantTestResultHostsMetrics struct {
 	HostName string `json:"hostName"`
-	Items    *[]int `json:"items"`
+	Items    []int  `json:"items"`
 }
 
 type CatchpointInstantTestResultHosts struct {
