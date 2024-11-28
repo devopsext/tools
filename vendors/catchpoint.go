@@ -210,7 +210,7 @@ type CatchpointInstantTestResultData struct {
 	InstantTestRecord *CatchpointInstantTestResultRecord `json:"instantTestRecord"`
 }
 
-type CatchpointInstantTestTesultReponse struct {
+type CatchpointInstantTestResultReponse struct {
 	Reponse *CatchpointReponse
 	Data    *CatchpointInstantTestResultData `json:"data,omitempty"`
 }
