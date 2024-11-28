@@ -263,11 +263,11 @@ func (c *Catchpoint) SearchNodesWithOptions(options CatchpointSearchNodesWithOpt
 	return c.CustomSearchNodesWithOptions(c.options, options)
 }
 
-func (c *Catchpoint) GetInstantTestResult(options CatchpointInstantTestOptions, testID string, nodeID int) ([]byte, error) {
-	return c.CustomGetInstantTestResult(c.options, options, testID, nodeID)
+func (c *Catchpoint) GetInstantTestResult(testID string, nodeID int) ([]byte, error) {
+	return c.CustomGetInstantTestResult(c.options, testID, nodeID)
 }
 
-func (c *Catchpoint) CustomGetInstantTestResult(catchpointOptions CatchpointOptions, catchpointInstantTestOptions CatchpointInstantTestOptions, testID string, nodeID int) ([]byte, error) {
+func (c *Catchpoint) CustomGetInstantTestResult(catchpointOptions CatchpointOptions, testID string, nodeID int) ([]byte, error) {
 
 	u, err := url.Parse(catchpointAPIURL + catchpointAPIVersion)
 	if err != nil {
