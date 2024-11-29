@@ -9,6 +9,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/devopsext/tools/common"
 	"github.com/devopsext/utils"
 )
 
@@ -416,7 +417,7 @@ func (c *Catchpoint) CustomInstantTest(catchpointOptions CatchpointOptions, catc
 	return utils.HttpPostRaw(c.client, u.String(), "application/json", c.getAuth(catchpointOptions), req)
 }
 
-func NewCatchpoint(options CatchpointOptions) *Catchpoint {
+func NewCatchpoint(options CatchpointOptions, logger common.Logger) *Catchpoint {
 
 	catchpoint := &Catchpoint{
 		client:  utils.NewHttpClient(options.Timeout, options.Insecure),

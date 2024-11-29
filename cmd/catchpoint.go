@@ -40,7 +40,12 @@ func catchpointNew(stdout *common.Stdout) *vendors.Catchpoint {
 	common.Debug("Catchpoint", catchpointOptions, stdout)
 	common.Debug("Catchpoint", catchpointOutput, stdout)
 
-	return vendors.NewCatchpoint(catchpointOptions)
+	catchpoint := vendors.NewCatchpoint(catchpointOptions, stdout)
+	if catchpoint == nil {
+		stdout.Panic("No site24x7")
+	}
+
+	return catchpoint
 }
 
 func NewCatchpointCommand() *cobra.Command {
