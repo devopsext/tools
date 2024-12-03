@@ -199,6 +199,7 @@ type CatchpointInstantTestResultWebRecordItemsNavigationUrl struct {
 	Host         string `json:"host"`
 	PathAndQuery string `json:"pathAndQuery"`
 	AbsoluteUri  string `json:"absoluteUri"`
+	ResponseCode int    `json:"responseCode"`
 }
 
 type CatchpointInstantTestResultWebRecordItems struct {
