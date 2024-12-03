@@ -199,12 +199,12 @@ type CatchpointInstantTestResultWebRecordItemsNavigationUrl struct {
 	Host         string `json:"host"`
 	PathAndQuery string `json:"pathAndQuery"`
 	AbsoluteUri  string `json:"absoluteUri"`
-	ResponseCode int    `json:"responseCode"`
 }
 
 type CatchpointInstantTestResultWebRecordItems struct {
 	IPAddess      string                                                  `json:"ipAddress"`
 	NavigationUrl *CatchpointInstantTestResultWebRecordItemsNavigationUrl `json:"navigationUrl"`
+	ResponseCode  int                                                     `json:"responseCode"`
 }
 
 type CatchpointInstantTestResultWebRecord struct {
