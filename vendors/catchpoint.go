@@ -55,13 +55,13 @@ type CatchpointInstantTestNodes struct {
 }
 
 type CatchpointIstantTestData struct {
-	ID               int                         `json:"id"`
-	InstantTestNodes *CatchpointInstantTestNodes `json:"instantTestNodes"`
+	ID               int                           `json:"id"`
+	InstantTestNodes *[]CatchpointInstantTestNodes `json:"instantTestNodes"`
 }
 
 type CatchpointIstantTestResponse struct {
-	Data              *CatchpointIstantTestData `json:"data,omitempty"`
-	CatchpointReponse *CatchpointReponse
+	Data *CatchpointIstantTestData `json:"data,omitempty"`
+	*CatchpointReponse
 }
 
 type CatchpointMessage struct {
@@ -69,12 +69,12 @@ type CatchpointMessage struct {
 }
 
 type CatchpointError struct {
-	Error string `json:"error"`
+	Error int `json:"error"`
 }
 
 type CatchpointReponse struct {
-	Errors    *[]CatchpointError   `json:"errors"`
-	Messages  *[]CatchpointMessage `json:"messages"`
+	//Errors    *[]int               `json:"errors,omitempty"`
+	Messages  *[]CatchpointMessage `json:"messages,omitempty"`
 	Completed bool                 `json:"completed"`
 }
 
@@ -185,8 +185,8 @@ type CatchpointInstantTestResultHostsFields struct {
 }
 
 type CatchpointInstantTestResultHostsMetrics struct {
-	HostName string `json:"hostName"`
-	Items    []int  `json:"items"`
+	HostName string    `json:"hostName"`
+	Items    []float64 `json:"items"`
 }
 
 type CatchpointInstantTestResultHosts struct {
@@ -194,8 +194,24 @@ type CatchpointInstantTestResultHosts struct {
 	Metrics *[]CatchpointInstantTestResultHostsMetrics `json:"metrics"`
 }
 
+type CatchpointInstantTestResultWebRecordItemsNavigationUrl struct {
+	Scheme       string `json:"scheme"`
+	Host         string `json:"host"`
+	PathAndQuery string `json:"pathAndQuery"`
+	AbsoluteUri  string `json:"absoluteUri"`
+}
+
+type CatchpointInstantTestResultWebRecordItems struct {
+	IPAddess      string                                                  `json:"ipAddress"`
+	NavigationUrl *CatchpointInstantTestResultWebRecordItemsNavigationUrl `json:"navigationUrl"`
+}
+
+type CatchpointInstantTestResultWebRecord struct {
+	Items *[]CatchpointInstantTestResultWebRecordItems `json:"items"`
+}
 type CatchpointInstantTestResult struct {
-	Hosts *CatchpointInstantTestResultHosts `json:"hosts"`
+	Hosts      *CatchpointInstantTestResultHosts     `json:"hosts"`
+	WebRecords *CatchpointInstantTestResultWebRecord `json:"webRecords"`
 }
 
 type CatchpointInstantTestResultRecord struct {
@@ -212,8 +228,8 @@ type CatchpointInstantTestResultData struct {
 }
 
 type CatchpointInstantTestResultReponse struct {
-	Reponse *CatchpointReponse
-	Data    *CatchpointInstantTestResultData `json:"data,omitempty"`
+	*CatchpointReponse
+	Data *CatchpointInstantTestResultData `json:"data,omitempty"`
 }
 
 func (c *Catchpoint) apiURL(cmd string) string {
@@ -239,7 +255,7 @@ func (c *Catchpoint) CheckError(data []byte, e error) error {
 	}
 
 	if !r.Completed {
-		return fmt.Errorf("%s", r.Errors)
+		return fmt.Errorf("%s", r.Messages)
 	}
 	return e
 }
