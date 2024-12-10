@@ -72,13 +72,14 @@ type CatchpointMessage struct {
 }
 
 type CatchpointError struct {
-	Error int `json:"error"`
+	Message string `json:"message"`
 }
 
 type CatchpointReponse struct {
-	Errors    string               `json:"errors"`
-	Messages  *[]CatchpointMessage `json:"messages"`
-	Completed bool                 `json:"completed"`
+	Errors    interface{} `json:"errors"`
+	Messages  interface{} `json:"messages"`
+	Completed bool        `json:"completed"`
+	TraceId   string      `json:"traceId"`
 }
 
 type CatchpointSearchNodesWithOptionsData struct {
@@ -159,11 +160,8 @@ type NodeGroupData struct {
 }
 
 type NodeGroup struct {
-	Data      *NodeGroupData `json:"data"`
-	Messages  []interface{}  `json:"messages"`
-	Errors    []interface{}  `json:"errors"`
-	Completed bool           `json:"completed"`
-	TraceID   string         `json:"traceId"`
+	Data *NodeGroupData `json:"data"`
+	*CatchpointReponse
 }
 
 type CatchpointInstantTest struct {
@@ -257,6 +255,17 @@ func (c *Catchpoint) CheckError(data []byte, e error) error {
 	if err != nil {
 		return err
 	}
+
+	// switch v := r.Errors.(type) {
+	// case string:
+	// 	r.Errors = v
+	// case []*CatchpointError:
+	// 	for _, err := range v {
+	// 		r.Errors
+	// 	}
+	// default:
+	// 	fmt.Println("Unknown type")
+	// }
 
 	if r.Errors != "" || !r.Completed {
 		return fmt.Errorf("%s", r.Messages)
