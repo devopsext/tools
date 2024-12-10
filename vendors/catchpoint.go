@@ -22,6 +22,8 @@ const (
 	catchpointAPINodesAll    = "nodes/all"
 )
 
+const catchpointRetryHeader = "Retry-After"
+
 type Catchpoint struct {
 	client  *http.Client
 	options CatchpointOptions
@@ -31,6 +33,7 @@ type CatchpointOptions struct {
 	APIToken string
 	Timeout  int
 	Insecure bool
+	Retries  int
 }
 
 type CatchpointSearchNodesWithOptions struct {
@@ -73,8 +76,8 @@ type CatchpointError struct {
 }
 
 type CatchpointReponse struct {
-	//Errors    *[]int               `json:"errors,omitempty"`
-	Messages  *[]CatchpointMessage `json:"messages,omitempty"`
+	Errors    string               `json:"errors"`
+	Messages  *[]CatchpointMessage `json:"messages"`
 	Completed bool                 `json:"completed"`
 }
 
@@ -255,7 +258,7 @@ func (c *Catchpoint) CheckError(data []byte, e error) error {
 		return err
 	}
 
-	if !r.Completed {
+	if r.Errors != "" || !r.Completed {
 		return fmt.Errorf("%s", r.Messages)
 	}
 	return e
@@ -266,7 +269,7 @@ func (c *Catchpoint) GetNodesFromGroup(options CatchpointNodeGroup) ([]byte, err
 }
 
 func (c *Catchpoint) CustomGetNodesFromGroup(catchpointOptions CatchpointOptions, options CatchpointNodeGroup) ([]byte, error) {
-	return utils.HttpGetRaw(c.client, c.apiURL(catchpointAPINodesGroups+fmt.Sprintf("%d", options.ID)), "application/json", c.getAuth(catchpointOptions))
+	return utils.HttpGetRawRetry(c.client, c.apiURL(catchpointAPINodesGroups+fmt.Sprintf("%d", options.ID)), "application/json", c.getAuth(catchpointOptions), catchpointOptions.Retries, catchpointRetryHeader)
 }
 
 func (c *Catchpoint) InstantTest(options CatchpointInstantTestOptions) ([]byte, error) {
@@ -298,7 +301,7 @@ func (c *Catchpoint) CustomGetInstantTestResult(catchpointOptions CatchpointOpti
 	params.Add("nodeId", strconv.Itoa(nodeID))
 	u.RawQuery = params.Encode()
 
-	return utils.HttpGetRaw(c.client, u.String(), "application/json", c.getAuth(catchpointOptions))
+	return utils.HttpGetRawRetry(c.client, u.String(), "application/json", c.getAuth(catchpointOptions), catchpointOptions.Retries, catchpointRetryHeader)
 }
 
 func (c *Catchpoint) CustomSearchNodesWithOptions(catchpointOptions CatchpointOptions, catchpointNodesGetAllOptions CatchpointSearchNodesWithOptions) ([]byte, error) {
@@ -349,7 +352,7 @@ func (c *Catchpoint) CustomSearchNodesWithOptions(catchpointOptions CatchpointOp
 	u.Path = path.Join(u.Path, catchpointAPINodesAll)
 	u.RawQuery = params.Encode()
 
-	return utils.HttpGetRaw(c.client, u.String(), "application/json", c.getAuth(catchpointOptions))
+	return utils.HttpGetRawRetry(c.client, u.String(), "application/json", c.getAuth(catchpointOptions), catchpointOptions.Retries, catchpointRetryHeader)
 }
 
 func (c *Catchpoint) CustomInstantTestWithNodeGroup(catchpointOptions CatchpointOptions, catchpointInstantTestWithNodeGroupOptions CatchpointInstantTestWithNodeGroupOptions) ([]byte, error) {
@@ -396,7 +399,7 @@ func (c *Catchpoint) CustomInstantTestWithNodeGroup(catchpointOptions Catchpoint
 	u.Path = path.Join(u.Path, catchpointAPIInstantTest)
 	u.RawQuery = params.Encode()
 
-	return utils.HttpPostRaw(c.client, u.String(), "application/json", c.getAuth(catchpointOptions), req)
+	return utils.HttpPostRawRetry(c.client, u.String(), "application/json", c.getAuth(catchpointOptions), req, catchpointOptions.Retries, catchpointRetryHeader)
 }
 
 func (c *Catchpoint) CustomInstantTest(catchpointOptions CatchpointOptions, catchpointInstantTestOptions CatchpointInstantTestOptions) ([]byte, error) {
@@ -431,7 +434,7 @@ func (c *Catchpoint) CustomInstantTest(catchpointOptions CatchpointOptions, catc
 		return nil, err
 	}
 
-	return utils.HttpPostRaw(c.client, u.String(), "application/json", c.getAuth(catchpointOptions), req)
+	return utils.HttpPostRawRetry(c.client, u.String(), "application/json", c.getAuth(catchpointOptions), req, catchpointOptions.Retries, catchpointRetryHeader)
 }
 
 func NewCatchpoint(options CatchpointOptions, logger common.Logger) *Catchpoint {
