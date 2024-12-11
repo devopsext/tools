@@ -245,14 +245,17 @@ func (c *Catchpoint) getAuth(opts CatchpointOptions) string {
 }
 
 func (c *Catchpoint) CheckError(data []byte, e error) error {
-	r := &CatchpointReponse{}
-
-	err := json.Unmarshal(data, &r)
-	if err != nil {
-		return err
+	if e != nil && strings.Contains(e.Error(), "max retries exceeded") {
+		return fmt.Errorf("max retries exceeded")
 	}
 
-	if r.Errors != nil || !r.Completed {
+	r := &CatchpointReponse{}
+	err := json.Unmarshal(data, &r)
+	if err != nil {
+		return fmt.Errorf("error parsing response: %s", err)
+	}
+
+	if r.Errors != nil && len(*r.Errors) != 0 || !r.Completed {
 		return fmt.Errorf("%s", r.Messages)
 	}
 	return e

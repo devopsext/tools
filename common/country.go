@@ -15,6 +15,15 @@ func CountryShort(country string) string {
 	return ""
 }
 
+func CountryByShort(short string) string {
+	for k, v := range countries {
+		if v.Short == short {
+			return k
+		}
+	}
+	return ""
+}
+
 func NewCountry(short string) *Country {
 	return &Country{
 		Short: short,
