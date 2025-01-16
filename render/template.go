@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"html"
 	htmlTemplate "html/template"
+	"io"
 	"net"
 	"net/http"
 	"os"
@@ -2322,4 +2323,77 @@ func NewHtmlTemplate(options TemplateOptions, logger common.Logger) (*HtmlTempla
 	tpl.options = options
 	tpl.logger = logger
 	return &tpl, nil
+}
+
+func (tpl *Template) GetBreach(params map[string]interface{}) ([]byte, error) {
+	if len(params) == 0 {
+		return nil, fmt.Errorf("GetBreach err => %s", "no params allowed")
+	}
+
+	url, _ := params["url"].(string)
+	timeout, _ := params["timeout"].(int)
+	if timeout == 0 {
+		timeout = 5
+	}
+
+	accept, _ := params["accept"].(string)
+	hibpApiKey, _ := params["hibp-api-key"].(string)
+	headers := map[string]string{}
+	if accept != "" {
+		headers["accept"] = accept
+	}
+	if hibpApiKey != "" {
+		headers["hibp-api-key"] = hibpApiKey
+	}
+
+	var transport = &http.Transport{
+		Dial:                (&net.Dialer{Timeout: time.Duration(timeout) * time.Second}).Dial,
+		TLSHandshakeTimeout: time.Duration(timeout) * time.Second,
+	}
+
+	client := &http.Client{
+		Timeout:   time.Duration(timeout) * time.Second,
+		Transport: transport,
+	}
+
+	req, err := http.NewRequest("GET", url, nil)
+
+	if err != nil {
+		return nil, fmt.Errorf("GetBreach err => failed to create request: %w", err)
+	}
+	for key, value := range headers {
+		req.Header.Set(key, value)
+	}
+	resp, err := client.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("GetBreach err => failed to execute request: %w", err)
+	}
+
+	defer resp.Body.Close()
+
+	if resp.StatusCode == 404 {
+		notFoundResponse := map[string]string{"response": "not found"}
+		jsonResponse, err := json.Marshal(notFoundResponse)
+		if err != nil {
+			return nil, fmt.Errorf("GetBreach err => failed to encode JSON: %w", err)
+		}
+		return jsonResponse, nil
+	}
+	if resp.StatusCode == 429 {
+		waitResponse := map[string]string{"response": "wait"}
+		jsonResponse, err := json.Marshal(waitResponse)
+		if err != nil {
+			return nil, fmt.Errorf("GetBreach err => failed to encode JSON: %w", err)
+		}
+		return jsonResponse, nil
+	}
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		return nil, fmt.Errorf("GetBreach err => received non-success status code: %d", resp.StatusCode)
+	}
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("GetBreach err => failed to read response body: %w", err)
+	}
+	return body, nil
 }
