@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"html"
 	htmlTemplate "html/template"
-	"io"
 	"net"
 	"net/http"
 	"os"
@@ -2330,10 +2329,9 @@ func (tpl *Template) GetBreach(params map[string]interface{}) ([]byte, error) {
 		return nil, fmt.Errorf("GetBreach err => %s", "no params allowed")
 	}
 
-	url, _ := params["url"].(string)
-	timeout, _ := params["timeout"].(int)
-	if timeout == 0 {
-		timeout = 5
+	url, ok := params["url"].(string)
+	if !ok || url == "" {
+		return nil, fmt.Errorf("GetBreach err => missing or invalid URL")
 	}
 
 	accept, _ := params["accept"].(string)
@@ -2346,32 +2344,13 @@ func (tpl *Template) GetBreach(params map[string]interface{}) ([]byte, error) {
 		headers["hibp-api-key"] = hibpApiKey
 	}
 
-	var transport = &http.Transport{
-		Dial:                (&net.Dialer{Timeout: time.Duration(timeout) * time.Second}).Dial,
-		TLSHandshakeTimeout: time.Duration(timeout) * time.Second,
-	}
-
 	client := &http.Client{
-		Timeout:   time.Duration(timeout) * time.Second,
-		Transport: transport,
+		Timeout: 5 * time.Second,
 	}
 
-	req, err := http.NewRequest("GET", url, nil)
+	body, code, err := utils.HttpRequestRawWithHeadersOutCode(client, "GET", url, headers, nil)
 
-	if err != nil {
-		return nil, fmt.Errorf("GetBreach err => failed to create request: %w", err)
-	}
-	for key, value := range headers {
-		req.Header.Set(key, value)
-	}
-	resp, err := client.Do(req)
-	if err != nil {
-		return nil, fmt.Errorf("GetBreach err => failed to execute request: %w", err)
-	}
-
-	defer resp.Body.Close()
-
-	if resp.StatusCode == 404 {
+	if code == 404 {
 		notFoundResponse := map[string]string{"response": "not found"}
 		jsonResponse, err := json.Marshal(notFoundResponse)
 		if err != nil {
@@ -2379,7 +2358,7 @@ func (tpl *Template) GetBreach(params map[string]interface{}) ([]byte, error) {
 		}
 		return jsonResponse, nil
 	}
-	if resp.StatusCode == 429 {
+	if code == 429 {
 		waitResponse := map[string]string{"response": "wait"}
 		jsonResponse, err := json.Marshal(waitResponse)
 		if err != nil {
@@ -2387,13 +2366,10 @@ func (tpl *Template) GetBreach(params map[string]interface{}) ([]byte, error) {
 		}
 		return jsonResponse, nil
 	}
-	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		return nil, fmt.Errorf("GetBreach err => received non-success status code: %d", resp.StatusCode)
+
+	if err != nil {
+		return nil, fmt.Errorf("GetBreach err => HTTP status %d, error: %v", code, err)
 	}
 
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return nil, fmt.Errorf("GetBreach err => failed to read response body: %w", err)
-	}
 	return body, nil
 }
