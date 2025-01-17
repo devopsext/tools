@@ -2147,6 +2147,8 @@ func (tpl *Template) setTemplateFuncs(funcs map[string]any) {
 	funcs["vmStatus"] = tpl.VMStatus
 
 	funcs["prometheusGet"] = tpl.PrometheusGet
+
+	funcs["getBreach"] = tpl.GetBreach
 }
 
 func (tpl *Template) filterFuncsByContent(funcs map[string]any, content string) map[string]any {
@@ -2333,6 +2335,10 @@ func (tpl *Template) GetBreach(params map[string]interface{}) ([]byte, error) {
 	if !ok || url == "" {
 		return nil, fmt.Errorf("GetBreach err => missing or invalid URL")
 	}
+	timeout, ok := params["timeout"].(int)
+	if !ok || timeout <= 0 {
+		timeout = 5
+	}
 
 	accept, _ := params["accept"].(string)
 	hibpApiKey, _ := params["hibp-api-key"].(string)
@@ -2344,27 +2350,17 @@ func (tpl *Template) GetBreach(params map[string]interface{}) ([]byte, error) {
 		headers["hibp-api-key"] = hibpApiKey
 	}
 
-	client := &http.Client{
-		Timeout: 5 * time.Second,
+	client := http.Client{
+		Timeout: time.Duration(timeout) * time.Second,
 	}
 
-	body, code, err := utils.HttpRequestRawWithHeadersOutCode(client, "GET", url, headers, nil)
+	body, code, err := utils.HttpRequestRawWithHeadersOutCode(&client, "GET", url, headers, nil)
 
-	if code == 404 {
-		notFoundResponse := map[string]string{"response": "not found"}
-		jsonResponse, err := json.Marshal(notFoundResponse)
-		if err != nil {
-			return nil, fmt.Errorf("GetBreach err => failed to encode JSON: %w", err)
-		}
-		return jsonResponse, nil
-	}
-	if code == 429 {
-		waitResponse := map[string]string{"response": "wait"}
-		jsonResponse, err := json.Marshal(waitResponse)
-		if err != nil {
-			return nil, fmt.Errorf("GetBreach err => failed to encode JSON: %w", err)
-		}
-		return jsonResponse, nil
+	switch code {
+	case 404:
+		return []byte(`{"response":"not found"}`), nil
+	case 429:
+		return []byte(`{"response":"wait"}`), nil
 	}
 
 	if err != nil {
