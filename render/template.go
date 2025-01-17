@@ -2147,6 +2147,8 @@ func (tpl *Template) setTemplateFuncs(funcs map[string]any) {
 	funcs["vmStatus"] = tpl.VMStatus
 
 	funcs["prometheusGet"] = tpl.PrometheusGet
+
+	funcs["getBreach"] = tpl.GetBreach
 }
 
 func (tpl *Template) filterFuncsByContent(funcs map[string]any, content string) map[string]any {
@@ -2322,4 +2324,48 @@ func NewHtmlTemplate(options TemplateOptions, logger common.Logger) (*HtmlTempla
 	tpl.options = options
 	tpl.logger = logger
 	return &tpl, nil
+}
+
+func (tpl *Template) GetBreach(params map[string]interface{}) ([]byte, error) {
+	if len(params) == 0 {
+		return nil, fmt.Errorf("GetBreach err => %s", "no params allowed")
+	}
+
+	url, ok := params["url"].(string)
+	if !ok || url == "" {
+		return nil, fmt.Errorf("GetBreach err => missing or invalid URL")
+	}
+	timeout, ok := params["timeout"].(int)
+	if !ok || timeout <= 0 {
+		timeout = 5
+	}
+
+	accept, _ := params["accept"].(string)
+	hibpApiKey, _ := params["hibp-api-key"].(string)
+	headers := map[string]string{}
+	if accept != "" {
+		headers["accept"] = accept
+	}
+	if hibpApiKey != "" {
+		headers["hibp-api-key"] = hibpApiKey
+	}
+
+	client := http.Client{
+		Timeout: time.Duration(timeout) * time.Second,
+	}
+
+	body, code, err := utils.HttpRequestRawWithHeadersOutCode(&client, "GET", url, headers, nil)
+
+	switch code {
+	case 404:
+		return []byte(`{"response":"not found"}`), nil
+	case 429:
+		return []byte(`{"response":"wait"}`), nil
+	}
+
+	if err != nil {
+		return nil, fmt.Errorf("GetBreach err => HTTP status %d, error: %v", code, err)
+	}
+
+	return body, nil
 }
