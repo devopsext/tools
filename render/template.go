@@ -2222,6 +2222,7 @@ func (tpl *Template) setTemplateFuncs(funcs map[string]any) {
 
 	funcs["catchPointTest"] = tpl.CatchpointTestDomain
 	funcs["httpGet"] = tpl.HttpGet
+	funcs["httpGetSilent"] = tpl.HttpGetSilent
 	funcs["httpPost"] = tpl.HttpPost
 	funcs["jiraSearchAssets"] = tpl.JiraSearchAssets
 	funcs["jiraCreateIssue"] = tpl.JiraCreateIssue
@@ -2248,8 +2249,6 @@ func (tpl *Template) setTemplateFuncs(funcs map[string]any) {
 	funcs["vmStatus"] = tpl.VMStatus
 
 	funcs["prometheusGet"] = tpl.PrometheusGet
-
-	funcs["getBreach"] = tpl.GetBreach
 }
 
 func (tpl *Template) filterFuncsByContent(funcs map[string]any, content string) map[string]any {
@@ -2427,45 +2426,43 @@ func NewHtmlTemplate(options TemplateOptions, logger common.Logger) (*HtmlTempla
 	return &tpl, nil
 }
 
-func (tpl *Template) GetBreach(params map[string]interface{}) ([]byte, error) {
+func (tpl *Template) HttpGetSilent(params map[string]interface{}) ([]byte, error) {
 	if len(params) == 0 {
-		return nil, fmt.Errorf("GetBreach err => %s", "no params allowed")
+		return nil, fmt.Errorf("HttpGetSilent err => %s", "no params allowed")
 	}
 
-	url, ok := params["url"].(string)
-	if !ok || url == "" {
-		return nil, fmt.Errorf("GetBreach err => missing or invalid URL")
-	}
+	url, _ := params["url"].(string)
+	insecure, _ := params["insecure"].(bool)
 	timeout, ok := params["timeout"].(int)
 	if !ok || timeout <= 0 {
 		timeout = 5
 	}
 
-	accept, _ := params["accept"].(string)
-	hibpApiKey, _ := params["hibp-api-key"].(string)
 	headers := map[string]string{}
-	if accept != "" {
-		headers["accept"] = accept
+	for key, value := range params {
+		if key == "url" || key == "timeout" || key == "insecure" {
+			continue
+		}
+		if strValue, ok := value.(string); ok {
+			headers[key] = strValue
+		}
 	}
-	if hibpApiKey != "" {
-		headers["hibp-api-key"] = hibpApiKey
+
+	var transport = &http.Transport{
+		Dial:                (&net.Dialer{Timeout: time.Duration(timeout) * time.Second}).Dial,
+		TLSHandshakeTimeout: time.Duration(timeout) * time.Second,
+		TLSClientConfig:     &tls.Config{InsecureSkipVerify: insecure},
 	}
 
 	client := http.Client{
-		Timeout: time.Duration(timeout) * time.Second,
+		Timeout:   time.Duration(timeout) * time.Second,
+		Transport: transport,
 	}
 
-	body, code, err := utils.HttpRequestRawWithHeadersOutCode(&client, "GET", url, headers, nil)
-
-	switch code {
-	case 404:
-		return []byte(`{"response":"not found"}`), nil
-	case 429:
-		return []byte(`{"response":"wait"}`), nil
-	}
+	body, code, err := utils.HttpRequestRawWithHeadersOutCodeSilent(&client, "GET", url, headers, nil)
 
 	if err != nil {
-		return nil, fmt.Errorf("GetBreach err => HTTP status %d, error: %v", code, err)
+		return nil, fmt.Errorf("HttpGetSilent err => HTTP status %d, error: %v", code, err)
 	}
 
 	return body, nil
