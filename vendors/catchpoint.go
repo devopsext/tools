@@ -1,6 +1,7 @@
 package vendors
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -8,6 +9,8 @@ import (
 	"path"
 	"strconv"
 	"strings"
+	"sync"
+	"time"
 
 	"github.com/devopsext/tools/common"
 	"github.com/devopsext/utils"
@@ -230,6 +233,15 @@ type CatchpointInstantTestResultReponse struct {
 	Data *CatchpointInstantTestResultData `json:"data,omitempty"`
 }
 
+type TestSummary struct {
+	TestID       int    `json:"test_id"`
+	NodeName     string `json:"node_name"`
+	Country      string `json:"country"`
+	ResponseCode int    `json:"response_code,omitempty"`
+	ResponseMs   int    `json:"response_ms,omitempty"`
+	PublicLink   string `json:"public_link"`
+}
+
 func (c *Catchpoint) apiURL(cmd string) string {
 	return catchpointAPIURL + catchpointAPIVersion + "/" + cmd
 }
@@ -283,6 +295,134 @@ func (c *Catchpoint) SearchNodesWithOptions(options CatchpointSearchNodesWithOpt
 
 func (c *Catchpoint) GetInstantTestResult(testID string, nodeID int) ([]byte, error) {
 	return c.CustomGetInstantTestResult(c.options, testID, nodeID)
+}
+
+func (c *Catchpoint) WaitPollSuccessOrCancel(ctx context.Context, pollDelay int, testID int, Nodes []*Node, catchpointOptions CatchpointOptions) bool {
+
+	var wg sync.WaitGroup
+	results := make(chan bool, len(Nodes))
+	successCount := 0
+	var mu sync.Mutex
+
+	strTestId := strconv.Itoa(testID)
+
+	wg.Add(len(Nodes))
+
+	for _, node := range Nodes {
+		go func(ctx context.Context, nodeID int) {
+			defer wg.Done()
+
+			ticker := time.NewTicker(time.Duration(pollDelay) * time.Second)
+			defer ticker.Stop()
+
+			for {
+				select {
+				case <-ctx.Done():
+					results <- false
+					return
+				case <-ticker.C:
+
+					d, err := c.CustomGetInstantTestResult(catchpointOptions, strTestId, nodeID)
+					err = c.CheckError(d, err)
+					if err != nil {
+						continue
+					}
+
+					r := CatchpointInstantTestResultReponse{}
+					err = json.Unmarshal(d, &r)
+					if err != nil {
+						continue
+					}
+
+					if r.Data.InstantTestRecord.TestResult != nil {
+						mu.Lock()
+						successCount++
+						mu.Unlock()
+						results <- true
+						return
+					}
+				}
+			}
+		}(ctx, node.ID)
+	}
+
+	go func() {
+		wg.Wait()
+		close(results)
+	}()
+
+	for result := range results {
+		if !result {
+			return false
+		}
+	}
+
+	mu.Lock()
+	allReady := successCount == len(Nodes)
+	mu.Unlock()
+
+	return allReady
+}
+
+func (c *Catchpoint) GetLogReport(catchpointOptions CatchpointOptions, testID int, nodes []*Node) (*[]CatchpointInstantTestResultReponse, error) {
+
+	var reportOpts []CatchpointInstantTestResultReponse
+	strTestId := strconv.Itoa(testID)
+
+	for _, node := range nodes {
+
+		d, err := c.CustomGetInstantTestResult(catchpointOptions, strTestId, node.ID)
+		if err != nil {
+			return nil, c.CheckError(d, err)
+		}
+		r := CatchpointInstantTestResultReponse{}
+		err = json.Unmarshal(d, &r)
+		if err != nil {
+			return nil, err
+		}
+		r.Data.InstantTestRecord.Node.ID = node.ID
+		r.Data.InstantTestRecord.Node.Country = node.Country
+		r.Data.InstantTestRecord.Node.Name = node.Name
+		reportOpts = append(reportOpts, r)
+
+	}
+	return &reportOpts, nil
+}
+
+func (c *Catchpoint) GenerateSummary(results *[]CatchpointInstantTestResultReponse) ([]TestSummary, error) {
+	var summaries []TestSummary
+
+	for _, result := range *results {
+		record := result.Data.InstantTestRecord
+		if record == nil || record.TestResult == nil || record.TestResult.WebRecords == nil {
+			continue
+		}
+
+		var responseCode int
+		if record.TestResult.WebRecords.Items != nil && len(*record.TestResult.WebRecords.Items) > 0 {
+			responseCode = (*record.TestResult.WebRecords.Items)[0].ResponseCode
+		}
+
+		var responseMs int
+		if record.TestResult.Hosts.Metrics != nil && len(*record.TestResult.Hosts.Metrics) > 0 {
+			responseMs = int((*record.TestResult.Hosts.Metrics)[0].Items[2])
+		}
+
+		summary := TestSummary{
+			TestID:       record.ID,
+			NodeName:     record.Node.Name,
+			Country:      record.Node.Country.Name,
+			ResponseCode: responseCode,
+			ResponseMs:   responseMs,
+			PublicLink:   record.PublicLink,
+		}
+		summaries = append(summaries, summary)
+	}
+
+	if len(summaries) == 0 {
+		return nil, fmt.Errorf("no valid summaries generated")
+	}
+	return summaries, nil
 }
 
 func (c *Catchpoint) CustomGetInstantTestResult(catchpointOptions CatchpointOptions, testID string, nodeID int) ([]byte, error) {
