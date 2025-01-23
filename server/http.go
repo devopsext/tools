@@ -14,7 +14,7 @@ import (
 	"github.com/devopsext/tools/common"
 	"github.com/devopsext/tools/render"
 	"github.com/devopsext/utils"
-	"github.com/go-playground/form"
+	"github.com/go-playground/form/v4"
 )
 
 type HttpServerOptions struct {

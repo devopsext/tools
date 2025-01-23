@@ -2,6 +2,7 @@ package render
 
 import (
 	"bytes"
+	"context"
 	"crypto/tls"
 	"encoding/json"
 	"errors"
@@ -2058,6 +2059,106 @@ func (tpl *Template) VMStatus(params map[string]interface{}) ([]byte, error) {
 
 }
 
+func (tpl *Template) CatchpointTestDomain(params map[string]interface{}) ([]byte, error) {
+
+	url, _ := params["url"].(string)
+	timeout, _ := params["timeout"].(int)
+	if timeout == 0 {
+		timeout = 10
+	}
+	token, _ := params["token"].(string)
+	pollTime, _ := params["pollTime"].(int)
+	pollDelay, _ := params["pollDelay"].(int)
+	pageSize, _ := params["pageSize"].(int)
+	pageNumber, _ := params["pageNumber"].(int)
+
+	countries := strings.Split(params["countries"].(string), ",")
+
+	catchpointOptions := vendors.CatchpointOptions{
+		APIToken: token,
+		Timeout:  timeout,
+		Insecure: true,
+		Retries:  3,
+	}
+
+	catchpoint := vendors.NewCatchpoint(catchpointOptions, tpl.logger)
+
+	var nodes []*vendors.Node
+	nodesOpts := vendors.CatchpointSearchNodesWithOptions{
+		Targeted:    false,
+		Active:      true,
+		Paused:      false,
+		NetworkType: 0,
+		IPv6:        false,
+		PageNumber:  pageNumber,
+		PageSize:    pageSize,
+	}
+	var d vendors.CatchpointSearchNodesWithOptionsResponse
+
+	for _, country := range countries {
+
+		ctr := common.CountryByShort(country)
+		nodesOpts.Country = ctr
+		r, _ := catchpoint.CustomSearchNodesWithOptions(catchpointOptions, nodesOpts)
+		json.Unmarshal(r, &d)
+
+		for _, n := range *d.Data.Nodes {
+			nodes = append(nodes, &vendors.Node{
+				ID:   n.ID,
+				Name: n.Name,
+				Country: &vendors.CatchpointCountry{
+					Name: n.Country.Name,
+				},
+			})
+
+		}
+	}
+
+	var nodesStr string
+	for _, n := range nodes {
+		nodesStr = nodesStr + strconv.Itoa(n.ID) + ","
+	}
+	nodesStr = nodesStr[:len(nodesStr)-1]
+	instantTestOptions := vendors.CatchpointInstantTestOptions{
+		URL:             url,
+		NodesIds:        nodesStr,
+		HTTPMethodType:  0,
+		InstantTestType: 0,
+		MonitorType:     2,
+		OnDemand:        true,
+	}
+
+	wmrByte, err := catchpoint.CustomInstantTest(catchpointOptions, instantTestOptions)
+	if err != nil {
+		return nil, err
+	}
+
+	wmr := vendors.CatchpointIstantTestResponse{}
+	json.Unmarshal(wmrByte, &wmr)
+
+	var cancel context.CancelFunc
+	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(pollTime)*time.Second)
+	defer cancel()
+
+	var testResults *[]vendors.CatchpointInstantTestResultReponse
+
+	if catchpoint.WaitPollSuccessOrCancel(ctx, pollDelay, wmr.Data.ID, nodes, catchpointOptions) {
+
+		testResults, _ = catchpoint.GetLogReport(catchpointOptions, wmr.Data.ID, nodes)
+	} else {
+		return nil, fmt.Errorf("unable to get the test results")
+	}
+
+	summary, err := catchpoint.GenerateSummary(testResults)
+	if err != nil {
+		return nil, fmt.Errorf("unable to generate the summary")
+	}
+	summaryBytes, _ := json.Marshal(summary)
+
+	return summaryBytes, nil
+
+}
+
 func (tpl *Template) setTemplateFuncs(funcs map[string]any) {
 
 	funcs["parserLine"] = tpl.ParserLine
@@ -2119,8 +2220,9 @@ func (tpl *Template) setTemplateFuncs(funcs map[string]any) {
 	funcs["sleep"] = tpl.Sleep
 	funcs["error"] = tpl.Error
 
-	funcs["httpGetHeader"] = tpl.HttpGetHeader
+	funcs["catchPointTest"] = tpl.CatchpointTestDomain
 	funcs["httpGet"] = tpl.HttpGet
+	funcs["httpGetSilent"] = tpl.HttpGetSilent
 	funcs["httpPost"] = tpl.HttpPost
 	funcs["jiraSearchAssets"] = tpl.JiraSearchAssets
 	funcs["jiraCreateIssue"] = tpl.JiraCreateIssue
@@ -2147,8 +2249,6 @@ func (tpl *Template) setTemplateFuncs(funcs map[string]any) {
 	funcs["vmStatus"] = tpl.VMStatus
 
 	funcs["prometheusGet"] = tpl.PrometheusGet
-
-	funcs["getBreach"] = tpl.GetBreach
 }
 
 func (tpl *Template) filterFuncsByContent(funcs map[string]any, content string) map[string]any {
@@ -2326,45 +2426,43 @@ func NewHtmlTemplate(options TemplateOptions, logger common.Logger) (*HtmlTempla
 	return &tpl, nil
 }
 
-func (tpl *Template) GetBreach(params map[string]interface{}) ([]byte, error) {
+func (tpl *Template) HttpGetSilent(params map[string]interface{}) ([]byte, error) {
 	if len(params) == 0 {
-		return nil, fmt.Errorf("GetBreach err => %s", "no params allowed")
+		return nil, fmt.Errorf("HttpGetSilent err => %s", "no params allowed")
 	}
 
-	url, ok := params["url"].(string)
-	if !ok || url == "" {
-		return nil, fmt.Errorf("GetBreach err => missing or invalid URL")
-	}
+	url, _ := params["url"].(string)
+	insecure, _ := params["insecure"].(bool)
 	timeout, ok := params["timeout"].(int)
 	if !ok || timeout <= 0 {
 		timeout = 5
 	}
 
-	accept, _ := params["accept"].(string)
-	hibpApiKey, _ := params["hibp-api-key"].(string)
 	headers := map[string]string{}
-	if accept != "" {
-		headers["accept"] = accept
+	for key, value := range params {
+		if key == "url" || key == "timeout" || key == "insecure" {
+			continue
+		}
+		if strValue, ok := value.(string); ok {
+			headers[key] = strValue
+		}
 	}
-	if hibpApiKey != "" {
-		headers["hibp-api-key"] = hibpApiKey
+
+	var transport = &http.Transport{
+		Dial:                (&net.Dialer{Timeout: time.Duration(timeout) * time.Second}).Dial,
+		TLSHandshakeTimeout: time.Duration(timeout) * time.Second,
+		TLSClientConfig:     &tls.Config{InsecureSkipVerify: insecure},
 	}
 
 	client := http.Client{
-		Timeout: time.Duration(timeout) * time.Second,
+		Timeout:   time.Duration(timeout) * time.Second,
+		Transport: transport,
 	}
 
-	body, code, err := utils.HttpRequestRawWithHeadersOutCode(&client, "GET", url, headers, nil)
-
-	switch code {
-	case 404:
-		return []byte(`{"response":"not found"}`), nil
-	case 429:
-		return []byte(`{"response":"wait"}`), nil
-	}
+	body, code, err := utils.HttpRequestRawWithHeadersOutCodeSilent(&client, "GET", url, headers, nil)
 
 	if err != nil {
-		return nil, fmt.Errorf("GetBreach err => HTTP status %d, error: %v", code, err)
+		return nil, fmt.Errorf("HttpGetSilent err => HTTP status %d, error: %v", code, err)
 	}
 
 	return body, nil
