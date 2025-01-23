@@ -2,12 +2,15 @@ package vendors
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"mime/multipart"
 	"net/http"
 	"net/url"
 	"path"
+	"strings"
+	"time"
 
 	"github.com/devopsext/tools/common"
 	"github.com/devopsext/utils"
@@ -688,6 +691,40 @@ func (s *Site24x7) CustomPollMonitor(site24x7Options Site24x7Options, pollMonito
 
 func (s *Site24x7) PollMonitor(options Site24x7MonitorOptions) ([]byte, error) {
 	return s.CustomPollMonitor(s.options, options)
+}
+
+func (s *Site24x7) PollMonitorWait(ctx context.Context, site24x7Options Site24x7Options, monitorOptions Site24x7MonitorOptions, delay int, statuses []string) bool {
+
+	t := time.Duration(delay) * time.Second
+	for {
+
+		select {
+		case <-ctx.Done():
+			return false
+		case <-time.After(t):
+
+			d, err := s.CustomGetPollingStatus(site24x7Options, monitorOptions)
+			if err != nil {
+				continue
+			}
+
+			r := Site24x7PollStatusReponse{}
+			err = json.Unmarshal(d, &r)
+			if err != nil {
+				continue
+			}
+
+			err = s.CheckResponse(r.Site24x7Reponse)
+			if err != nil {
+				continue
+			}
+
+			status := strings.ToLower(r.Data.Status)
+			if utils.Contains(statuses, status) {
+				return true
+			}
+		}
+	}
 }
 
 func (s *Site24x7) CustomGetPollingStatus(site24x7Options Site24x7Options, monitorOptions Site24x7MonitorOptions) ([]byte, error) {

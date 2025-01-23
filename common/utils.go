@@ -7,6 +7,8 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"reflect"
+	"strconv"
 	"strings"
 
 	"github.com/devopsext/utils"
@@ -206,4 +208,81 @@ func RemoveEmptyStrings(items []string) []string {
 	}
 
 	return r
+}
+
+func Invoke(any interface{}, name string, args ...interface{}) ([]interface{}, error) {
+
+	var rt []interface{}
+	method := reflect.ValueOf(any).MethodByName(name)
+
+	vnil := reflect.ValueOf(nil)
+	if method == vnil {
+		return rt, fmt.Errorf("method %s not found", name)
+	}
+
+	methodType := method.Type()
+	numIn := methodType.NumIn()
+
+	if numIn > len(args) {
+		return rt, fmt.Errorf("method %s must have minimum %d params. Have %d", name, numIn, len(args))
+	}
+	if numIn != len(args) && !methodType.IsVariadic() {
+		return rt, fmt.Errorf("method %s must have %d params. Have %d", name, numIn, len(args))
+	}
+
+	in := make([]reflect.Value, len(args))
+
+	for i := 0; i < len(args); i++ {
+
+		var inType reflect.Type
+		if methodType.IsVariadic() && i >= numIn-1 {
+			inType = methodType.In(numIn - 1).Elem()
+		} else {
+			inType = methodType.In(i)
+		}
+
+		argValue := reflect.ValueOf(args[i])
+		if !argValue.IsValid() {
+			return rt, fmt.Errorf("method %s. Param[%d] must be %s. Have %s", name, i, inType, argValue.String())
+		}
+
+		argType := argValue.Type()
+		if argType.ConvertibleTo(inType) {
+			in[i] = argValue.Convert(inType)
+		} else {
+
+			var err error
+			var v interface{}
+
+			switch inType.Kind() {
+			case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64,
+				reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
+				v, err = strconv.Atoi(argValue.String())
+			case reflect.Float32, reflect.Float64:
+				v, err = strconv.ParseFloat(argValue.String(), 64)
+			case reflect.Bool:
+				v, err = strconv.ParseBool(argValue.String())
+			case reflect.String:
+				v = argValue.String()
+			default:
+				v = fmt.Sprintf("%v", argValue.Interface())
+			}
+
+			if err != nil {
+				return rt, fmt.Errorf("method %s. Param[%d] must be %s. Have %s", name, i, inType, argType)
+			}
+			in[i] = reflect.ValueOf(v)
+		}
+	}
+	rv := method.Call(in)[0]
+
+	if rv.Kind() == reflect.Slice {
+		for i := 0; i < rv.Len(); i++ {
+			rt = append(rt, rv.Index(i).Interface())
+		}
+	} else {
+		rt = append(rt, rv.Interface())
+	}
+
+	return rt, nil
 }

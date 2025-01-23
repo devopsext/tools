@@ -3,6 +3,7 @@ package cmd
 import (
 	"fmt"
 	"os"
+	"sync"
 	"time"
 
 	"github.com/devopsext/tools/common"
@@ -13,6 +14,7 @@ import (
 var version = "unknown"
 var APPNAME = "TOOLS"
 var stdout *common.Stdout
+var mainWG sync.WaitGroup
 
 var stdoutOptions = common.StdoutOptions{
 	Format:          envGet("STDOUT_FORMAT", "template").(string),
@@ -90,9 +92,12 @@ func Execute() {
 	rootCmd.AddCommand(NewAWSCommand())
 	rootCmd.AddCommand(NewSite24x7Command())
 	rootCmd.AddCommand(NewCatchpointCommand())
+	rootCmd.AddCommand(NewCryptoCommand())
 
 	rootCmd.AddCommand(NewTemplateCommand())
 	rootCmd.AddCommand(NewDateCommand())
+
+	rootCmd.AddCommand(NewServerCommand(&mainWG))
 
 	if err := rootCmd.Execute(); err != nil {
 		stdout.Error(err)

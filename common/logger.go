@@ -5,4 +5,5 @@ type Logger interface {
 	Warn(obj interface{}, args ...interface{})
 	Debug(obj interface{}, args ...interface{})
 	Error(obj interface{}, args ...interface{})
+	Panic(obj interface{}, args ...interface{})
 }

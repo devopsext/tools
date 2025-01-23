@@ -28,7 +28,7 @@ const (
 var lf = []byte{'\n'}
 
 type AWSOptions struct {
-	Accounts     string
+	Accounts    string
 	Role        string
 	RoleTimeout string
 	AWSKeys
@@ -79,12 +79,12 @@ type awsEC2describeInstancesResponse struct {
 }
 
 type awsEC2InstanceMetadata struct {
-	InstanceId string `xml:"instanceId"`
-	KeyName    string `xml:"keyName"`
-	PrivateIpAddress  string `xml:"privateIpAddress"`
-	IpAddress  string `xml:"ipAddress"`
-	Platform   string `xml:"platformDetails"`
-	Tags       []struct {
+	InstanceId       string `xml:"instanceId"`
+	KeyName          string `xml:"keyName"`
+	PrivateIpAddress string `xml:"privateIpAddress"`
+	IpAddress        string `xml:"ipAddress"`
+	Platform         string `xml:"platformDetails"`
+	Tags             []struct {
 		Key   string `xml:"key"`
 		Value string `xml:"value"`
 	} `xml:"tagSet>item"`
@@ -125,33 +125,33 @@ func NewAWSEC2(opts AWSOptions) (*AWSEC2, error) {
 		return nil, fmt.Errorf("cannot create ec2 object, aws keys, role or account not present")
 	}
 	roleTimeout, _ := strconv.Atoi(opts.RoleTimeout)
-    baseConfigs := make([]awsBase, 0, 4)
-    for _, account := range strings.Split(opts.Accounts, ",") {
-        baseConfigs = append(baseConfigs, awsBase {
+	baseConfigs := make([]awsBase, 0, 4)
+	for _, account := range strings.Split(opts.Accounts, ",") {
+		baseConfigs = append(baseConfigs, awsBase{
 			account:     strings.TrimSpace(account),
 			role:        opts.Role,
 			roleTimeout: roleTimeout,
 			keys:        opts.AWSKeys,
-        })
-    }
+		})
+	}
 
-    for i := range baseConfigs {
-        err := baseConfigs[i].assumeAWSRole()
-        if err != nil {
-            return nil, err
-        }
-        regions, err := baseConfigs[i].getAvailableAWSRegions()
-        if err != nil {
-            return nil, err
-        }
-        err = baseConfigs[i].generateAWSClients(regions)
-        if err != nil {
-            return nil, err
-        }
-    }
-    ec2 := AWSEC2 {
-        baseConfigs: baseConfigs,
-    }
+	for i := range baseConfigs {
+		err := baseConfigs[i].assumeAWSRole()
+		if err != nil {
+			return nil, err
+		}
+		regions, err := baseConfigs[i].getAvailableAWSRegions()
+		if err != nil {
+			return nil, err
+		}
+		err = baseConfigs[i].generateAWSClients(regions)
+		if err != nil {
+			return nil, err
+		}
+	}
+	ec2 := AWSEC2{
+		baseConfigs: baseConfigs,
+	}
 	return &ec2, nil
 }
 
@@ -244,62 +244,62 @@ func (e *AWSEC2) GetAllAWSEC2Instances() ([]AWSEC2Instance, error) {
 	var errs []error
 	instances := make([]AWSEC2Instance, 0)
 
-    for _, cfg := range e.baseConfigs {
-        for _, c := range cfg.clients {
-            wg.Add(1)
-            go func(c *AWSClient) {
-                defer wg.Done()
-                r, err := http.NewRequest("GET", c.Url, nil)
-                if err != nil {
-                    errs = append(errs, err)
-                    return
-                }
+	for _, cfg := range e.baseConfigs {
+		for _, c := range cfg.clients {
+			wg.Add(1)
+			go func(c *AWSClient) {
+				defer wg.Done()
+				r, err := http.NewRequest("GET", c.Url, nil)
+				if err != nil {
+					errs = append(errs, err)
+					return
+				}
 
-                resp, err := c.Do(r)
-                if err != nil {
-                    errs = append(errs, err)
-                    return
-                }
-                defer resp.Body.Close()
+				resp, err := c.Do(r)
+				if err != nil {
+					errs = append(errs, err)
+					return
+				}
+				defer resp.Body.Close()
 
-                body, err := io.ReadAll(resp.Body)
-                if err != nil {
-                    errs = append(errs, err)
-                    return
-                }
+				body, err := io.ReadAll(resp.Body)
+				if err != nil {
+					errs = append(errs, err)
+					return
+				}
 
-                response := awsEC2describeInstancesResponse{}
-                err = xml.Unmarshal(body, &response)
-                if err != nil {
-                    errs = append(errs, err)
-                    return
-                }
-                for _, instance := range response.InstanceItems {
-                    host := instance.InstanceId
-                    for _, tag := range instance.Tags {
-                        if tag.Key == "Name" {
-                            host = strings.ReplaceAll(strings.TrimSpace(tag.Value), " ", "_")
-                        }
-                    }
-                    ip := instance.IpAddress;
-                    if ip == "" {
-                        ip = instance.PrivateIpAddress;
-                    }
+				response := awsEC2describeInstancesResponse{}
+				err = xml.Unmarshal(body, &response)
+				if err != nil {
+					errs = append(errs, err)
+					return
+				}
+				for _, instance := range response.InstanceItems {
+					host := instance.InstanceId
+					for _, tag := range instance.Tags {
+						if tag.Key == "Name" {
+							host = strings.ReplaceAll(strings.TrimSpace(tag.Value), " ", "_")
+						}
+					}
+					ip := instance.IpAddress
+					if ip == "" {
+						ip = instance.PrivateIpAddress
+					}
 
-                    instances = append(instances, AWSEC2Instance{
-                        AccountID: c.AccountID,
-                        Host:      host,
-                        IP:        ip,
-                        Region:    c.Region,
-                        OS:        instance.Platform,
-                        Vendor:    "aws",
-                        Server:    instance.InstanceId,
-                        Cluster:   "aws",
-                    })
-                }
-            }(c)
-        }
-    }
+					instances = append(instances, AWSEC2Instance{
+						AccountID: c.AccountID,
+						Host:      host,
+						IP:        ip,
+						Region:    c.Region,
+						OS:        instance.Platform,
+						Vendor:    "aws",
+						Server:    instance.InstanceId,
+						Cluster:   "aws",
+					})
+				}
+			}(c)
+		}
+	}
 	wg.Wait()
 
 	if len(errs) > 0 {

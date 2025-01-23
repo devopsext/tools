@@ -9,7 +9,7 @@ import (
 )
 
 var EC2Options = vendors.AWSOptions{
-	Accounts:     envGet("AWS_ACCOUNTS", "").(string),
+	Accounts:    envGet("AWS_ACCOUNTS", "").(string),
 	Role:        envGet("AWS_ROLE", "").(string),
 	RoleTimeout: envGet("AWS_ROLE_TIMEOUT", "300").(string),
 	AWSKeys: vendors.AWSKeys{
