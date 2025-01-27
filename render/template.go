@@ -2059,7 +2059,7 @@ func (tpl *Template) VMStatus(params map[string]interface{}) ([]byte, error) {
 
 }
 
-func (tpl *Template) CatchpointTestDomain(params map[string]interface{}) ([]byte, error) {
+func (tpl *Template) CatchpointInstantTest(params map[string]interface{}) ([]byte, error) {
 
 	url, _ := params["url"].(string)
 	timeout, _ := params["timeout"].(int)
@@ -2083,7 +2083,6 @@ func (tpl *Template) CatchpointTestDomain(params map[string]interface{}) ([]byte
 
 	catchpoint := vendors.NewCatchpoint(catchpointOptions, tpl.logger)
 
-	var nodes []*vendors.Node
 	nodesOpts := vendors.CatchpointSearchNodesWithOptions{
 		Targeted:    false,
 		Active:      true,
@@ -2095,6 +2094,7 @@ func (tpl *Template) CatchpointTestDomain(params map[string]interface{}) ([]byte
 	}
 	var d vendors.CatchpointSearchNodesWithOptionsResponse
 
+	var nodes []*vendors.Node
 	for _, country := range countries {
 
 		ctr := common.CountryByShort(country)
@@ -2113,6 +2113,9 @@ func (tpl *Template) CatchpointTestDomain(params map[string]interface{}) ([]byte
 
 		}
 	}
+	if len(nodes) == 0 {
+		return nil, fmt.Errorf("no nodes found with the given parameters")
+	}
 
 	var nodesStr string
 	for _, n := range nodes {
@@ -2130,7 +2133,7 @@ func (tpl *Template) CatchpointTestDomain(params map[string]interface{}) ([]byte
 
 	wmrByte, err := catchpoint.CustomInstantTest(catchpointOptions, instantTestOptions)
 	if err != nil {
-		return nil, err
+		return nil, catchpoint.CheckError(wmrByte, err)
 	}
 
 	wmr := vendors.CatchpointIstantTestResponse{}
@@ -2142,11 +2145,22 @@ func (tpl *Template) CatchpointTestDomain(params map[string]interface{}) ([]byte
 
 	var testResults *[]vendors.CatchpointInstantTestResultReponse
 
-	if catchpoint.WaitPollSuccessOrCancel(ctx, pollDelay, wmr.Data.ID, nodes, catchpointOptions) {
+	allReady, successNodes := catchpoint.WaitPollSuccessOrCancelDetailed(ctx, pollDelay, wmr.Data.ID, nodes, catchpointOptions)
 
-		testResults, _ = catchpoint.GetLogReport(catchpointOptions, wmr.Data.ID, nodes)
+	if allReady {
+		testResults, err = catchpoint.GetLogReport(catchpointOptions, wmr.Data.ID, nodes)
+		if err != nil {
+			return nil, fmt.Errorf("unable to get the test results: %w", err)
+		}
 	} else {
-		return nil, fmt.Errorf("unable to get the test results")
+		if len(successNodes) > 0 {
+			testResults, err = catchpoint.GetLogReport(catchpointOptions, wmr.Data.ID, successNodes)
+			if err != nil {
+				return nil, fmt.Errorf("unable to get the test results: %w", err)
+			}
+		} else {
+			return nil, fmt.Errorf("no nodes succeeded in polling;")
+		}
 	}
 
 	summary, err := catchpoint.GenerateSummary(testResults)
@@ -2220,7 +2234,7 @@ func (tpl *Template) setTemplateFuncs(funcs map[string]any) {
 	funcs["sleep"] = tpl.Sleep
 	funcs["error"] = tpl.Error
 
-	funcs["catchPointTest"] = tpl.CatchpointTestDomain
+	funcs["catchpointInstantTest"] = tpl.CatchpointInstantTest
 	funcs["httpGet"] = tpl.HttpGet
 	funcs["httpGetSilent"] = tpl.HttpGetSilent
 	funcs["httpPost"] = tpl.HttpPost
