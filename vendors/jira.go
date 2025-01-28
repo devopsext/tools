@@ -381,6 +381,10 @@ func (j *Jira) CustomUpdateIssue(jiraOptions JiraOptions, issueOptions JiraIssue
 	return utils.HttpPutRaw(j.client, u.String(), "application/json", j.getAuth(jiraOptions), req)
 }
 
+func (j *Jira) MoveIssue(options JiraIssueOptions) ([]byte, error) {
+	return j.CustomUpdateIssue(j.options, options)
+}
+
 func (j *Jira) UpdateIssue(options JiraIssueOptions) ([]byte, error) {
 	return j.CustomUpdateIssue(j.options, options)
 }
