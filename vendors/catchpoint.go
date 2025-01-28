@@ -297,7 +297,106 @@ func (c *Catchpoint) GetInstantTestResult(testID string, nodeID int) ([]byte, er
 	return c.CustomGetInstantTestResult(c.options, testID, nodeID)
 }
 
+func filterNodesByID(allNodes []*Node, ids []int) []*Node {
+	idSet := make(map[int]bool)
+	for _, id := range ids {
+		idSet[id] = true
+	}
+
+	var filtered []*Node
+	for _, node := range allNodes {
+		if idSet[node.ID] {
+			filtered = append(filtered, node)
+		}
+	}
+	return filtered
+}
+
+func (c *Catchpoint) WaitPollSuccessOrCancelDetailed(ctx context.Context, pollDelay int, testID int, nodes []*Node, catchpointOptions CatchpointOptions) (bool, []*Node) {
+
+	// the method will return true if all nodes are ready, otherwise false + list of success nodes
+
+	var wg sync.WaitGroup
+	results := make(chan struct {
+		nodeID  int
+		success bool
+	}, len(nodes))
+
+	successNodes := []int{}
+	var mu sync.Mutex
+
+	strTestId := strconv.Itoa(testID)
+
+	wg.Add(len(nodes))
+
+	for _, node := range nodes {
+		go func(ctx context.Context, nodeID int) {
+			defer wg.Done()
+
+			ticker := time.NewTicker(time.Duration(pollDelay) * time.Second)
+			defer ticker.Stop()
+
+			for {
+				select {
+				case <-ctx.Done():
+					results <- struct {
+						nodeID  int
+						success bool
+					}{nodeID, false}
+					return
+				case <-ticker.C:
+					d, err := c.CustomGetInstantTestResult(catchpointOptions, strTestId, nodeID)
+					err = c.CheckError(d, err)
+					if err != nil {
+						continue
+					}
+
+					r := CatchpointInstantTestResultReponse{}
+					err = json.Unmarshal(d, &r)
+					if err != nil {
+						continue
+					}
+
+					if r.Data.InstantTestRecord.TestResult != nil {
+						results <- struct {
+							nodeID  int
+							success bool
+						}{nodeID, true}
+						return
+					}
+				}
+			}
+		}(ctx, node.ID)
+	}
+
+	go func() {
+		wg.Wait()
+		close(results)
+	}()
+
+	for result := range results {
+		mu.Lock()
+		if result.success {
+			successNodes = append(successNodes, result.nodeID)
+		}
+		mu.Unlock()
+	}
+
+	allReady := len(successNodes) == len(nodes)
+
+	var successNodesDetails []*Node
+	if allReady {
+		successNodesDetails = nodes
+	} else {
+		successNodesDetails = filterNodesByID(nodes, successNodes)
+	}
+
+	return allReady, successNodesDetails
+}
+
 func (c *Catchpoint) WaitPollSuccessOrCancel(ctx context.Context, pollDelay int, testID int, Nodes []*Node, catchpointOptions CatchpointOptions) bool {
+
+	// the method will return true if all nodes are ready, otherwise false
 
 	var wg sync.WaitGroup
 	results := make(chan bool, len(Nodes))
@@ -447,13 +546,13 @@ func (c *Catchpoint) CustomSearchNodesWithOptions(catchpointOptions CatchpointOp
 	if !utils.IsEmpty(catchpointNodesGetAllOptions.Name) {
 		params.Add("name", catchpointNodesGetAllOptions.Name)
 	}
-	if !utils.IsEmpty(catchpointNodesGetAllOptions.Targeted) {
+	if !utils.IsEmpty(strconv.FormatBool(catchpointNodesGetAllOptions.Targeted)) {
 		params.Add("targeted", strconv.FormatBool(catchpointNodesGetAllOptions.Targeted))
 	}
-	if !utils.IsEmpty(catchpointNodesGetAllOptions.Active) {
+	if !utils.IsEmpty(strconv.FormatBool(catchpointNodesGetAllOptions.Active)) {
 		params.Add("active", strconv.FormatBool(catchpointNodesGetAllOptions.Active))
 	}
-	if !utils.IsEmpty(catchpointNodesGetAllOptions.Paused) {
+	if !utils.IsEmpty(strconv.FormatBool(catchpointNodesGetAllOptions.Paused)) {
 		params.Add("paused", strconv.FormatBool(catchpointNodesGetAllOptions.Paused))
 	}
 	if !utils.IsEmpty(catchpointNodesGetAllOptions.NetworkType) {
@@ -465,7 +564,7 @@ func (c *Catchpoint) CustomSearchNodesWithOptions(catchpointOptions CatchpointOp
 	if !utils.IsEmpty(catchpointNodesGetAllOptions.Country) {
 		params.Add("country", catchpointNodesGetAllOptions.Country)
 	}
-	if !utils.IsEmpty(catchpointNodesGetAllOptions.IPv6) {
+	if !utils.IsEmpty(strconv.FormatBool(catchpointNodesGetAllOptions.IPv6)) {
 		params.Add("ipv6", strconv.FormatBool(catchpointNodesGetAllOptions.IPv6))
 	}
 	if !utils.IsEmpty(catchpointNodesGetAllOptions.ASN) {
