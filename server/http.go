@@ -5,6 +5,7 @@ import (
 	"crypto/x509"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net"
 	"net/http"
 	"os"
@@ -26,11 +27,14 @@ type HttpServerOptions struct {
 	Key        string
 	Chain      string
 	Timeout    int
+	BodyKey    string
+	Methods    []string
 }
 
 type HttpServer struct {
 	options HttpServerOptions
 	logger  common.Logger
+	bodyKey string
 }
 
 type HttpServerProcessor interface {
@@ -103,17 +107,39 @@ func (h *HttpServerCallProcessor) handleTemplate(request *HttpServerCallRequest)
 
 func (h *HttpServerCallProcessor) HandleRequest(w http.ResponseWriter, r *http.Request) error {
 
-	err := r.ParseForm()
+	var err error
+	if !utils.Contains(h.server.options.Methods, r.Method) {
+		err := fmt.Errorf("invalid method: %v", r.Method)
+		http.Error(w, err.Error(), http.StatusMethodNotAllowed)
+		return err
+	}
+
+	var nr *http.Request
+
+	if utils.IsEmpty(h.server.options.BodyKey) {
+		nr = r
+	} else {
+		// decrypt
+		body, err := io.ReadAll(r.Body)
+		if err != nil {
+			http.Error(w, fmt.Sprintf("could not read body: %v", err), http.StatusInternalServerError)
+			return err
+		}
+		nr = &http.Request{}
+		nr.Clone(r.Context())
+		nr.Body = io.NopCloser(strings.NewReader(string(body)))
+	}
+
+	err = nr.ParseForm()
 	if err != nil {
 		http.Error(w, fmt.Sprintf("could not parse form: %v", err), http.StatusInternalServerError)
 		return err
 	}
 
 	decoder := form.NewDecoder()
-
 	var request HttpServerCallRequest
 
-	err = decoder.Decode(&request, r.Form)
+	err = decoder.Decode(&request, nr.Form)
 	if err != nil {
 		http.Error(w, fmt.Sprintf("could not decode form: %v", err), http.StatusInternalServerError)
 		return err
@@ -296,9 +322,16 @@ func (h *HttpServer) getProcessors() map[string]HttpServerProcessor {
 
 func NewHttpServer(options HttpServerOptions, logger common.Logger) *HttpServer {
 
+	bodyKeyBytes, err := utils.Content(options.BodyKey)
+	if err != nil {
+		return nil
+	}
+	bodyKey := string(bodyKeyBytes)
+
 	server := &HttpServer{
 		options: options,
 		logger:  logger,
+		bodyKey: bodyKey,
 	}
 	return server
 }

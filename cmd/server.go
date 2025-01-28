@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"strings"
 	"sync"
 
 	"github.com/devopsext/tools/common"
@@ -17,6 +18,8 @@ var httpServerOptions = server.HttpServerOptions{
 	Key:        envGet("HTTP_SERVER_KEY", "").(string),
 	Chain:      envGet("HTTP_SERVER_CHAIN", "").(string),
 	Timeout:    envGet("HTTP_SERVER_TIMEOUT", 30).(int),
+	BodyKey:    envGet("HTTP_SERVER_BODY_KEY", "").(string),
+	Methods:    strings.Split(envGet("HTTP_SERVER_METHODS", "POST").(string), ","),
 }
 
 func httpServerNew(stdout *common.Stdout) *server.HttpServer {
@@ -51,6 +54,9 @@ func NewServerCommand(wg *sync.WaitGroup) *cobra.Command {
 	flags.StringVar(&httpServerOptions.Key, "http-server-key", httpServerOptions.Key, "Http server key file or content")
 	flags.StringVar(&httpServerOptions.Chain, "http-server-chain", httpServerOptions.Chain, "Http server CA chain file or content")
 	flags.IntVar(&httpServerOptions.Timeout, "http-server-timeout", httpServerOptions.Timeout, "Http server timeout")
+	flags.StringVar(&httpServerOptions.BodyKey, "http-server-body-key", httpServerOptions.BodyKey, "Http server body private RCA key")
+	flags.StringSliceVar(&httpServerOptions.Methods, "http-server-methods", httpServerOptions.Methods, "Http server methods")
+
 	serverCmd.AddCommand(httpServerCmd)
 
 	return serverCmd
