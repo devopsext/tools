@@ -381,6 +381,36 @@ func (j *Jira) CustomUpdateIssue(jiraOptions JiraOptions, issueOptions JiraIssue
 	return utils.HttpPutRaw(j.client, u.String(), "application/json", j.getAuth(jiraOptions), req)
 }
 
+func (j *Jira) CustomMoveIssue(jiraOptions JiraOptions, moveOptions JiraIssueOptions) ([]byte, error) {
+
+	issue := &JiraIssueUpdate{
+		Fields: &JiraIssueFields{
+			IssueType: &JiraIssueType{
+				Name: moveOptions.Type,
+			},
+		},
+	}
+
+	cf := make(map[string]interface{})
+
+	req, err := jsonJiraMarshal(&issue, cf)
+	if err != nil {
+		return nil, err
+	}
+
+	u, err := url.Parse(jiraOptions.URL)
+	if err != nil {
+		return nil, err
+	}
+
+	u.Path = path.Join(u.Path, fmt.Sprintf("/rest/api/2/issue/%s", moveOptions.IdOrKey))
+	return utils.HttpPutRaw(j.client, u.String(), "application/json", j.getAuth(jiraOptions), req)
+}
+
+func (j *Jira) MoveIssue(options JiraIssueOptions) ([]byte, error) {
+	return j.CustomMoveIssue(j.options, options)
+}
+
 func (j *Jira) UpdateIssue(options JiraIssueOptions) ([]byte, error) {
 	return j.CustomUpdateIssue(j.options, options)
 }

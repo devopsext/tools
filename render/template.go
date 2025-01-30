@@ -1073,6 +1073,45 @@ func (tpl *Template) JiraCreateAsset(params map[string]interface{}) ([]byte, err
 	return response, nil
 }
 
+func (tpl *Template) JiraMoveIssue(params map[string]interface{}) ([]byte, error) {
+
+	url, _ := params["url"].(string)
+	timeout, _ := params["timeout"].(int)
+	if timeout == 0 {
+		timeout = 10
+	}
+	insecure, _ := params["insecure"].(bool)
+	user, _ := params["user"].(string)
+	password, _ := params["password"].(string)
+	token, _ := params["token"].(string)
+
+	key, _ := params["key"].(string)
+	issueType, _ := params["issueType"].(string)
+
+	jiraOptions := vendors.JiraOptions{
+		URL:         url,
+		Timeout:     timeout,
+		Insecure:    insecure,
+		User:        user,
+		Password:    password,
+		AccessToken: token,
+	}
+
+	jiraIssueOptions := vendors.JiraIssueOptions{
+		IdOrKey: key,
+		Type:    issueType,
+	}
+
+	jira := vendors.NewJira(jiraOptions)
+
+	response, err := jira.MoveIssue(jiraIssueOptions)
+	if err != nil {
+		return nil, err
+	}
+
+	return response, nil
+}
+
 func (tpl *Template) JiraAddComment(params map[string]interface{}) ([]byte, error) {
 
 	url, _ := params["url"].(string)
@@ -2242,6 +2281,7 @@ func (tpl *Template) setTemplateFuncs(funcs map[string]any) {
 	funcs["jiraCreateIssue"] = tpl.JiraCreateIssue
 	funcs["jiraSearchIssue"] = tpl.JiraSearchIssue
 	funcs["jiraCreateAsset"] = tpl.JiraCreateAsset
+	funcs["jiraMoveIssue"] = tpl.JiraMoveIssue
 	funcs["jiraAddComment"] = tpl.JiraAddComment
 	funcs["jiraUpdateIssue"] = tpl.JiraUpdateIssue
 	funcs["jiraIssueTransition"] = tpl.JiraIssueTransition
