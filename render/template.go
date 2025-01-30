@@ -2274,6 +2274,7 @@ func (tpl *Template) setTemplateFuncs(funcs map[string]any) {
 	funcs["error"] = tpl.Error
 
 	funcs["catchpointInstantTest"] = tpl.CatchpointInstantTest
+	funcs["httpGetHeader"] = tpl.HttpGetHeader
 	funcs["httpGet"] = tpl.HttpGet
 	funcs["httpGetSilent"] = tpl.HttpGetSilent
 	funcs["httpPost"] = tpl.HttpPost
