@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"crypto/tls"
+	"crypto/x509"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -11,6 +12,7 @@ import (
 	htmlTemplate "html/template"
 	"net"
 	"net/http"
+	"net/url"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -26,6 +28,7 @@ import (
 	"github.com/devopsext/tools/common"
 	"github.com/devopsext/tools/vendors"
 	utils "github.com/devopsext/utils"
+	"github.com/google/uuid"
 
 	"github.com/tidwall/gjson"
 )
@@ -859,6 +862,12 @@ func (tpl *Template) Error(format string, a ...any) (string, error) {
 	return err.Error(), err
 }
 
+func (tpl *Template) UUID() string {
+
+	uuid := uuid.New()
+	return uuid.String()
+}
+
 // url, contentType, authorization string, timeout int
 func (tpl *Template) HttpGetHeader(params map[string]interface{}) ([]byte, error) {
 	if len(params) == 0 {
@@ -948,7 +957,9 @@ func (tpl *Template) HttpPost(params map[string]interface{}) ([]byte, error) {
 
 	var body []byte
 	b := params["body"]
+
 	if !utils.IsEmpty(b) {
+
 		switch b.(type) {
 		case string:
 			bs, _ := b.(string)
@@ -961,10 +972,33 @@ func (tpl *Template) HttpPost(params map[string]interface{}) ([]byte, error) {
 		}
 	}
 
+	clientCrt, _ := params["clientCrt"].(string)
+	clientKey, _ := params["clientKey"].(string)
+
+	var certs []tls.Certificate
+	if !utils.IsEmpty(clientCrt) && !utils.IsEmpty(clientKey) {
+		pair, err := tls.X509KeyPair([]byte(clientCrt), []byte(clientKey))
+		if err != nil {
+			return nil, err
+		}
+		certs = append(certs, pair)
+	}
+
+	var rootCAs *x509.CertPool
+	clientCA, _ := params["clientCA"].(string)
+	if !utils.IsEmpty(clientCA) {
+		rootCAs := x509.NewCertPool()
+		rootCAs.AppendCertsFromPEM([]byte(clientCA))
+	}
+
 	var transport = &http.Transport{
 		Dial:                (&net.Dialer{Timeout: time.Duration(timeout) * time.Second}).Dial,
 		TLSHandshakeTimeout: time.Duration(timeout) * time.Second,
-		TLSClientConfig:     &tls.Config{InsecureSkipVerify: insecure},
+		TLSClientConfig: &tls.Config{
+			RootCAs:            rootCAs,
+			Certificates:       certs,
+			InsecureSkipVerify: insecure,
+		},
 	}
 
 	client := http.Client{
@@ -972,6 +1006,47 @@ func (tpl *Template) HttpPost(params map[string]interface{}) ([]byte, error) {
 		Transport: transport,
 	}
 	return utils.HttpPostRaw(&client, url, contentType, authorization, body)
+}
+
+func (tpl *Template) HttpForm(params map[string]interface{}) ([]byte, error) {
+
+	if len(params) == 0 {
+		return nil, fmt.Errorf("HttpForm err => %s", "no params allowed")
+	}
+
+	form := url.Values{}
+	for k, v := range params {
+
+		if utils.IsEmpty(v) {
+			continue
+		}
+
+		// encode map to json
+		m, ok := v.(map[string]interface{})
+		if ok {
+
+			b, err := json.Marshal(m)
+			if err != nil {
+				return nil, err
+			}
+			form.Add(k, string(b))
+			continue
+		}
+
+		// encode array to json
+		a, ok := v.([]interface{})
+		if ok {
+			b, err := json.Marshal(a)
+			if err != nil {
+				return nil, err
+			}
+			form.Add(k, string(b))
+			continue
+		}
+
+		form.Add(k, fmt.Sprintf("%v", v))
+	}
+	return []byte(form.Encode()), nil
 }
 
 func (tpl *Template) JiraSearchAssets(params map[string]interface{}) ([]byte, error) {
@@ -1831,7 +1906,7 @@ func (tpl *Template) ListFilesWithModTime(rootDir string) (map[string]string, er
 	return filesMap, nil
 }
 
-func (tpl *Template) VMRestart(params map[string]interface{}) ([]byte, error) {
+func (tpl *Template) VMReset(params map[string]interface{}) ([]byte, error) {
 
 	user, _ := params["user"].(string)
 	url, _ := params["url"].(string)
@@ -1868,16 +1943,21 @@ func (tpl *Template) VMRestart(params map[string]interface{}) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
+
 	err = json.Unmarshal(vmInfo, &vi)
 	if err != nil {
 		return nil, err
+	}
+
+	if len(vi.Value) == 0 {
+		return nil, fmt.Errorf("no VMs found")
 	}
 
 	var response []byte
 
 	if len(vi.Value) > 0 {
 		for _, vm := range vi.Value {
-			response, err = vcenter.RestartVM(vm.VM)
+			response, err = vcenter.ResetVM(vm.VM)
 			if err != nil {
 				return nil, err
 			}
@@ -1885,7 +1965,6 @@ func (tpl *Template) VMRestart(params map[string]interface{}) ([]byte, error) {
 	}
 
 	return response, nil
-
 }
 
 func (tpl *Template) VMStop(params map[string]interface{}) ([]byte, error) {
@@ -1925,9 +2004,14 @@ func (tpl *Template) VMStop(params map[string]interface{}) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
+
 	err = json.Unmarshal(vmInfo, &vi)
 	if err != nil {
 		return nil, err
+	}
+
+	if len(vi.Value) == 0 {
+		return nil, fmt.Errorf("no VMs found")
 	}
 
 	var response []byte
@@ -1982,9 +2066,14 @@ func (tpl *Template) VMStart(params map[string]interface{}) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
+
 	err = json.Unmarshal(vmInfo, &vi)
 	if err != nil {
 		return nil, err
+	}
+
+	if len(vi.Value) == 0 {
+		return nil, fmt.Errorf("no VMs found")
 	}
 
 	var response []byte
@@ -2219,11 +2308,15 @@ func (tpl *Template) setTemplateFuncs(funcs map[string]any) {
 	funcs["nowFmt"] = tpl.NowFmt
 	funcs["sleep"] = tpl.Sleep
 	funcs["error"] = tpl.Error
+	funcs["uuid"] = tpl.UUID
 
 	funcs["catchPointTest"] = tpl.CatchpointTestDomain
+
 	funcs["httpGet"] = tpl.HttpGet
 	funcs["httpGetSilent"] = tpl.HttpGetSilent
 	funcs["httpPost"] = tpl.HttpPost
+	funcs["httpForm"] = tpl.HttpForm
+
 	funcs["jiraSearchAssets"] = tpl.JiraSearchAssets
 	funcs["jiraCreateIssue"] = tpl.JiraCreateIssue
 	funcs["jiraSearchIssue"] = tpl.JiraSearchIssue
@@ -2232,6 +2325,7 @@ func (tpl *Template) setTemplateFuncs(funcs map[string]any) {
 	funcs["jiraUpdateIssue"] = tpl.JiraUpdateIssue
 	funcs["jiraIssueTransition"] = tpl.JiraIssueTransition
 	funcs["jiraGetIssueTransition"] = tpl.JiraGetIssueTransition
+
 	funcs["grafanaCreateDashboard"] = tpl.GrafanaCreateDashboard
 	funcs["grafanaCopyDashboard"] = tpl.GrafanaCopyDashboard
 	funcs["pagerDutyCreateIncident"] = tpl.PagerDutyCreateIncident
@@ -2243,7 +2337,8 @@ func (tpl *Template) setTemplateFuncs(funcs map[string]any) {
 	funcs["googleCalendarDeleteEvents"] = tpl.GoogleCalendarDeleteEvents
 	funcs["sshRun"] = tpl.SSHRun
 	funcs["listFilesWithModTime"] = tpl.ListFilesWithModTime
-	funcs["vmRestart"] = tpl.VMRestart
+
+	funcs["vmReset"] = tpl.VMReset
 	funcs["vmStart"] = tpl.VMStart
 	funcs["vmStop"] = tpl.VMStop
 	funcs["vmStatus"] = tpl.VMStatus

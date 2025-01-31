@@ -5,10 +5,10 @@ import (
 	"crypto/x509"
 	"encoding/json"
 	"fmt"
-	"io"
 	"net"
 	"net/http"
 	"os"
+	"regexp"
 	"strings"
 	"sync"
 
@@ -19,22 +19,21 @@ import (
 )
 
 type HttpServerOptions struct {
-	ServerName string
-	Listen     string
-	Tls        bool
-	Insecure   bool
-	Cert       string
-	Key        string
-	Chain      string
-	Timeout    int
-	BodyKey    string
-	Methods    []string
+	ServerName      string
+	Listen          string
+	Tls             bool
+	Insecure        bool
+	CA              string
+	Crt             string
+	Key             string
+	Timeout         int
+	Methods         []string
+	SensitiveFields []string
 }
 
 type HttpServer struct {
 	options HttpServerOptions
 	logger  common.Logger
-	bodyKey string
 }
 
 type HttpServerProcessor interface {
@@ -47,6 +46,7 @@ type HttpServerHealthProcessor struct {
 }
 
 type HttpServerCallRequest struct {
+	ID      string        `form:"id"`
 	Name    string        `form:"name"`
 	Package string        `form:"package,omitempty"`
 	Params  []interface{} `form:"params,omitempty"`
@@ -79,7 +79,7 @@ func (h *HttpServerHealthProcessor) HandleRequest(w http.ResponseWriter, r *http
 	_, err := w.Write([]byte("OK"))
 
 	if err != nil {
-		http.Error(w, fmt.Sprintf("could not write response: %v", err), http.StatusInternalServerError)
+		http.Error(w, fmt.Sprintf("HTTP Server could not write response: %v", err), http.StatusInternalServerError)
 		return err
 	}
 	return nil
@@ -91,7 +91,34 @@ func (h *HttpServerCallProcessor) Path() string {
 	return HttpServerCallProcessorPath
 }
 
-func (h *HttpServerCallProcessor) handleTemplate(request *HttpServerCallRequest) ([]interface{}, error) {
+func (h *HttpServerCallProcessor) request2String(request *HttpServerCallRequest) string {
+
+	pkg := ""
+	if !utils.IsEmpty(request.Package) {
+		pkg = fmt.Sprintf(" package: %s", request.Package)
+	}
+	return fmt.Sprintf("name: %s%s params: %d timeout: %d", request.Name, pkg, len(request.Params), request.Timeout)
+}
+
+func (h *HttpServerCallProcessor) replaceByRegex(s, key string) string {
+
+	var re = regexp.MustCompile(fmt.Sprintf(`(%s:.+?)( |})`, key))
+	rep := fmt.Sprintf("%s:%s ", key, strings.Repeat("*", 8))
+	return re.ReplaceAllString(s, rep)
+}
+
+func (h *HttpServerCallProcessor) params2String(params []interface{}) string {
+
+	s := fmt.Sprintf("%v", params)
+
+	for _, v := range h.server.options.SensitiveFields {
+		s = h.replaceByRegex(s, v)
+	}
+
+	return fmt.Sprintf("params: %s", s)
+}
+
+func (h *HttpServerCallProcessor) handleTemplate(name string, params []interface{}) ([]interface{}, error) {
 
 	options := render.TemplateOptions{
 		Content:     "{{ $d := 0 }}",
@@ -101,65 +128,85 @@ func (h *HttpServerCallProcessor) handleTemplate(request *HttpServerCallRequest)
 	if err != nil {
 		return nil, nil
 	}
-	name := strings.ToUpper(request.Name[:1]) + request.Name[1:]
-	return common.Invoke(tpl, name, request.Params...)
+	return common.Invoke(tpl, name, params...)
 }
 
 func (h *HttpServerCallProcessor) HandleRequest(w http.ResponseWriter, r *http.Request) error {
 
 	var err error
 	if !utils.Contains(h.server.options.Methods, r.Method) {
-		err := fmt.Errorf("invalid method: %v", r.Method)
+		err := fmt.Errorf("HTTP Server has invalid method: %v", r.Method)
 		http.Error(w, err.Error(), http.StatusMethodNotAllowed)
 		return err
 	}
 
-	var nr *http.Request
-
-	if utils.IsEmpty(h.server.options.BodyKey) {
-		nr = r
-	} else {
-		// decrypt
-		body, err := io.ReadAll(r.Body)
-		if err != nil {
-			http.Error(w, fmt.Sprintf("could not read body: %v", err), http.StatusInternalServerError)
-			return err
-		}
-		nr = &http.Request{}
-		nr.Clone(r.Context())
-		nr.Body = io.NopCloser(strings.NewReader(string(body)))
-	}
-
-	err = nr.ParseForm()
+	err = r.ParseForm()
 	if err != nil {
-		http.Error(w, fmt.Sprintf("could not parse form: %v", err), http.StatusInternalServerError)
+		http.Error(w, fmt.Sprintf("HTTP Server could not parse form: %v", err), http.StatusInternalServerError)
 		return err
 	}
 
 	decoder := form.NewDecoder()
 	var request HttpServerCallRequest
 
-	err = decoder.Decode(&request, nr.Form)
+	err = decoder.Decode(&request, r.Form)
 	if err != nil {
-		http.Error(w, fmt.Sprintf("could not decode form: %v", err), http.StatusInternalServerError)
+		http.Error(w, fmt.Sprintf("HTTP Server could not decode form: %v", err), http.StatusInternalServerError)
 		return err
 	}
 
-	h.server.logger.Debug("%v", request)
+	h.server.logger.Debug("HTTP Server reguest id: %s => %s", request.ID, h.request2String(&request))
 
 	if utils.IsEmpty(request.Name) {
 		err := fmt.Errorf("name is empty")
-		http.Error(w, fmt.Sprintf("could not decode form: %v", err), http.StatusInternalServerError)
+		http.Error(w, fmt.Sprintf("HTTP Server could not decode form: %v", err), http.StatusInternalServerError)
 		return err
 	}
 
 	var arr []interface{}
+	var params []interface{}
+
+	if len(request.Params) > 0 {
+		for _, v := range request.Params {
+
+			if utils.IsEmpty(v) {
+				continue
+			}
+
+			s, ok := v.(string)
+			if ok {
+				// try as json
+				var vn interface{}
+				err := json.Unmarshal([]byte(s), &vn)
+				if err == nil {
+
+					m, ok := vn.(map[string]interface{})
+					if ok {
+						params = append(params, m)
+						continue
+					}
+
+					a, ok := vn.([]interface{})
+					if ok {
+						params = append(params, a)
+						continue
+					}
+				}
+			}
+
+			params = append(params, v)
+		}
+	}
+
+	h.server.logger.Debug("HTTP Server request id: %s => %s", request.ID, h.params2String(params))
+
+	name := strings.ToUpper(request.Name[:1]) + request.Name[1:]
 
 	switch request.Package {
 	case "template":
-		arr, err = h.handleTemplate(&request)
+		arr, err = h.handleTemplate(name, params)
 	default:
-		arr, err = h.handleTemplate(&request)
+		arr, err = h.handleTemplate(name, params)
 	}
 
 	var rerr string
@@ -178,14 +225,26 @@ func (h *HttpServerCallProcessor) HandleRequest(w http.ResponseWriter, r *http.R
 		Error:   rerr,
 	}
 
+	serr := ""
+	if !utils.IsEmpty(rerr) {
+		serr = fmt.Sprintf(" error: %s", rerr)
+	}
+
+	sarr := "no result"
+	if !utils.IsEmpty(rarr) {
+		sarr = fmt.Sprintf("result: %v", rarr)
+	}
+
+	h.server.logger.Debug("HTTP Server request id: %s => %s%s", request.ID, sarr, serr)
+
 	data, err := json.Marshal(res)
 	if err != nil {
-		http.Error(w, fmt.Sprintf("could not marshal response: %v", err), http.StatusInternalServerError)
+		http.Error(w, fmt.Sprintf("HTTP Server could not marshal response: %v", err), http.StatusInternalServerError)
 		return err
 	}
 
 	if _, err := w.Write(data); err != nil {
-		http.Error(w, fmt.Sprintf("could not write response: %v", err), http.StatusInternalServerError)
+		http.Error(w, fmt.Sprintf("HTTP Server could not write response: %v", err), http.StatusInternalServerError)
 		return err
 	}
 
@@ -215,7 +274,7 @@ func (h *HttpServer) Start(wg *sync.WaitGroup) {
 	go func(wg *sync.WaitGroup) {
 
 		defer wg.Done()
-		h.logger.Info("Start http server...")
+		h.logger.Info("Start HTTP Server...")
 
 		var caPool *x509.CertPool
 		var certificates []tls.Certificate
@@ -224,14 +283,14 @@ func (h *HttpServer) Start(wg *sync.WaitGroup) {
 
 			// load certififcate
 			var cert []byte
-			if _, err := os.Stat(h.options.Cert); err == nil {
+			if _, err := os.Stat(h.options.Crt); err == nil {
 
-				cert, err = os.ReadFile(h.options.Cert)
+				cert, err = os.ReadFile(h.options.Crt)
 				if err != nil {
 					h.logger.Panic(err)
 				}
 			} else {
-				cert = []byte(h.options.Cert)
+				cert = []byte(h.options.Crt)
 			}
 
 			// load key
@@ -253,21 +312,21 @@ func (h *HttpServer) Start(wg *sync.WaitGroup) {
 
 			certificates = append(certificates, pair)
 
-			// load CA chain
-			var chain []byte
-			if _, err := os.Stat(h.options.Chain); err == nil {
-				chain, err = os.ReadFile(h.options.Chain)
+			// load CA
+			var ca []byte
+			if _, err := os.Stat(h.options.CA); err == nil {
+				ca, err = os.ReadFile(h.options.CA)
 				if err != nil {
 					h.logger.Panic(err)
 				}
 			} else {
-				chain = []byte(h.options.Chain)
+				ca = []byte(h.options.CA)
 			}
 
-			// make pool of chains
+			// make pool of CA
 			caPool = x509.NewCertPool()
-			if !caPool.AppendCertsFromPEM(chain) {
-				h.logger.Debug("CA chain is invalid")
+			if !caPool.AppendCertsFromPEM(ca) {
+				h.logger.Debug("HTTP Server CA is invalid")
 			}
 		}
 
@@ -283,7 +342,7 @@ func (h *HttpServer) Start(wg *sync.WaitGroup) {
 			h.logger.Panic(err)
 		}
 
-		h.logger.Info("Http server is up. Listening...")
+		h.logger.Info("HTTP Server is up. Listening...")
 
 		srv := &http.Server{
 			Handler:  mux,
@@ -293,8 +352,8 @@ func (h *HttpServer) Start(wg *sync.WaitGroup) {
 		if h.options.Tls {
 
 			srv.TLSConfig = &tls.Config{
+				ClientCAs:          caPool,
 				Certificates:       certificates,
-				RootCAs:            caPool,
 				InsecureSkipVerify: h.options.Insecure,
 				ServerName:         h.options.ServerName,
 			}
@@ -322,16 +381,9 @@ func (h *HttpServer) getProcessors() map[string]HttpServerProcessor {
 
 func NewHttpServer(options HttpServerOptions, logger common.Logger) *HttpServer {
 
-	bodyKeyBytes, err := utils.Content(options.BodyKey)
-	if err != nil {
-		return nil
-	}
-	bodyKey := string(bodyKeyBytes)
-
 	server := &HttpServer{
 		options: options,
 		logger:  logger,
-		bodyKey: bodyKey,
 	}
 	return server
 }

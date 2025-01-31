@@ -1,81 +1,73 @@
 #!/bin/bash
 
-function generateCertificates() {
+set -e
 
-  local NAME="$1"
-  local DAYS="$2"
+pushd `dirname $0` > /dev/null
+SCRIPTPATH=`pwd -P`
+popd > /dev/null
+SCRIPTFILE=`basename $0`
 
-  DAYS=${DAYS:-365}
+mkdir -p ${SCRIPTPATH}/.certs
 
-  if [[ "$NAME" == "" ]]; then
-    echo "Name is not specified. Generation skipped."
-    return
-  fi
+cd ${SCRIPTPATH}/.certs
 
-  local KEY_FILE="$NAME.key"
-  local CRT_FILE="$NAME.crt"
+DAYS=3650
+SIZE=4096
+CN="tools"
+DNS="tools"
 
-  if [[ "$KEY_FILE" == "" ]] || [[ "$CRT_FILE" == "" ]]; then
-    echo "Key/Crt file name is not specified. Generation skipped."
-    return
-  fi
+# generate a self-signed rootCA file that would be used to sign both the server and client cert.
+# Alternatively, we can use different CA files to sign the server and client, but for our use case, we would use a single CA.
 
-  tmpdir=$(mktemp -d)
+echo "Creating new key and certificate for Root CA..."
+openssl req -newkey rsa:${SIZE} \
+  -new -nodes -x509 \
+  -days ${DAYS} \
+  -out ca.crt \
+  -keyout ca.key \
+  -subj "/CN=${CN}"
 
-  cat <<EOF >>"${tmpdir}/csr.conf"
-  [req]
-  req_extensions = v3_req
-  distinguished_name = req_distinguished_name
-  [req_distinguished_name]
-  [ v3_req ]
-  basicConstraints = CA:FALSE
-  keyUsage = nonRepudiation, digitalSignature, keyEncipherment
-  extendedKeyUsage = serverAuth
-  subjectAltName = @alt_names
-  [alt_names]
-  DNS.1 = ${NAME}
-EOF
+#create a key for server
 
-  local __out=""
+echo "Creating new key and certificate for Server..."
+openssl genrsa -out server.key ${SIZE}
 
-  openssl genrsa -out "${KEY_FILE}" 4096 >__openSsl.out 2>&1
-  __out=$(cat __openSsl.out)
-  if [[ ! "$?" -eq 0 ]]; then
-    echo "$__out"
-    return 1
-  else
-    echo "'openssl genrsa' output:\n$__out"
-  fi
+#generate the Certificate Signing Request
 
-  openssl req -new -key "${KEY_FILE}" -subj "/CN=${NAME}" -out "${tmpdir}/${NAME}.csr" -config "${tmpdir}/csr.conf" >__openSsl.out 2>&1
-  __out=$(cat __openSsl.out)
-  if [[ ! "$?" -eq 0 ]]; then
-    echo "$__out"
-    return 1
-  else
-    echo "'openssl req -new -key' output:\n$__out"
-  fi
+echo "Creating new CSR for Server..."
+openssl req -new -key server.key -out server.csr \
+  -subj "/CN=${CN}"
 
-  openssl x509 -signkey "${KEY_FILE}" -in "${tmpdir}/${NAME}.csr" -req -days $DAYS -out "${CRT_FILE}" >__openSsl.out 2>&1
-  __out=$(cat __openSsl.out)
-  if [[ ! "$?" -eq 0 ]]; then
-    echo "$__out"
-    return 1
-  else
-    echo "'openssl x509 -signkey' output:\n$__out"
-  fi
+#sign it with Root CA
+# https://stackoverflow.com/questions/64814173/how-do-i-use-sans-with-openssl-instead-of-common-name
 
-  rm -rf __openSsl.out
+echo "Signing the Server certificate with Root CA..."
+openssl x509  -req -in server.csr \
+  -extfile <(printf "subjectAltName=DNS:${DNS}") \
+  -CA ca.crt -CAkey ca.key  \
+  -days ${DAYS} -sha256 -CAcreateserial \
+  -out server.crt
+
+cat server.crt server.key > server.pem
+
+function generate_client() {
+  CLIENT=$1
+  O=$2
+  OU=$3
+
+  echo "Creating new key and certificate for ${CLIENT}..."
+  openssl genrsa -out ${CLIENT}.key ${SIZE}
+
+  echo "Creating new CSR for ${CLIENT}..."
+  openssl req -new -key ${CLIENT}.key -out ${CLIENT}.csr \
+    -subj "/CN=${CN}"
+
+  echo "Signing the ${CLIENT} certificate with Root CA..."
+  openssl x509  -req -in ${CLIENT}.csr \
+    -extfile <(printf "subjectAltName=DNS:${DNS}") \
+    -CA ca.crt -CAkey ca.key -out ${CLIENT}.crt -days ${DAYS} -sha256 -CAcreateserial
+
+  cat ${CLIENT}.crt ${CLIENT}.key > ${CLIENT}.pem
 }
 
-generateCertificates "$1" "$2"
-
-echo "Crt..."
-cat "$1.crt" | base64 | tr -d '\n'
-echo ""
-echo "Key..."
-cat "$1.key" | base64 | tr -d '\n'
-echo ""
-echo "Bundle..."
-cat "$1.crt" | base64 | tr -d '\n'
-echo ""% 
+generate_client client
