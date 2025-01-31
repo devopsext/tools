@@ -885,10 +885,33 @@ func (tpl *Template) HttpGetHeader(params map[string]interface{}) ([]byte, error
 
 	insecure, _ := params["insecure"].(bool)
 
+	clientCrt, _ := params["clientCrt"].(string)
+	clientKey, _ := params["clientKey"].(string)
+
+	var certs []tls.Certificate
+	if !utils.IsEmpty(clientCrt) && !utils.IsEmpty(clientKey) {
+		pair, err := tls.X509KeyPair([]byte(clientCrt), []byte(clientKey))
+		if err != nil {
+			return nil, err
+		}
+		certs = append(certs, pair)
+	}
+
+	var rootCAs *x509.CertPool
+	clientCA, _ := params["clientCA"].(string)
+	if !utils.IsEmpty(clientCA) {
+		rootCAs := x509.NewCertPool()
+		rootCAs.AppendCertsFromPEM([]byte(clientCA))
+	}
+
 	var transport = &http.Transport{
 		Dial:                (&net.Dialer{Timeout: time.Duration(timeout) * time.Second}).Dial,
 		TLSHandshakeTimeout: time.Duration(timeout) * time.Second,
-		TLSClientConfig:     &tls.Config{InsecureSkipVerify: insecure},
+		TLSClientConfig: &tls.Config{
+			RootCAs:            rootCAs,
+			Certificates:       certs,
+			InsecureSkipVerify: insecure,
+		},
 	}
 
 	client := http.Client{
@@ -926,10 +949,33 @@ func (tpl *Template) HttpGet(params map[string]interface{}) ([]byte, error) {
 	contentType, _ := params["contentType"].(string)
 	authorization, _ := params["authorization"].(string)
 
+	clientCrt, _ := params["clientCrt"].(string)
+	clientKey, _ := params["clientKey"].(string)
+
+	var certs []tls.Certificate
+	if !utils.IsEmpty(clientCrt) && !utils.IsEmpty(clientKey) {
+		pair, err := tls.X509KeyPair([]byte(clientCrt), []byte(clientKey))
+		if err != nil {
+			return nil, err
+		}
+		certs = append(certs, pair)
+	}
+
+	var rootCAs *x509.CertPool
+	clientCA, _ := params["clientCA"].(string)
+	if !utils.IsEmpty(clientCA) {
+		rootCAs := x509.NewCertPool()
+		rootCAs.AppendCertsFromPEM([]byte(clientCA))
+	}
+
 	var transport = &http.Transport{
 		Dial:                (&net.Dialer{Timeout: time.Duration(timeout) * time.Second}).Dial,
 		TLSHandshakeTimeout: time.Duration(timeout) * time.Second,
-		TLSClientConfig:     &tls.Config{InsecureSkipVerify: insecure},
+		TLSClientConfig: &tls.Config{
+			RootCAs:            rootCAs,
+			Certificates:       certs,
+			InsecureSkipVerify: insecure,
+		},
 	}
 
 	client := http.Client{
@@ -1141,6 +1187,45 @@ func (tpl *Template) JiraCreateAsset(params map[string]interface{}) ([]byte, err
 	jira := vendors.NewJira(jiraOptions)
 
 	response, err := jira.CreateAsset(jiraIssueOptions)
+	if err != nil {
+		return nil, err
+	}
+
+	return response, nil
+}
+
+func (tpl *Template) JiraMoveIssue(params map[string]interface{}) ([]byte, error) {
+
+	url, _ := params["url"].(string)
+	timeout, _ := params["timeout"].(int)
+	if timeout == 0 {
+		timeout = 10
+	}
+	insecure, _ := params["insecure"].(bool)
+	user, _ := params["user"].(string)
+	password, _ := params["password"].(string)
+	token, _ := params["token"].(string)
+
+	key, _ := params["key"].(string)
+	issueType, _ := params["issueType"].(string)
+
+	jiraOptions := vendors.JiraOptions{
+		URL:         url,
+		Timeout:     timeout,
+		Insecure:    insecure,
+		User:        user,
+		Password:    password,
+		AccessToken: token,
+	}
+
+	jiraIssueOptions := vendors.JiraIssueOptions{
+		IdOrKey: key,
+		Type:    issueType,
+	}
+
+	jira := vendors.NewJira(jiraOptions)
+
+	response, err := jira.MoveIssue(jiraIssueOptions)
 	if err != nil {
 		return nil, err
 	}
@@ -2148,7 +2233,7 @@ func (tpl *Template) VMStatus(params map[string]interface{}) ([]byte, error) {
 
 }
 
-func (tpl *Template) CatchpointTestDomain(params map[string]interface{}) ([]byte, error) {
+func (tpl *Template) CatchpointInstantTest(params map[string]interface{}) ([]byte, error) {
 
 	url, _ := params["url"].(string)
 	timeout, _ := params["timeout"].(int)
@@ -2172,7 +2257,6 @@ func (tpl *Template) CatchpointTestDomain(params map[string]interface{}) ([]byte
 
 	catchpoint := vendors.NewCatchpoint(catchpointOptions, tpl.logger)
 
-	var nodes []*vendors.Node
 	nodesOpts := vendors.CatchpointSearchNodesWithOptions{
 		Targeted:    false,
 		Active:      true,
@@ -2184,6 +2268,7 @@ func (tpl *Template) CatchpointTestDomain(params map[string]interface{}) ([]byte
 	}
 	var d vendors.CatchpointSearchNodesWithOptionsResponse
 
+	var nodes []*vendors.Node
 	for _, country := range countries {
 
 		ctr := common.CountryByShort(country)
@@ -2202,6 +2287,9 @@ func (tpl *Template) CatchpointTestDomain(params map[string]interface{}) ([]byte
 
 		}
 	}
+	if len(nodes) == 0 {
+		return nil, fmt.Errorf("no nodes found with the given parameters")
+	}
 
 	var nodesStr string
 	for _, n := range nodes {
@@ -2219,7 +2307,7 @@ func (tpl *Template) CatchpointTestDomain(params map[string]interface{}) ([]byte
 
 	wmrByte, err := catchpoint.CustomInstantTest(catchpointOptions, instantTestOptions)
 	if err != nil {
-		return nil, err
+		return nil, catchpoint.CheckError(wmrByte, err)
 	}
 
 	wmr := vendors.CatchpointIstantTestResponse{}
@@ -2231,11 +2319,22 @@ func (tpl *Template) CatchpointTestDomain(params map[string]interface{}) ([]byte
 
 	var testResults *[]vendors.CatchpointInstantTestResultReponse
 
-	if catchpoint.WaitPollSuccessOrCancel(ctx, pollDelay, wmr.Data.ID, nodes, catchpointOptions) {
+	allReady, successNodes := catchpoint.WaitPollSuccessOrCancelDetailed(ctx, pollDelay, wmr.Data.ID, nodes, catchpointOptions)
 
-		testResults, _ = catchpoint.GetLogReport(catchpointOptions, wmr.Data.ID, nodes)
+	if allReady {
+		testResults, err = catchpoint.GetLogReport(catchpointOptions, wmr.Data.ID, nodes)
+		if err != nil {
+			return nil, fmt.Errorf("unable to get the test results: %w", err)
+		}
 	} else {
-		return nil, fmt.Errorf("unable to get the test results")
+		if len(successNodes) > 0 {
+			testResults, err = catchpoint.GetLogReport(catchpointOptions, wmr.Data.ID, successNodes)
+			if err != nil {
+				return nil, fmt.Errorf("unable to get the test results: %w", err)
+			}
+		} else {
+			return nil, fmt.Errorf("no nodes succeeded in polling;")
+		}
 	}
 
 	summary, err := catchpoint.GenerateSummary(testResults)
@@ -2310,8 +2409,9 @@ func (tpl *Template) setTemplateFuncs(funcs map[string]any) {
 	funcs["error"] = tpl.Error
 	funcs["uuid"] = tpl.UUID
 
-	funcs["catchPointTest"] = tpl.CatchpointTestDomain
+	funcs["catchpointInstantTest"] = tpl.CatchpointInstantTest
 
+	funcs["httpGetHeader"] = tpl.HttpGetHeader
 	funcs["httpGet"] = tpl.HttpGet
 	funcs["httpGetSilent"] = tpl.HttpGetSilent
 	funcs["httpPost"] = tpl.HttpPost
@@ -2321,6 +2421,7 @@ func (tpl *Template) setTemplateFuncs(funcs map[string]any) {
 	funcs["jiraCreateIssue"] = tpl.JiraCreateIssue
 	funcs["jiraSearchIssue"] = tpl.JiraSearchIssue
 	funcs["jiraCreateAsset"] = tpl.JiraCreateAsset
+	funcs["jiraMoveIssue"] = tpl.JiraMoveIssue
 	funcs["jiraAddComment"] = tpl.JiraAddComment
 	funcs["jiraUpdateIssue"] = tpl.JiraUpdateIssue
 	funcs["jiraIssueTransition"] = tpl.JiraIssueTransition
@@ -2543,10 +2644,33 @@ func (tpl *Template) HttpGetSilent(params map[string]interface{}) ([]byte, error
 		}
 	}
 
+	clientCrt, _ := params["clientCrt"].(string)
+	clientKey, _ := params["clientKey"].(string)
+
+	var certs []tls.Certificate
+	if !utils.IsEmpty(clientCrt) && !utils.IsEmpty(clientKey) {
+		pair, err := tls.X509KeyPair([]byte(clientCrt), []byte(clientKey))
+		if err != nil {
+			return nil, err
+		}
+		certs = append(certs, pair)
+	}
+
+	var rootCAs *x509.CertPool
+	clientCA, _ := params["clientCA"].(string)
+	if !utils.IsEmpty(clientCA) {
+		rootCAs := x509.NewCertPool()
+		rootCAs.AppendCertsFromPEM([]byte(clientCA))
+	}
+
 	var transport = &http.Transport{
 		Dial:                (&net.Dialer{Timeout: time.Duration(timeout) * time.Second}).Dial,
 		TLSHandshakeTimeout: time.Duration(timeout) * time.Second,
-		TLSClientConfig:     &tls.Config{InsecureSkipVerify: insecure},
+		TLSClientConfig: &tls.Config{
+			RootCAs:            rootCAs,
+			Certificates:       certs,
+			InsecureSkipVerify: insecure,
+		},
 	}
 
 	client := http.Client{
