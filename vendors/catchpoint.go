@@ -500,6 +500,10 @@ func (c *Catchpoint) GenerateSummary(results *[]CatchpointInstantTestResultRepon
 		var responseCode int
 		if record.TestResult.WebRecords.Items != nil && len(*record.TestResult.WebRecords.Items) > 0 {
 			responseCode = (*record.TestResult.WebRecords.Items)[0].ResponseCode
+			if responseCode == 308 {
+				responseCode = (*record.TestResult.WebRecords.Items)[1].ResponseCode
+
+			}
 		}
 
 		var responseMs int
