@@ -277,7 +277,7 @@ func (vc *VCenter) StopVM(vmID string) ([]byte, error) {
 	return vc.CustomControlVMPower(vc.options, vmID, "stop")
 }
 
-func (vc *VCenter) RestartVM(vmID string) ([]byte, error) {
+func (vc *VCenter) ResetVM(vmID string) ([]byte, error) {
 	return vc.CustomControlVMPower(vc.options, vmID, "reset")
 }
 

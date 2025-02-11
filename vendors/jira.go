@@ -246,7 +246,7 @@ func (j *Jira) CustomCreateIssue(jiraOptions JiraOptions, createOptions JiraIssu
 
 	if !utils.IsEmpty(createOptions.CustomFields) {
 		var err error
-		cf, err = common.ReadAndMarshal(createOptions.CustomFields)
+		err = json.Unmarshal([]byte(createOptions.CustomFields), &cf)
 		if err != nil {
 			return nil, err
 		}
@@ -362,7 +362,7 @@ func (j *Jira) CustomUpdateIssue(jiraOptions JiraOptions, issueOptions JiraIssue
 
 	if !utils.IsEmpty(issueOptions.CustomFields) {
 		var err error
-		cf, err = common.ReadAndMarshal(issueOptions.CustomFields)
+		err = json.Unmarshal([]byte(issueOptions.CustomFields), &cf)
 		if err != nil {
 			return nil, err
 		}

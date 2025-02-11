@@ -254,7 +254,9 @@ func Invoke(any interface{}, name string, args ...interface{}) ([]interface{}, e
 			var err error
 			var v interface{}
 
-			switch inType.Kind() {
+			kind := inType.Kind()
+
+			switch kind {
 			case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64,
 				reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
 				v, err = strconv.Atoi(argValue.String())
@@ -264,6 +266,10 @@ func Invoke(any interface{}, name string, args ...interface{}) ([]interface{}, e
 				v, err = strconv.ParseBool(argValue.String())
 			case reflect.String:
 				v = argValue.String()
+			case reflect.Array:
+				v = argValue.Interface()
+			case reflect.Map:
+				v = argValue.Interface()
 			default:
 				v = fmt.Sprintf("%v", argValue.Interface())
 			}
@@ -274,15 +280,23 @@ func Invoke(any interface{}, name string, args ...interface{}) ([]interface{}, e
 			in[i] = reflect.ValueOf(v)
 		}
 	}
-	rv := method.Call(in)[0]
 
-	if rv.Kind() == reflect.Slice {
-		for i := 0; i < rv.Len(); i++ {
-			rt = append(rt, rv.Index(i).Interface())
+	var err error
+	arr := method.Call(in)
+
+	for _, rv := range arr {
+
+		vi := rv.Interface()
+		if vi != nil {
+			e, ok := vi.(error)
+			if ok {
+				err = e
+				continue
+			}
 		}
-	} else {
+
 		rt = append(rt, rv.Interface())
 	}
 
-	return rt, nil
+	return rt, err
 }
