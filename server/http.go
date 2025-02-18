@@ -367,6 +367,7 @@ func (h *HttpServer) Start(wg *sync.WaitGroup) {
 		if h.options.Tls {
 
 			srv.TLSConfig = &tls.Config{
+				ClientAuth:         tls.RequireAndVerifyClientCert,
 				ClientCAs:          caPool,
 				Certificates:       certificates,
 				InsecureSkipVerify: h.options.Insecure,
