@@ -42,6 +42,11 @@ type GrafanaCreateAnnotationOptions struct {
 }
 
 type GrafanaClonedDahboardOptions struct {
+	URL         string
+	Timeout     int
+	Insecure    bool
+	APIKey      string
+	OrgID       string
 	UID         string
 	Annotations []string
 	PanelIDs    []string
@@ -54,12 +59,13 @@ type GrafanaClonedDahboardOptions struct {
 	Height      int
 }
 
-type GrafanaCreateDahboardOptions struct {
+type GrafanaDahboardOptions struct {
 	Title     string
 	FolderUID string
 	Tags      []string
 	From      string
 	To        string
+	SaveUID   bool
 	Cloned    GrafanaClonedDahboardOptions
 }
 
@@ -191,7 +197,7 @@ func (g *Grafana) GetDashboards() ([]byte, error) {
 	return g.CustomGetDashboards(g.options)
 }
 
-func (g Grafana) CustomCopyDashboard(grafanaOptions GrafanaOptions, grafanaCreateOptions GrafanaCreateDahboardOptions) ([]byte, error) {
+func (g Grafana) CustomCopyDashboard(grafanaOptions GrafanaOptions, grafanaDashboardOptions GrafanaDahboardOptions) ([]byte, error) {
 	u, err := url.Parse(grafanaOptions.URL)
 	if err != nil {
 		return nil, err
@@ -199,14 +205,17 @@ func (g Grafana) CustomCopyDashboard(grafanaOptions GrafanaOptions, grafanaCreat
 	u.Path = path.Join(u.Path, "/api/dashboards/db")
 
 	copyDashboard := &GrafanaBoard{}
-	if !utils.IsEmpty(grafanaCreateOptions.Cloned.UID) {
-		copyOpts := GrafanaOptions{
-			URL:          grafanaOptions.URL,
-			Timeout:      grafanaOptions.Timeout,
-			Insecure:     grafanaOptions.Insecure,
-			APIKey:       grafanaOptions.APIKey,
-			OrgID:        grafanaOptions.OrgID,
-			DashboardUID: grafanaCreateOptions.Cloned.UID,
+	if !utils.IsEmpty(grafanaDashboardOptions.Cloned.UID) {
+
+		copyOpts := grafanaOptions
+		copyOpts.DashboardUID = grafanaDashboardOptions.Cloned.UID
+
+		if !utils.IsEmpty(grafanaDashboardOptions.Cloned.URL) {
+			copyOpts.URL = grafanaDashboardOptions.Cloned.URL
+			copyOpts.Timeout = grafanaDashboardOptions.Cloned.Timeout
+			copyOpts.Insecure = grafanaDashboardOptions.Cloned.Insecure
+			copyOpts.APIKey = grafanaDashboardOptions.Cloned.APIKey
+			copyOpts.OrgID = grafanaDashboardOptions.Cloned.OrgID
 		}
 
 		b, err := g.CustomGetDashboards(copyOpts)
@@ -220,15 +229,24 @@ func (g Grafana) CustomCopyDashboard(grafanaOptions GrafanaOptions, grafanaCreat
 		}
 	}
 
-	copyDashboard.Dashboard.Title = grafanaCreateOptions.Title
-	copyDashboard.FolderUID = grafanaCreateOptions.FolderUID
-	copyDashboard.Dashboard.Tags = grafanaCreateOptions.Tags
 	copyDashboard.FolderID = 0
 	copyDashboard.Overwrite = false
 	copyDashboard.Meta.Folder = nil
 	copyDashboard.Meta.FolderUID = ""
 	copyDashboard.Dashboard.ID = nil
-	copyDashboard.Dashboard.UID = ""
+
+	if !grafanaDashboardOptions.SaveUID {
+		copyDashboard.Dashboard.UID = ""
+	}
+	if !utils.IsEmpty(grafanaDashboardOptions.Title) {
+		copyDashboard.Dashboard.Title = grafanaDashboardOptions.Title
+	}
+	if !utils.IsEmpty(grafanaDashboardOptions.FolderUID) {
+		copyDashboard.FolderUID = grafanaDashboardOptions.FolderUID
+	}
+	if !utils.IsEmpty(grafanaDashboardOptions.Tags) {
+		copyDashboard.Dashboard.Tags = grafanaDashboardOptions.Tags
+	}
 
 	b, err := json.Marshal(copyDashboard)
 	if err != nil {
@@ -236,10 +254,9 @@ func (g Grafana) CustomCopyDashboard(grafanaOptions GrafanaOptions, grafanaCreat
 	}
 
 	return utils.HttpPostRaw(g.client, u.String(), "application/json", g.getAuth(grafanaOptions), b)
-
 }
 
-func (g *Grafana) CopyDashboard(grafanaCreateOptions GrafanaCreateDahboardOptions) ([]byte, error) {
+func (g *Grafana) CopyDashboard(grafanaCreateOptions GrafanaDahboardOptions) ([]byte, error) {
 	return g.CustomCopyDashboard(g.options, grafanaCreateOptions)
 }
 
@@ -596,7 +613,7 @@ func (g Grafana) arrangePanels(panels *[]interface{}, clonedDashboardOptions Gra
 	}
 }
 
-func (g Grafana) CustomCreateDashboard(grafanaOptions GrafanaOptions, createDashboardOptions GrafanaCreateDahboardOptions) ([]byte, error) {
+func (g Grafana) CustomCreateDashboard(grafanaOptions GrafanaOptions, createDashboardOptions GrafanaDahboardOptions) ([]byte, error) {
 
 	u, err := url.Parse(grafanaOptions.URL)
 	if err != nil {
@@ -605,14 +622,18 @@ func (g Grafana) CustomCreateDashboard(grafanaOptions GrafanaOptions, createDash
 	u.Path = path.Join(u.Path, "/api/dashboards/db")
 
 	cloned := &GrafanaBoard{}
+
 	if !utils.IsEmpty(createDashboardOptions.Cloned.UID) {
-		clonedOpts := GrafanaOptions{
-			URL:          grafanaOptions.URL,
-			Timeout:      grafanaOptions.Timeout,
-			Insecure:     grafanaOptions.Insecure,
-			APIKey:       grafanaOptions.APIKey,
-			OrgID:        grafanaOptions.OrgID,
-			DashboardUID: createDashboardOptions.Cloned.UID,
+
+		clonedOpts := grafanaOptions
+		clonedOpts.DashboardUID = createDashboardOptions.Cloned.UID
+
+		if !utils.IsEmpty(createDashboardOptions.Cloned.URL) {
+			clonedOpts.URL = createDashboardOptions.Cloned.URL
+			clonedOpts.Timeout = createDashboardOptions.Cloned.Timeout
+			clonedOpts.Insecure = createDashboardOptions.Cloned.Insecure
+			clonedOpts.APIKey = createDashboardOptions.Cloned.APIKey
+			clonedOpts.OrgID = createDashboardOptions.Cloned.OrgID
 		}
 		b, err := g.CustomGetDashboards(clonedOpts)
 		if err != nil {
@@ -651,7 +672,7 @@ func (g Grafana) CustomCreateDashboard(grafanaOptions GrafanaOptions, createDash
 	return utils.HttpPostRaw(g.client, u.String(), "application/json", g.getAuth(grafanaOptions), b)
 }
 
-func (g *Grafana) CreateDashboard(options GrafanaCreateDahboardOptions) ([]byte, error) {
+func (g *Grafana) CreateDashboard(options GrafanaDahboardOptions) ([]byte, error) {
 	return g.CustomCreateDashboard(g.options, options)
 }
 

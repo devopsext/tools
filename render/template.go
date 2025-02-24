@@ -1531,7 +1531,7 @@ func (tpl *Template) GrafanaCreateDashboard(params map[string]interface{}) ([]by
 		DashboardTimezone: dTimeZone,
 	}
 
-	grafanaCreateDashboardOptions := vendors.GrafanaCreateDahboardOptions{
+	grafanaCreateDashboardOptions := vendors.GrafanaDahboardOptions{
 		Title:     title,
 		FolderUID: fUID,
 		Tags:      tags,
@@ -1593,7 +1593,7 @@ func (tpl *Template) GrafanaCopyDashboard(params map[string]interface{}) ([]byte
 		DashboardTimezone: dTimeZone,
 	}
 
-	grafanaCreateDashboardOptions := vendors.GrafanaCreateDahboardOptions{
+	grafanaCopyDashboardOptions := vendors.GrafanaDahboardOptions{
 		Title:     title,
 		FolderUID: fUID,
 		Tags:      tags,
@@ -1606,7 +1606,7 @@ func (tpl *Template) GrafanaCopyDashboard(params map[string]interface{}) ([]byte
 
 	grafana := vendors.NewGrafana(grafanaOptions)
 
-	response, err := grafana.CopyDashboard(grafanaCreateDashboardOptions)
+	response, err := grafana.CopyDashboard(grafanaCopyDashboardOptions)
 	if err != nil {
 		return nil, err
 	}
