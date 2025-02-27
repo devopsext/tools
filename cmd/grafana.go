@@ -10,18 +10,18 @@ import (
 )
 
 var grafanaOptions = vendors.GrafanaOptions{
-	URL:               envGet("GRAFANA_URL", "").(string),
-	Timeout:           envGet("GRAFANA_TIMEOUT", 30).(int),
-	Insecure:          envGet("GRAFANA_INSECURE", false).(bool),
-	APIKey:            envGet("GRAFANA_API_KEY", "").(string),
-	OrgID:             envGet("GRAFANA_ORG_ID", "1").(string),
-	DashboardUID:      envGet("GRAFANA_DASHBOARD_UID", "").(string),
-	DashboardSlug:     envGet("GRAFANA_DASHBOARD_SLUG", "").(string),
-	DashboardTimezone: envGet("GRAFANA_DASHBOARD_TIMEZONE", "UTC").(string),
+	URL:      envGet("GRAFANA_URL", "").(string),
+	Timeout:  envGet("GRAFANA_TIMEOUT", 30).(int),
+	Insecure: envGet("GRAFANA_INSECURE", false).(bool),
+	APIKey:   envGet("GRAFANA_API_KEY", "").(string),
+	OrgID:    envGet("GRAFANA_ORG_ID", "1").(string),
 }
 
 var grafanaDashboardOptions = vendors.GrafanaDahboardOptions{
 	Title:     envGet("GRAFANA_DASHBOARD_TITLE", "").(string),
+	UID:       envGet("GRAFANA_DASHBOARD_UID", "").(string),
+	Slug:      envGet("GRAFANA_DASHBOARD_SLUG", "").(string),
+	Timezone:  envGet("GRAFANA_DASHBOARD_TIMEZONE", "UTC").(string),
 	FolderUID: envGet("GRAFANA_DASHBOARD_FOLDER_UID", "").(string),
 	Tags:      strings.Split(envGet("GRAFANA_DASHBOARD_TAGS", "").(string), ","),
 	From:      envGet("GRAFANA_DASHBOARD_FROM", "now-1h").(string),
@@ -98,12 +98,45 @@ func NewGrafanaCommand() *cobra.Command {
 	flags.BoolVar(&grafanaOptions.Insecure, "grafana-insecure", grafanaOptions.Insecure, "Grafana insecure")
 	flags.StringVar(&grafanaOptions.APIKey, "grafana-api-key", grafanaOptions.APIKey, "Grafana api key")
 	flags.StringVar(&grafanaOptions.OrgID, "grafana-org-id", grafanaOptions.OrgID, "Grafana org id")
-	flags.StringVar(&grafanaOptions.DashboardUID, "grafana-dashboard-uid", grafanaOptions.DashboardUID, "Grafana dashboard uid")
-	flags.StringVar(&grafanaOptions.DashboardSlug, "grafana-dashboard-slug", grafanaOptions.DashboardSlug, "Grafana dashboard slug")
-	flags.StringVar(&grafanaOptions.DashboardTimezone, "grafana-dashboard-timezone", grafanaOptions.DashboardTimezone, "Grafana dashboard timezone")
 
 	flags.StringVar(&grafanaOutput.Output, "grafana-output", grafanaOutput.Output, "Grafana output")
 	flags.StringVar(&grafanaOutput.Query, "grafana-output-query", grafanaOutput.Query, "Grafana output query")
+
+	getDashboardCmd := cobra.Command{
+		Use:   "get-dashboards",
+		Short: "Get dashboards by uid",
+		Run: func(cmd *cobra.Command, args []string) {
+			stdout.Debug("Grafana getting dashboards...")
+
+			bytes, err := grafanaNew(stdout).GetDashboards(grafanaDashboardOptions)
+			if err != nil {
+				stdout.Error(err)
+				return
+			}
+			common.OutputJson(grafanaOutput, "Grafana", []interface{}{grafanaOptions}, bytes, stdout)
+		},
+	}
+	grafanaCmd.AddCommand(&getDashboardCmd)
+
+	searchDashboardCmd := cobra.Command{
+		Use:   "search-dashboards",
+		Short: "search dashboards by folder/dashboard UID",
+		Run: func(cmd *cobra.Command, args []string) {
+			stdout.Debug("Grafana searching dashboard...")
+			common.Debug("Grafana", grafanaDashboardOptions, stdout)
+
+			bytes, err := grafanaNew(stdout).SearchDashboards(grafanaDashboardOptions)
+			if err != nil {
+				stdout.Error(err)
+				return
+			}
+			common.OutputJson(grafanaOutput, "Grafana", []interface{}{grafanaOptions, grafanaDashboardOptions}, bytes, stdout)
+		},
+	}
+	flags = searchDashboardCmd.PersistentFlags()
+	flags.StringVar(&grafanaDashboardOptions.UID, "grafana-dashboard-uid", grafanaDashboardOptions.UID, "Grafana dashboard uid")
+	flags.StringVar(&grafanaDashboardOptions.FolderUID, "grafana-dashboard-folder-uid", grafanaDashboardOptions.FolderUID, "Grafana dashboard folder uid")
+	grafanaCmd.AddCommand(&searchDashboardCmd)
 
 	copyDashboardCmd := cobra.Command{
 		Use:   "copy-dashboard",
@@ -156,6 +189,7 @@ func NewGrafanaCommand() *cobra.Command {
 	}
 	flags = createDashboardCmd.PersistentFlags()
 	flags.StringVar(&grafanaDashboardOptions.Title, "grafana-dashboard-title", grafanaDashboardOptions.Title, "Grafana dashboard title")
+	flags.StringVar(&grafanaDashboardOptions.Timezone, "grafana-dashboard-timezone", grafanaDashboardOptions.Timezone, "Grafana dashboard timezone")
 	flags.StringVar(&grafanaDashboardOptions.FolderUID, "grafana-dashboard-folder-uid", grafanaDashboardOptions.FolderUID, "Grafana dashboard folder uid")
 	flags.StringSliceVar(&grafanaDashboardOptions.Tags, "grafana-dashboard-tags", grafanaDashboardOptions.Tags, "Grafana dashboard tags")
 	flags.StringVar(&grafanaDashboardOptions.From, "grafana-dashboard-from", grafanaDashboardOptions.From, "Grafana dashboard time from")
@@ -176,14 +210,33 @@ func NewGrafanaCommand() *cobra.Command {
 	flags.IntVar(&grafanaDashboardOptions.Cloned.Height, "grafana-dashboard-cloned-height", grafanaDashboardOptions.Cloned.Height, "Grafana dashboard cloned height")
 	grafanaCmd.AddCommand(&createDashboardCmd)
 
+	deleteDashboardCmd := cobra.Command{
+		Use:   "delete-dashboard",
+		Short: "delete dashboard by uid",
+		Run: func(cmd *cobra.Command, args []string) {
+			stdout.Debug("Grafana deleting dashboard...")
+			common.Debug("Grafana", grafanaDashboardOptions, stdout)
+
+			bytes, err := grafanaNew(stdout).DeleteDashboards(grafanaDashboardOptions)
+			if err != nil {
+				stdout.Error(err)
+				return
+			}
+			common.OutputJson(grafanaOutput, "Grafana", []interface{}{grafanaOptions, grafanaDashboardOptions}, bytes, stdout)
+		},
+	}
+	flags = deleteDashboardCmd.PersistentFlags()
+	flags.StringVar(&grafanaDashboardOptions.UID, "grafana-dashboard-uid", grafanaDashboardOptions.UID, "Grafana dashboard uid")
+	grafanaCmd.AddCommand(&deleteDashboardCmd)
+
 	renderImageCmd := cobra.Command{
 		Use:   "render-image",
 		Short: "Render image",
 		Run: func(cmd *cobra.Command, args []string) {
 			stdout.Debug("Grafana rendering image...")
-			common.Debug("Grafana", grafanaRenderImageOptions, stdout)
+			common.Debug("Grafana", []interface{}{grafanaDashboardOptions, grafanaRenderImageOptions}, stdout)
 
-			bytes, err := grafanaNew(stdout).RenderImage(grafanaRenderImageOptions)
+			bytes, err := grafanaNew(stdout).RenderImage(grafanaDashboardOptions, grafanaRenderImageOptions)
 			if err != nil {
 				stdout.Error(err)
 				return
@@ -192,28 +245,15 @@ func NewGrafanaCommand() *cobra.Command {
 		},
 	}
 	flags = renderImageCmd.PersistentFlags()
+	flags.StringVar(&grafanaDashboardOptions.UID, "grafana-dashboard-uid", grafanaDashboardOptions.UID, "Grafana dashboard uid")
+	flags.StringVar(&grafanaDashboardOptions.Slug, "grafana-dashboard-slug", grafanaDashboardOptions.Slug, "Grafana dashboard slug")
+	flags.StringVar(&grafanaDashboardOptions.Timezone, "grafana-dashboard-timezone", grafanaDashboardOptions.Timezone, "Grafana dashboard timezone")
 	flags.StringVar(&grafanaRenderImageOptions.PanelID, "grafana-image-panel-id", grafanaRenderImageOptions.PanelID, "Grafana image panel id")
 	flags.StringVar(&grafanaRenderImageOptions.From, "grafana-image-from", grafanaRenderImageOptions.From, "Grafana image from")
 	flags.StringVar(&grafanaRenderImageOptions.To, "grafana-image-to", grafanaRenderImageOptions.To, "Grafana image to")
 	flags.IntVar(&grafanaRenderImageOptions.Width, "grafana-image-width", grafanaRenderImageOptions.Width, "Grafana image width")
 	flags.IntVar(&grafanaRenderImageOptions.Height, "grafana-image-height", grafanaRenderImageOptions.Height, "Grafana image height")
 	grafanaCmd.AddCommand(&renderImageCmd)
-
-	getDashboardCmd := cobra.Command{
-		Use:   "get-dashboards",
-		Short: "Get dashboards",
-		Run: func(cmd *cobra.Command, args []string) {
-			stdout.Debug("Grafana getting dashboards...")
-
-			bytes, err := grafanaNew(stdout).GetDashboards()
-			if err != nil {
-				stdout.Error(err)
-				return
-			}
-			common.OutputJson(grafanaOutput, "Grafana", []interface{}{grafanaOptions}, bytes, stdout)
-		},
-	}
-	grafanaCmd.AddCommand(&getDashboardCmd)
 
 	getAnnotationsCmd := cobra.Command{
 		Use:   "get-annotations",
@@ -222,15 +262,16 @@ func NewGrafanaCommand() *cobra.Command {
 			stdout.Debug("Grafana getting annotations...")
 			common.Debug("Grafana", grafanaGetAnnotationsOptions, stdout)
 
-			bytes, err := grafanaNew(stdout).GetAnnotations(grafanaGetAnnotationsOptions)
+			bytes, err := grafanaNew(stdout).GetAnnotations(grafanaDashboardOptions, grafanaGetAnnotationsOptions)
 			if err != nil {
 				stdout.Error(err)
 				return
 			}
-			common.OutputJson(grafanaOutput, "Grafana", []interface{}{grafanaOptions, grafanaGetAnnotationsOptions}, bytes, stdout)
+			common.OutputJson(grafanaOutput, "Grafana", []interface{}{grafanaOptions, grafanaDashboardOptions, grafanaGetAnnotationsOptions}, bytes, stdout)
 		},
 	}
 	flags = getAnnotationsCmd.PersistentFlags()
+	flags.StringVar(&grafanaDashboardOptions.Timezone, "grafana-dashboard-timezone", grafanaDashboardOptions.Timezone, "Grafana dashboard timezone")
 	flags.StringVar(&grafanaGetAnnotationsOptions.From, "grafana-annotation-from", grafanaGetAnnotationsOptions.From, "Grafana annotation date from")
 	flags.StringVar(&grafanaGetAnnotationsOptions.To, "grafana-annotation-to", grafanaGetAnnotationsOptions.To, "Grafana annotation date to")
 	flags.StringVar(&grafanaGetAnnotationsOptions.Tags, "grafana-annotation-tags", grafanaGetAnnotationsOptions.Tags, "Grafana annotations tags (comma separated, optional)")
