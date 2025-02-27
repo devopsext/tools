@@ -61,6 +61,9 @@ type GrafanaClonedDahboardOptions struct {
 
 type GrafanaDahboardOptions struct {
 	Title     string
+	UID       string
+	Slug      string
+	Timezone  string
 	FolderUID string
 	Tags      []string
 	From      string
@@ -70,14 +73,11 @@ type GrafanaDahboardOptions struct {
 }
 
 type GrafanaOptions struct {
-	URL               string
-	Timeout           int
-	Insecure          bool
-	APIKey            string
-	OrgID             string
-	DashboardUID      string
-	DashboardSlug     string
-	DashboardTimezone string
+	URL      string
+	Timeout  int
+	Insecure bool
+	APIKey   string
+	OrgID    string
 }
 
 type GrafanaDashboardTime struct {
@@ -146,13 +146,13 @@ func (g *Grafana) getAuth(options GrafanaOptions) string {
 	return auth
 }
 
-func (g *Grafana) CustomRenderImage(grafanaOptions GrafanaOptions, renderImageOptions GrafanaRenderImageOptions) ([]byte, error) {
+func (g *Grafana) CustomRenderImage(grafanaOptions GrafanaOptions, grafanaDashboardOptions GrafanaDahboardOptions, renderImageOptions GrafanaRenderImageOptions) ([]byte, error) {
 
 	u, err := url.Parse(grafanaOptions.URL)
 	if err != nil {
 		return nil, err
 	}
-	u.Path = path.Join(u.Path, fmt.Sprintf("/render/d-solo/%s/%s", grafanaOptions.DashboardUID, grafanaOptions.DashboardSlug))
+	u.Path = path.Join(u.Path, fmt.Sprintf("/render/d-solo/%s/%s", grafanaDashboardOptions.UID, grafanaDashboardOptions.Slug))
 
 	var params = make(url.Values)
 	if !utils.IsEmpty(grafanaOptions.OrgID) {
@@ -173,28 +173,67 @@ func (g *Grafana) CustomRenderImage(grafanaOptions GrafanaOptions, renderImageOp
 	if !utils.IsEmpty(renderImageOptions.To) {
 		params.Add("to", g.toRFC3339NanoStr(renderImageOptions.To))
 	}
-	params.Add("tz", grafanaOptions.DashboardTimezone)
+	params.Add("tz", grafanaDashboardOptions.Timezone)
 
 	u.RawQuery = params.Encode()
 	return utils.HttpGetRaw(g.client, u.String(), "", g.getAuth(grafanaOptions))
 }
 
-func (g *Grafana) RenderImage(options GrafanaRenderImageOptions) ([]byte, error) {
-	return g.CustomRenderImage(g.options, options)
+func (g *Grafana) RenderImage(dashboardOptions GrafanaDahboardOptions, renderOptions GrafanaRenderImageOptions) ([]byte, error) {
+	return g.CustomRenderImage(g.options, dashboardOptions, renderOptions)
 }
 
-func (g *Grafana) CustomGetDashboards(grafanaOptions GrafanaOptions) ([]byte, error) {
+func (g *Grafana) CustomGetDashboards(grafanaOptions GrafanaOptions, grafanaDashboardOptions GrafanaDahboardOptions) ([]byte, error) {
 	u, err := url.Parse(grafanaOptions.URL)
 	if err != nil {
 		return nil, err
 	}
 
-	u.Path = path.Join(u.Path, fmt.Sprintf("/api/dashboards/uid/%s", grafanaOptions.DashboardUID))
+	u.Path = path.Join(u.Path, fmt.Sprintf("/api/dashboards/uid/%s", grafanaDashboardOptions.UID))
 	return utils.HttpGetRaw(g.client, u.String(), "", g.getAuth(grafanaOptions))
 }
 
-func (g *Grafana) GetDashboards() ([]byte, error) {
-	return g.CustomGetDashboards(g.options)
+func (g *Grafana) GetDashboards(dashboardOptions GrafanaDahboardOptions) ([]byte, error) {
+	return g.CustomGetDashboards(g.options, dashboardOptions)
+}
+
+func (g *Grafana) CustomDeleteDashboards(grafanaOptions GrafanaOptions, grafanaDashboardOptions GrafanaDahboardOptions) ([]byte, error) {
+	u, err := url.Parse(grafanaOptions.URL)
+	if err != nil {
+		return nil, err
+	}
+
+	u.Path = path.Join(u.Path, fmt.Sprintf("/api/dashboards/uid/%s", grafanaDashboardOptions.UID))
+	return utils.HttpDeleteRaw(g.client, u.String(), "application/json", g.getAuth(grafanaOptions), []byte{})
+}
+
+func (g *Grafana) DeleteDashboards(dashboardOptions GrafanaDahboardOptions) ([]byte, error) {
+	return g.CustomDeleteDashboards(g.options, dashboardOptions)
+}
+
+func (g *Grafana) CustomSearchDashboards(grafanaOptions GrafanaOptions, grafanaDashboardOptions GrafanaDahboardOptions) ([]byte, error) {
+	u, err := url.Parse(grafanaOptions.URL)
+	if err != nil {
+		return nil, err
+	}
+
+	u.Path = path.Join(u.Path, "/api/search")
+
+	var params = make(url.Values)
+
+	if !utils.IsEmpty(grafanaDashboardOptions.FolderUID) {
+		params.Add("folderUIDs", grafanaDashboardOptions.FolderUID)
+	} else {
+		params.Add("dashboardUIDs", grafanaDashboardOptions.FolderUID)
+	}
+
+	u.RawQuery = params.Encode()
+
+	return utils.HttpGetRaw(g.client, u.String(), "", g.getAuth(grafanaOptions))
+}
+
+func (g *Grafana) SearchDashboards(dashboardOptions GrafanaDahboardOptions) ([]byte, error) {
+	return g.CustomSearchDashboards(g.options, dashboardOptions)
 }
 
 func (g Grafana) CustomCopyDashboard(grafanaOptions GrafanaOptions, grafanaDashboardOptions GrafanaDahboardOptions) ([]byte, error) {
@@ -208,7 +247,8 @@ func (g Grafana) CustomCopyDashboard(grafanaOptions GrafanaOptions, grafanaDashb
 	if !utils.IsEmpty(grafanaDashboardOptions.Cloned.UID) {
 
 		copyOpts := grafanaOptions
-		copyOpts.DashboardUID = grafanaDashboardOptions.Cloned.UID
+		copyDashboardOpts := grafanaDashboardOptions
+		copyDashboardOpts.UID = grafanaDashboardOptions.Cloned.UID
 
 		if !utils.IsEmpty(grafanaDashboardOptions.Cloned.URL) {
 			copyOpts.URL = grafanaDashboardOptions.Cloned.URL
@@ -218,7 +258,7 @@ func (g Grafana) CustomCopyDashboard(grafanaOptions GrafanaOptions, grafanaDashb
 			copyOpts.OrgID = grafanaDashboardOptions.Cloned.OrgID
 		}
 
-		b, err := g.CustomGetDashboards(copyOpts)
+		b, err := g.CustomGetDashboards(copyOpts, copyDashboardOpts)
 		if err != nil {
 			return nil, err
 		}
@@ -311,7 +351,7 @@ func (g *Grafana) CreateAnnotation(options GrafanaCreateAnnotationOptions) ([]by
 	return g.CustomCreateAnnotation(g.options, options)
 }
 
-func (g *Grafana) CustomGetAnnotations(grafanaOptions GrafanaOptions, getAnnotationsOptions GrafanaGetAnnotationsOptions) ([]byte, error) {
+func (g *Grafana) CustomGetAnnotations(grafanaOptions GrafanaOptions, grafanaDashboardOptions GrafanaDahboardOptions, getAnnotationsOptions GrafanaGetAnnotationsOptions) ([]byte, error) {
 	u, err := url.Parse(grafanaOptions.URL)
 	if err != nil {
 		return nil, err
@@ -352,14 +392,14 @@ func (g *Grafana) CustomGetAnnotations(grafanaOptions GrafanaOptions, getAnnotat
 	if getAnnotationsOptions.MatchAny {
 		params.Add("matchAny", "true")
 	}
-	params.Add("tz", grafanaOptions.DashboardTimezone)
+	params.Add("tz", grafanaDashboardOptions.Timezone)
 
 	u.RawQuery = params.Encode()
 	return utils.HttpGetRaw(g.client, u.String(), "", g.getAuth(grafanaOptions))
 }
 
-func (g *Grafana) GetAnnotations(options GrafanaGetAnnotationsOptions) ([]byte, error) {
-	return g.CustomGetAnnotations(g.options, options)
+func (g *Grafana) GetAnnotations(dashboardOptions GrafanaDahboardOptions, annotationsOptions GrafanaGetAnnotationsOptions) ([]byte, error) {
+	return g.CustomGetAnnotations(g.options, dashboardOptions, annotationsOptions)
 }
 
 /*
@@ -626,7 +666,8 @@ func (g Grafana) CustomCreateDashboard(grafanaOptions GrafanaOptions, createDash
 	if !utils.IsEmpty(createDashboardOptions.Cloned.UID) {
 
 		clonedOpts := grafanaOptions
-		clonedOpts.DashboardUID = createDashboardOptions.Cloned.UID
+		clonedDashboardOpts := createDashboardOptions
+		clonedDashboardOpts.UID = createDashboardOptions.Cloned.UID
 
 		if !utils.IsEmpty(createDashboardOptions.Cloned.URL) {
 			clonedOpts.URL = createDashboardOptions.Cloned.URL
@@ -635,7 +676,7 @@ func (g Grafana) CustomCreateDashboard(grafanaOptions GrafanaOptions, createDash
 			clonedOpts.APIKey = createDashboardOptions.Cloned.APIKey
 			clonedOpts.OrgID = createDashboardOptions.Cloned.OrgID
 		}
-		b, err := g.CustomGetDashboards(clonedOpts)
+		b, err := g.CustomGetDashboards(clonedOpts, clonedDashboardOpts)
 		if err != nil {
 			return nil, err
 		}
@@ -653,7 +694,7 @@ func (g Grafana) CustomCreateDashboard(grafanaOptions GrafanaOptions, createDash
 	}
 	req.Dashboard.Title = createDashboardOptions.Title
 	req.Dashboard.Tags = createDashboardOptions.Tags
-	req.Dashboard.Timezone = grafanaOptions.DashboardTimezone
+	req.Dashboard.Timezone = createDashboardOptions.Timezone
 	req.Dashboard.GraphTooltip = 1
 	req.Dashboard.Time.From = createDashboardOptions.From
 	req.Dashboard.Time.To = createDashboardOptions.To
