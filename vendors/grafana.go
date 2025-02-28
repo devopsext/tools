@@ -48,6 +48,7 @@ type GrafanaClonedDahboardOptions struct {
 	APIKey      string
 	OrgID       string
 	UID         string
+	FolderUID   string
 	Annotations []string
 	PanelIDs    []string
 	PanelTitles []string

@@ -34,6 +34,7 @@ var grafanaDashboardOptions = vendors.GrafanaDahboardOptions{
 		APIKey:      envGet("GRAFANA_DASHBOARD_CLONED_API_KEY", "").(string),
 		OrgID:       envGet("GRAFANA_DASHBOARD_CLONED_ORG_ID", "1").(string),
 		UID:         envGet("GRAFANA_DASHBOARD_CLONED_UID", "").(string),
+		FolderUID:   envGet("GRAFANA_DASHBOARD_CLONED_FOLDER_ID", "").(string),
 		Annotations: strings.Split(envGet("GRAFANA_DASHBOARD_CLONED_ANNOTATIONS", "").(string), ","),
 		PanelIDs:    strings.Split(envGet("GRAFANA_DASHBOARD_CLONED_PANEL_IDS", "").(string), ","),
 		PanelTitles: strings.Split(envGet("GRAFANA_DASHBOARD_CLONED_PANEL_TITLES", "").(string), ","),
