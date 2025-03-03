@@ -1483,6 +1483,35 @@ func (tpl *Template) JiraCreateIssue(params map[string]interface{}) ([]byte, err
 	return response, nil
 }
 
+func (tpl *Template) LdapGetGroupMembers(params map[string]interface{}) ([]byte, error) {
+
+	groupDN, _ := params["group"].(string)
+
+	ldapOptions := vendors.LdapOptions{
+		URL:      params["url"].(string),
+		User:     params["user"].(string),
+		Password: params["password"].(string),
+		Timeout:  params["timeout"].(int),
+		Insecure: params["insecure"].(bool),
+		BaseDN:   params["baseDN"].(string),
+	}
+
+	ldap, err := vendors.NewLdapClient(ldapOptions, tpl.logger)
+	if err != nil {
+		tpl.logger.Error("Failed to create LDAP client: %v", err)
+		return nil, err
+	}
+	defer ldap.Close()
+
+	members, err := ldap.GetGroupMembers(groupDN)
+	if err != nil {
+		tpl.logger.Error("Failed to get group members: %v", err)
+		return nil, err
+	}
+	tpl.logger.Debug("Group members: %v", members)
+	return nil, nil
+}
+
 func (tpl *Template) GrafanaCreateDashboard(params map[string]interface{}) ([]byte, error) {
 
 	url, _ := params["url"].(string)
@@ -2443,6 +2472,8 @@ func (tpl *Template) setTemplateFuncs(funcs map[string]any) {
 	funcs["vmStart"] = tpl.VMStart
 	funcs["vmStop"] = tpl.VMStop
 	funcs["vmStatus"] = tpl.VMStatus
+
+	funcs["ldapGetGroupMember"] = tpl.LdapGetGroupMembers
 
 	funcs["prometheusGet"] = tpl.PrometheusGet
 }
