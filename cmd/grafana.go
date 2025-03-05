@@ -23,10 +23,12 @@ var grafanaDashboardOptions = vendors.GrafanaDahboardOptions{
 	Slug:      envGet("GRAFANA_DASHBOARD_SLUG", "").(string),
 	Timezone:  envGet("GRAFANA_DASHBOARD_TIMEZONE", "UTC").(string),
 	FolderUID: envGet("GRAFANA_DASHBOARD_FOLDER_UID", "").(string),
+	FolderID:  envGet("GRAFANA_DASHBOARD_FOLDER_ID", 0).(int),
 	Tags:      strings.Split(envGet("GRAFANA_DASHBOARD_TAGS", "").(string), ","),
 	From:      envGet("GRAFANA_DASHBOARD_FROM", "now-1h").(string),
 	To:        envGet("GRAFANA_DASHBOARD_TO", "now").(string),
 	SaveUID:   envGet("GRAFANA_DASHBOARD_SAVE_UID", true).(bool),
+	Overwrite: envGet("GRAFANA_DASHBOARD_OVERWRITE", false).(bool),
 	Cloned: vendors.GrafanaClonedDahboardOptions{
 		URL:         envGet("GRAFANA_DASHBOARD_CLONED_URL", "").(string),
 		Timeout:     envGet("GRAFANA_DASHBOARD_CLONED_TIMEOUT", 30).(int),
@@ -34,7 +36,8 @@ var grafanaDashboardOptions = vendors.GrafanaDahboardOptions{
 		APIKey:      envGet("GRAFANA_DASHBOARD_CLONED_API_KEY", "").(string),
 		OrgID:       envGet("GRAFANA_DASHBOARD_CLONED_ORG_ID", "1").(string),
 		UID:         envGet("GRAFANA_DASHBOARD_CLONED_UID", "").(string),
-		FolderUID:   envGet("GRAFANA_DASHBOARD_CLONED_FOLDER_ID", "").(string),
+		FolderUID:   envGet("GRAFANA_DASHBOARD_CLONED_FOLDER_UID", "").(string),
+		FolderID:    envGet("GRAFANA_DASHBOARD_CLONED_FOLDER_ID", 0).(int),
 		Annotations: strings.Split(envGet("GRAFANA_DASHBOARD_CLONED_ANNOTATIONS", "").(string), ","),
 		PanelIDs:    strings.Split(envGet("GRAFANA_DASHBOARD_CLONED_PANEL_IDS", "").(string), ","),
 		PanelTitles: strings.Split(envGet("GRAFANA_DASHBOARD_CLONED_PANEL_TITLES", "").(string), ","),
@@ -137,6 +140,7 @@ func NewGrafanaCommand() *cobra.Command {
 	flags = searchDashboardCmd.PersistentFlags()
 	flags.StringVar(&grafanaDashboardOptions.UID, "grafana-dashboard-uid", grafanaDashboardOptions.UID, "Grafana dashboard uid")
 	flags.StringVar(&grafanaDashboardOptions.FolderUID, "grafana-dashboard-folder-uid", grafanaDashboardOptions.FolderUID, "Grafana dashboard folder uid")
+	flags.IntVar(&grafanaDashboardOptions.FolderID, "grafana-dashboard-folder-id", grafanaDashboardOptions.FolderID, "Grafana dashboard folder id (for compatibility with old Grafana versions)")
 	grafanaCmd.AddCommand(&searchDashboardCmd)
 
 	copyDashboardCmd := cobra.Command{
@@ -161,6 +165,7 @@ func NewGrafanaCommand() *cobra.Command {
 	flags.StringVar(&grafanaDashboardOptions.From, "grafana-dashboard-from", grafanaDashboardOptions.From, "Grafana dashboard time from")
 	flags.StringVar(&grafanaDashboardOptions.To, "grafana-dashboard-to", grafanaDashboardOptions.To, "Grafana dashboard time to")
 	flags.BoolVar(&grafanaDashboardOptions.SaveUID, "grafana-dashboard-save-uid", grafanaDashboardOptions.SaveUID, "Save UID for copied Grafana dashboard")
+	flags.BoolVar(&grafanaDashboardOptions.Overwrite, "grafana-dashboard-overwrite", grafanaDashboardOptions.Overwrite, "Overwrite an existing Grafana dashboard")
 	flags.StringVar(&grafanaDashboardOptions.Cloned.URL, "grafana-dashboard-cloned-url", grafanaDashboardOptions.Cloned.URL, "Grafana Dashboard cloned URL exist")
 	flags.IntVar(&grafanaDashboardOptions.Cloned.Timeout, "grafana-dashboard-cloned-timeout", grafanaDashboardOptions.Cloned.Timeout, "Grafana Dashboard cloned timeout")
 	flags.BoolVar(&grafanaDashboardOptions.Cloned.Insecure, "grafana-dashboard-cloned-insecure", grafanaDashboardOptions.Cloned.Insecure, "Grafana Dashboard cloned insecure")
