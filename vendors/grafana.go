@@ -49,6 +49,7 @@ type GrafanaClonedDahboardOptions struct {
 	OrgID       string
 	UID         string
 	FolderUID   string
+	FolderID    int
 	Annotations []string
 	PanelIDs    []string
 	PanelTitles []string
@@ -66,10 +67,12 @@ type GrafanaDahboardOptions struct {
 	Slug      string
 	Timezone  string
 	FolderUID string
+	FolderID  int
 	Tags      []string
 	From      string
 	To        string
 	SaveUID   bool
+	Overwrite bool
 	Cloned    GrafanaClonedDahboardOptions
 }
 
@@ -222,9 +225,12 @@ func (g *Grafana) CustomSearchDashboards(grafanaOptions GrafanaOptions, grafanaD
 
 	var params = make(url.Values)
 
-	if !utils.IsEmpty(grafanaDashboardOptions.FolderUID) {
+	switch {
+	case !utils.IsEmpty(grafanaDashboardOptions.FolderUID):
 		params.Add("folderUIDs", grafanaDashboardOptions.FolderUID)
-	} else {
+	case !utils.IsEmpty(grafanaDashboardOptions.FolderID):
+		params.Add("folderIds", strconv.Itoa(grafanaDashboardOptions.FolderID))
+	case !utils.IsEmpty(grafanaDashboardOptions.UID):
 		params.Add("dashboardUIDs", grafanaDashboardOptions.FolderUID)
 	}
 
@@ -271,7 +277,7 @@ func (g Grafana) CustomCopyDashboard(grafanaOptions GrafanaOptions, grafanaDashb
 	}
 
 	copyDashboard.FolderID = 0
-	copyDashboard.Overwrite = false
+	copyDashboard.Overwrite = grafanaDashboardOptions.Overwrite
 	copyDashboard.Meta.Folder = nil
 	copyDashboard.Meta.FolderUID = ""
 	copyDashboard.Dashboard.ID = nil
