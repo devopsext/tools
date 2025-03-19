@@ -1506,7 +1506,9 @@ func (tpl *Template) LdapGetGroupMembers(params map[string]interface{}) ([]byte,
 
 	filter := fmt.Sprintf("(&(objectClass=%s*)(cn=%s))", filterObjectValue, filterCNValue)
 
-	membersJson, err := ldap.GetGroupMembers(filter)
+	attributes := []string{"distinguishedName", "cn", "memberUid"} // check
+
+	membersJson, err := ldap.GetGroupMembers(filter, attributes)
 	if err != nil {
 		tpl.logger.Error("Failed to get group members: %v", err)
 		return nil, err

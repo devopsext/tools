@@ -25,12 +25,6 @@ type LdapOptions struct {
 	Timeout  int
 }
 
-type GroupMember struct {
-	DN    string
-	CN    string
-	Email string
-}
-
 func (l *Ldap) Connect() error {
 	if l.client != nil {
 		return nil
@@ -88,7 +82,7 @@ func (l *Ldap) SearchWithScope(baseDN string, scope int, filter string, attribut
 	return result, nil
 }
 
-func (l *Ldap) GetGroupMembers(filter string) ([]byte, error) {
+func (l *Ldap) GetGroupMembers(filter string, attributes []string) ([]byte, error) {
 	if err := l.Connect(); err != nil {
 		return nil, err
 	}
@@ -101,7 +95,7 @@ func (l *Ldap) GetGroupMembers(filter string) ([]byte, error) {
 		0,
 		false,
 		filter,
-		[]string{"distinguishedName", "cn", "memberUid", "*"},
+		attributes,
 		nil,
 	)
 
