@@ -4,6 +4,8 @@ import (
 	"crypto/tls"
 	"fmt"
 
+	"encoding/json"
+
 	"github.com/devopsext/tools/common"
 	"github.com/go-ldap/ldap/v3"
 )
@@ -61,7 +63,32 @@ func (l *Ldap) Close() {
 	}
 }
 
-func (l *Ldap) GetGroupMembers(groupDN string) ([]GroupMember, error) {
+func (l *Ldap) SearchWithScope(baseDN string, scope int, filter string, attributes []string) (*ldap.SearchResult, error) {
+	if err := l.Connect(); err != nil {
+		return nil, err
+	}
+
+	searchRequest := ldap.NewSearchRequest(
+		baseDN,
+		scope, // 0 to specify ScopeBaseObject, 1 ScopeOneLevel, or 2 ScopeWholeSubtree
+		ldap.NeverDerefAliases,
+		0,
+		0,
+		false,
+		filter,
+		attributes,
+		nil,
+	)
+
+	result, err := l.client.Search(searchRequest)
+	if err != nil {
+		return nil, fmt.Errorf("failed to search: %v", err)
+	}
+
+	return result, nil
+}
+
+func (l *Ldap) GetGroupMembers(filter string) ([]byte, error) {
 	if err := l.Connect(); err != nil {
 		return nil, err
 	}
@@ -73,8 +100,8 @@ func (l *Ldap) GetGroupMembers(groupDN string) ([]GroupMember, error) {
 		0,
 		0,
 		false,
-		fmt.Sprintf("(&(objectClass=user)(memberOf=%s))", groupDN),
-		[]string{"distinguishedName", "cn", "mail"},
+		filter,
+		[]string{"distinguishedName", "cn", "memberUid", "*"},
 		nil,
 	)
 
@@ -83,17 +110,22 @@ func (l *Ldap) GetGroupMembers(groupDN string) ([]GroupMember, error) {
 		return nil, fmt.Errorf("failed to search: %v", err)
 	}
 
-	var members []GroupMember
-	for _, entry := range result.Entries {
-		member := GroupMember{
-			DN:    entry.GetAttributeValue("distinguishedName"),
-			CN:    entry.GetAttributeValue("cn"),
-			Email: entry.GetAttributeValue("mail"),
-		}
-		members = append(members, member)
+	if len(result.Entries) == 0 {
+		return nil, fmt.Errorf("object not found, using this filter: %s", filter)
 	}
 
-	return members, nil
+	memberUIDs := result.Entries[0].GetAttributeValues("memberUid")
+	if len(memberUIDs) == 0 {
+		return nil, fmt.Errorf("no members found for this group")
+	}
+
+	membersJson, err := json.Marshal(memberUIDs)
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal members: %v", err)
+	}
+
+	return membersJson, nil
+
 }
 
 func NewLdapClient(options LdapOptions, logger common.Logger) (*Ldap, error) {
