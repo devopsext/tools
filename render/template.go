@@ -1554,18 +1554,18 @@ func (tpl *Template) GrafanaCreateDashboard(params map[string]interface{}) ([]by
 	}
 
 	grafanaOptions := vendors.GrafanaOptions{
-		URL:               url,
-		Timeout:           timeout,
-		Insecure:          insecure,
-		APIKey:            token,
-		OrgID:             orgID,
-		DashboardUID:      dUID,
-		DashboardSlug:     dSlug,
-		DashboardTimezone: dTimeZone,
+		URL:      url,
+		Timeout:  timeout,
+		Insecure: insecure,
+		APIKey:   token,
+		OrgID:    orgID,
 	}
 
-	grafanaCreateDashboardOptions := vendors.GrafanaCreateDahboardOptions{
+	grafanaCreateDashboardOptions := vendors.GrafanaDahboardOptions{
 		Title:     title,
+		UID:       dUID,
+		Slug:      dSlug,
+		Timezone:  dTimeZone,
 		FolderUID: fUID,
 		Tags:      tags,
 		From:      from,
@@ -1616,18 +1616,18 @@ func (tpl *Template) GrafanaCopyDashboard(params map[string]interface{}) ([]byte
 	clonedUID, _ := params["cloneduid"].(string)
 
 	grafanaOptions := vendors.GrafanaOptions{
-		URL:               url,
-		Timeout:           timeout,
-		Insecure:          insecure,
-		APIKey:            token,
-		OrgID:             orgID,
-		DashboardUID:      dUID,
-		DashboardSlug:     dSlug,
-		DashboardTimezone: dTimeZone,
+		URL:      url,
+		Timeout:  timeout,
+		Insecure: insecure,
+		APIKey:   token,
+		OrgID:    orgID,
 	}
 
-	grafanaCreateDashboardOptions := vendors.GrafanaCreateDahboardOptions{
+	grafanaCopyDashboardOptions := vendors.GrafanaDahboardOptions{
 		Title:     title,
+		UID:       dUID,
+		Slug:      dSlug,
+		Timezone:  dTimeZone,
 		FolderUID: fUID,
 		Tags:      tags,
 		From:      from,
@@ -1639,7 +1639,7 @@ func (tpl *Template) GrafanaCopyDashboard(params map[string]interface{}) ([]byte
 
 	grafana := vendors.NewGrafana(grafanaOptions)
 
-	response, err := grafana.CopyDashboard(grafanaCreateDashboardOptions)
+	response, err := grafana.CopyDashboard(grafanaCopyDashboardOptions)
 	if err != nil {
 		return nil, err
 	}
