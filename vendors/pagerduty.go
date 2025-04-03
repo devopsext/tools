@@ -16,11 +16,12 @@ type PagerDutyCreateIncidentOptions struct {
 }
 
 type PagerDutyIncidentOptions struct {
-	Title      string
-	Body       string
-	Urgency    string
-	ServiceID  string
-	PriorityID string
+	Title        string
+	Body         string
+	Urgency      string
+	ServiceID    string
+	PriorityID   string
+	IncidentType string
 }
 type PagerDutyIncidentNoteOptions struct {
 	IncidentID  string
@@ -47,13 +48,18 @@ type PagerDutyBody struct {
 	Details string `json:"details"`
 }
 
+type PagerDutyIncidentType struct {
+	Name string `json:"name"`
+}
+
 type PagerDutyIncident struct {
-	Type     string             `json:"type"`
-	Title    string             `json:"title"`
-	Urgency  string             `json:"urgency,omitempty"`
-	Service  *PagerDutyService  `json:"service"`
-	Priority *PagerDutyPriority `json:"priority,omitempty"`
-	Body     *PagerDutyBody     `json:"body,omitempty"`
+	Type         string                 `json:"type"`
+	Title        string                 `json:"title"`
+	Urgency      string                 `json:"urgency,omitempty"`
+	Service      *PagerDutyService      `json:"service"`
+	Priority     *PagerDutyPriority     `json:"priority,omitempty"`
+	Body         *PagerDutyBody         `json:"body,omitempty"`
+	IncidentType *PagerDutyIncidentType `json:"incident_type,omitempty"`
 }
 
 type PagerDutyIncidentRequest struct {
@@ -125,6 +131,13 @@ func (pd *PagerDuty) CustomCreateIncident(options PagerDutyOptions, incidentOpti
 		}
 	}
 
+	var incidentType *PagerDutyIncidentType
+	if !utils.IsEmpty(incidentOptions.IncidentType) {
+		incidentType = &PagerDutyIncidentType{
+			Name: incidentOptions.IncidentType,
+		}
+	}
+
 	incident := &PagerDutyIncident{
 		Type:    "incident",
 		Title:   incidentOptions.Title,
@@ -133,8 +146,9 @@ func (pd *PagerDuty) CustomCreateIncident(options PagerDutyOptions, incidentOpti
 			Type: "service_reference",
 			ID:   incidentOptions.ServiceID,
 		},
-		Priority: priority,
-		Body:     body,
+		Priority:     priority,
+		Body:         body,
+		IncidentType: incidentType,
 	}
 
 	request := &PagerDutyIncidentRequest{

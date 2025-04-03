@@ -1641,13 +1641,15 @@ func (tpl *Template) PagerDutyCreateIncident(params map[string]interface{}) ([]b
 	urgency, _ := params["urgency"].(string)
 	serviceID, _ := params["serviceID"].(string)
 	priorityID, _ := params["priorityID"].(string)
+	incidentType, _ := params["incidentType"].(string)
 
 	incidentOptions := vendors.PagerDutyIncidentOptions{
-		Title:      title,
-		Body:       body,
-		Urgency:    urgency,
-		ServiceID:  serviceID,
-		PriorityID: priorityID,
+		Title:        title,
+		Body:         body,
+		Urgency:      urgency,
+		ServiceID:    serviceID,
+		PriorityID:   priorityID,
+		IncidentType: incidentType,
 	}
 
 	from, _ := params["from"].(string)
