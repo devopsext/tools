@@ -65,24 +65,24 @@ type JiraSearchAssetOptions struct {
 }
 
 type JiraCreateAssetOptions struct {
-	Description      string
-	Name             string
-	Repository       string
-	DescriptionId    int
-	NameId           int
-	RepositoryId     int
-	ObjectSchemeId   string
-	ObjectTypeId     int
-	TitleId          int
-	Title            string
-	TierId           int
-	Tier             string
-	BusinessProcess  *JiraAssetAttribute
-	Team             *JiraAssetAttribute
-	Dependencies     *JiraAssetAttribute
-	Group            *JiraAssetAttribute
-	IsThirdParty     *JiraAssetAttribute
-	IsDecommissioned *JiraAssetAttribute
+	Description       string
+	Name              string
+	Repository        string
+	DescriptionId     int
+	NameId            int
+	RepositoryId      int
+	ObjectSchemeId    string
+	ObjectTypeId      int
+	TitleId           int
+	Title             string
+	TierId            int
+	Tier              string
+	BusinessProcesses *JiraAssetAttribute
+	Team              *JiraAssetAttribute
+	Dependencies      *JiraAssetAttribute
+	Group             *JiraAssetAttribute
+	IsThirdParty      *JiraAssetAttribute
+	IsDecommissioned  *JiraAssetAttribute
 }
 
 type JiraUpdateAssetOptions struct {
@@ -596,8 +596,8 @@ func (j *Jira) CustomCreateAsset(jiraOptions JiraOptions, createOptions JiraCrea
 		},
 	}
 
-	if createOptions.BusinessProcess != nil {
-		attributes = append(attributes, *createOptions.BusinessProcess)
+	if createOptions.BusinessProcesses != nil {
+		attributes = append(attributes, *createOptions.BusinessProcesses)
 	}
 
 	if createOptions.Team != nil {
