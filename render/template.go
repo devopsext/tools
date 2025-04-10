@@ -1161,7 +1161,7 @@ func (tpl *Template) JiraCreateAsset(params map[string]interface{}) ([]byte, err
 	tierId, _ := params["tierId"].(int)
 	tier, _ := params["tier"].(string)
 	businessProcessId, _ := params["businessProcessId"].(int)
-	businessProcessKey, _ := params["businessProcessKey"].(string)
+	businessProcessesKeysRaw, _ := params["businessProcessesKeys"].([]interface{})
 	dependenciesId, _ := params["dependenciesId"].(int)
 	dependenciesKeysRaw, _ := params["dependenciesKeys"].([]interface{})
 	teamId, _ := params["teamId"].(int)
@@ -1176,11 +1176,19 @@ func (tpl *Template) JiraCreateAsset(params map[string]interface{}) ([]byte, err
 	fmt.Println("third party key", thirdPartyKey)
 	fmt.Println("decommissioned key", decommissionedKey)
 
-	businessProcess := vendors.JiraAssetAttribute{
+	businessProcessesKeys := make([]string, len(businessProcessesKeysRaw))
+	for i, key := range businessProcessesKeysRaw {
+		businessProcessesKeys[i] = fmt.Sprint(key)
+	}
+	businessProcessesAttributesValues := make([]vendors.JiraAssetAttributeValue, 0)
+	for _, businessProcessKey := range businessProcessesKeys {
+		businessProcessesAttributesValues = append(businessProcessesAttributesValues, vendors.JiraAssetAttributeValue{
+			Value: businessProcessKey,
+		})
+	}
+	businessProcesses := vendors.JiraAssetAttribute{
 		ObjectTypeAttributeId: businessProcessId,
-		ObjectAttributeValues: []vendors.JiraAssetAttributeValue{
-			{Value: businessProcessKey},
-		},
+		ObjectAttributeValues: businessProcessesAttributesValues,
 	}
 
 	dependenciesKeys := make([]string, len(dependenciesKeysRaw))
@@ -1236,24 +1244,24 @@ func (tpl *Template) JiraCreateAsset(params map[string]interface{}) ([]byte, err
 		AccessToken: token,
 	}
 	jiraIssueOptions := vendors.JiraCreateAssetOptions{
-		Name:             name,
-		ObjectSchemeId:   objectSchemeId,
-		ObjectTypeId:     objectTypeId,
-		RepositoryId:     repositoryId,
-		NameId:           nameId,
-		DescriptionId:    descriptionId,
-		Description:      description,
-		Repository:       repository,
-		TitleId:          titleId,
-		Title:            title,
-		TierId:           tierId,
-		Tier:             tier,
-		BusinessProcess:  &businessProcess,
-		Team:             &team,
-		Dependencies:     &dependencies,
-		Group:            &group,
-		IsThirdParty:     &isThirdParty,
-		IsDecommissioned: &isDecommissioned,
+		Name:              name,
+		ObjectSchemeId:    objectSchemeId,
+		ObjectTypeId:      objectTypeId,
+		RepositoryId:      repositoryId,
+		NameId:            nameId,
+		DescriptionId:     descriptionId,
+		Description:       description,
+		Repository:        repository,
+		TitleId:           titleId,
+		Title:             title,
+		TierId:            tierId,
+		Tier:              tier,
+		BusinessProcesses: &businessProcesses,
+		Team:              &team,
+		Dependencies:      &dependencies,
+		Group:             &group,
+		IsThirdParty:      &isThirdParty,
+		IsDecommissioned:  &isDecommissioned,
 	}
 
 	jira := vendors.NewJira(jiraOptions)
