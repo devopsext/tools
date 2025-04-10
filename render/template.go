@@ -1150,16 +1150,82 @@ func (tpl *Template) JiraCreateAsset(params map[string]interface{}) ([]byte, err
 
 	objectTypeId, _ := params["objectTypeId"].(int)
 	objectSchemeId, _ := params["objectSchemeId"].(string)
-	repositoryId, _ := params["repositoryId"].(int)
 	nameId, _ := params["nameId"].(int)
+	name, _ := params["name"].(string)
 	descriptionId, _ := params["descriptionId"].(int)
 	description, _ := params["description"].(string)
-	name, _ := params["name"].(string)
+	repositoryId, _ := params["repositoryId"].(int)
 	repository, _ := params["repository"].(string)
 	titleId, _ := params["titleId"].(int)
 	title, _ := params["title"].(string)
 	tierId, _ := params["tierId"].(int)
 	tier, _ := params["tier"].(string)
+	businessProcessId, _ := params["businessProcessId"].(int)
+	businessProcessKey, _ := params["businessProcessKey"].(string)
+	dependenciesId, _ := params["dependenciesId"].(int)
+	dependenciesKeysRaw, _ := params["dependenciesKeys"].([]interface{})
+	teamId, _ := params["teamId"].(int)
+	teamKey, _ := params["teamKey"].(string)
+	groupId, _ := params["groupId"].(int)
+	groupKey, _ := params["groupKey"].(string)
+	thirdPartyId, _ := params["thirdPartyId"].(int)
+	thirdPartyKey, _ := params["thirdPartyKey"].(string)
+	decommissionedId, _ := params["decommissionedId"].(int)
+	decommissionedKey, _ := params["decommissionedKey"].(string)
+
+	fmt.Println("third party key", thirdPartyKey)
+	fmt.Println("decommissioned key", decommissionedKey)
+
+	businessProcess := vendors.JiraAssetAttribute{
+		ObjectTypeAttributeId: businessProcessId,
+		ObjectAttributeValues: []vendors.JiraAssetAttributeValue{
+			{Value: businessProcessKey},
+		},
+	}
+
+	dependenciesKeys := make([]string, len(dependenciesKeysRaw))
+	for i, key := range dependenciesKeysRaw {
+		dependenciesKeys[i] = fmt.Sprint(key)
+	}
+
+	dependenciesAttributesValues := make([]vendors.JiraAssetAttributeValue, 0)
+	for _, dependencyKey := range dependenciesKeys {
+		dependenciesAttributesValues = append(dependenciesAttributesValues, vendors.JiraAssetAttributeValue{
+			Value: dependencyKey,
+		})
+	}
+	dependencies := vendors.JiraAssetAttribute{
+		ObjectTypeAttributeId: dependenciesId,
+		ObjectAttributeValues: dependenciesAttributesValues,
+	}
+
+	team := vendors.JiraAssetAttribute{
+		ObjectTypeAttributeId: teamId,
+		ObjectAttributeValues: []vendors.JiraAssetAttributeValue{
+			{Value: teamKey},
+		},
+	}
+
+	group := vendors.JiraAssetAttribute{
+		ObjectTypeAttributeId: groupId,
+		ObjectAttributeValues: []vendors.JiraAssetAttributeValue{
+			{Value: groupKey},
+		},
+	}
+
+	isThirdParty := vendors.JiraAssetAttribute{
+		ObjectTypeAttributeId: thirdPartyId,
+		ObjectAttributeValues: []vendors.JiraAssetAttributeValue{
+			{Value: thirdPartyKey},
+		},
+	}
+
+	isDecommissioned := vendors.JiraAssetAttribute{
+		ObjectTypeAttributeId: decommissionedId,
+		ObjectAttributeValues: []vendors.JiraAssetAttributeValue{
+			{Value: decommissionedKey},
+		},
+	}
 
 	jiraOptions := vendors.JiraOptions{
 		URL:         url,
@@ -1170,24 +1236,69 @@ func (tpl *Template) JiraCreateAsset(params map[string]interface{}) ([]byte, err
 		AccessToken: token,
 	}
 	jiraIssueOptions := vendors.JiraCreateAssetOptions{
-		Name:           name,
-		ObjectSchemeId: objectSchemeId,
-		ObjectTypeId:   objectTypeId,
-		RepositoryId:   repositoryId,
-		NameId:         nameId,
-		DescriptionId:  descriptionId,
-		Description:    description,
-		Repository:     repository,
-		TitleId:        titleId,
-		Title:          title,
-		TierId:         tierId,
-		Tier:           tier,
+		Name:             name,
+		ObjectSchemeId:   objectSchemeId,
+		ObjectTypeId:     objectTypeId,
+		RepositoryId:     repositoryId,
+		NameId:           nameId,
+		DescriptionId:    descriptionId,
+		Description:      description,
+		Repository:       repository,
+		TitleId:          titleId,
+		Title:            title,
+		TierId:           tierId,
+		Tier:             tier,
+		BusinessProcess:  &businessProcess,
+		Team:             &team,
+		Dependencies:     &dependencies,
+		Group:            &group,
+		IsThirdParty:     &isThirdParty,
+		IsDecommissioned: &isDecommissioned,
 	}
 
 	jira := vendors.NewJira(jiraOptions)
 
 	response, err := jira.CreateAsset(jiraIssueOptions)
 	if err != nil {
+		return nil, err
+	}
+
+	return response, nil
+}
+
+func (tpl *Template) JiraUpdateAsset(params map[string]interface{}) ([]byte, error) {
+	url, _ := params["url"].(string)
+	timeout, _ := params["timeout"].(int)
+	if timeout == 0 {
+		timeout = 10
+	}
+	insecure, _ := params["insecure"].(bool)
+	user, _ := params["user"].(string)
+	password, _ := params["password"].(string)
+	token, _ := params["token"].(string)
+
+	objectId, _ := params["objectId"].(string)
+	jsonData, _ := params["json"].(string)
+
+	jiraOptions := vendors.JiraOptions{
+		URL:         url,
+		Timeout:     timeout,
+		Insecure:    insecure,
+		User:        user,
+		Password:    password,
+		AccessToken: token,
+	}
+
+	jiraUpdateOptions := vendors.JiraUpdateAssetOptions{
+		ObjectId: objectId,
+		Json:     jsonData,
+	}
+
+	jira := vendors.NewJira(jiraOptions)
+
+	response, err := jira.UpdateAsset(jiraUpdateOptions)
+	if err != nil {
+		fmt.Printf("\n\n\nJira API error response: %s\n\n\n", string(response))
 		return nil, err
 	}
 
@@ -2461,6 +2572,7 @@ func (tpl *Template) setTemplateFuncs(funcs map[string]any) {
 	funcs["jiraUpdateIssue"] = tpl.JiraUpdateIssue
 	funcs["jiraIssueTransition"] = tpl.JiraIssueTransition
 	funcs["jiraGetIssueTransition"] = tpl.JiraGetIssueTransition
+	funcs["jiraUpdateAsset"] = tpl.JiraUpdateAsset
 
 	funcs["grafanaCreateDashboard"] = tpl.GrafanaCreateDashboard
 	funcs["grafanaCopyDashboard"] = tpl.GrafanaCopyDashboard

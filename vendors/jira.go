@@ -65,18 +65,24 @@ type JiraSearchAssetOptions struct {
 }
 
 type JiraCreateAssetOptions struct {
-	Description    string
-	Name           string
-	Repository     string
-	DescriptionId  int
-	NameId         int
-	RepositoryId   int
-	ObjectSchemeId string
-	ObjectTypeId   int
-	TitleId        int
-	Title          string
-	TierId         int
-	Tier           string
+	Description      string
+	Name             string
+	Repository       string
+	DescriptionId    int
+	NameId           int
+	RepositoryId     int
+	ObjectSchemeId   string
+	ObjectTypeId     int
+	TitleId          int
+	Title            string
+	TierId           int
+	Tier             string
+	BusinessProcess  *JiraAssetAttribute
+	Team             *JiraAssetAttribute
+	Dependencies     *JiraAssetAttribute
+	Group            *JiraAssetAttribute
+	IsThirdParty     *JiraAssetAttribute
+	IsDecommissioned *JiraAssetAttribute
 }
 
 type JiraUpdateAssetOptions struct {
@@ -547,51 +553,76 @@ func (j *Jira) SearchAssets(options JiraSearchAssetOptions) ([]byte, error) {
 }
 
 func (j *Jira) CustomCreateAsset(jiraOptions JiraOptions, createOptions JiraCreateAssetOptions) ([]byte, error) {
-
-	object := &JiraAsset{
-		ObjectTypeId: createOptions.ObjectTypeId,
-		Attributes: []JiraAssetAttribute{
-			{
-				ObjectTypeAttributeId: createOptions.NameId,
-				ObjectAttributeValues: []JiraAssetAttributeValue{
-					{
-						Value: createOptions.Name,
-					},
-				},
-			},
-			{
-				ObjectTypeAttributeId: createOptions.DescriptionId,
-				ObjectAttributeValues: []JiraAssetAttributeValue{
-					{
-						Value: createOptions.Description,
-					},
-				},
-			},
-			{
-				ObjectTypeAttributeId: createOptions.TierId,
-				ObjectAttributeValues: []JiraAssetAttributeValue{
-					{
-						Value: createOptions.Tier,
-					},
-				},
-			},
-			{
-				ObjectTypeAttributeId: createOptions.RepositoryId,
-				ObjectAttributeValues: []JiraAssetAttributeValue{
-					{
-						Value: createOptions.Repository,
-					},
-				},
-			},
-			{
-				ObjectTypeAttributeId: createOptions.TitleId,
-				ObjectAttributeValues: []JiraAssetAttributeValue{
-					{
-						Value: createOptions.Title,
-					},
+	attributes := []JiraAssetAttribute{
+		{
+			ObjectTypeAttributeId: createOptions.NameId,
+			ObjectAttributeValues: []JiraAssetAttributeValue{
+				{
+					Value: createOptions.Name,
 				},
 			},
 		},
+		{
+			ObjectTypeAttributeId: createOptions.DescriptionId,
+			ObjectAttributeValues: []JiraAssetAttributeValue{
+				{
+					Value: createOptions.Description,
+				},
+			},
+		},
+		{
+			ObjectTypeAttributeId: createOptions.TierId,
+			ObjectAttributeValues: []JiraAssetAttributeValue{
+				{
+					Value: createOptions.Tier,
+				},
+			},
+		},
+		{
+			ObjectTypeAttributeId: createOptions.RepositoryId,
+			ObjectAttributeValues: []JiraAssetAttributeValue{
+				{
+					Value: createOptions.Repository,
+				},
+			},
+		},
+		{
+			ObjectTypeAttributeId: createOptions.TitleId,
+			ObjectAttributeValues: []JiraAssetAttributeValue{
+				{
+					Value: createOptions.Title,
+				},
+			},
+		},
+	}
+
+	if createOptions.BusinessProcess != nil {
+		attributes = append(attributes, *createOptions.BusinessProcess)
+	}
+
+	if createOptions.Team != nil {
+		attributes = append(attributes, *createOptions.Team)
+	}
+
+	if createOptions.Dependencies != nil {
+		attributes = append(attributes, *createOptions.Dependencies)
+	}
+
+	if createOptions.Group != nil {
+		attributes = append(attributes, *createOptions.Group)
+	}
+
+	if createOptions.IsThirdParty != nil {
+		attributes = append(attributes, *createOptions.IsThirdParty)
+	}
+
+	if createOptions.IsDecommissioned != nil {
+		attributes = append(attributes, *createOptions.IsDecommissioned)
+	}
+
+	object := &JiraAsset{
+		ObjectTypeId: createOptions.ObjectTypeId,
+		Attributes:   attributes,
 	}
 
 	req, err := json.Marshal(object)
