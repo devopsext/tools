@@ -11,6 +11,7 @@ import (
 	"path"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/devopsext/tools/common"
 	"github.com/devopsext/utils"
@@ -188,8 +189,7 @@ func jsonJiraMarshal(issue interface{}, cf map[string]interface{}) ([]byte, erro
 // we need custom json unmarshal for Jira Assets to support pagination
 func jsonJiraAssetsUnmarshal(a []byte) (*CustomSearchAssetsResponse, error) {
 	assets := &CustomSearchAssetsResponse{} // Initialize the pointer
-	decoder := json.NewDecoder(bytes.NewReader(a))
-	err := decoder.Decode(assets)
+	err := json.Unmarshal(a, assets)
 	if err != nil {
 		return nil, err
 	}
@@ -496,10 +496,81 @@ func (j *Jira) SearchIssue(options JiraSearchIssueOptions) ([]byte, error) {
 	return j.CustomSearchIssue(j.options, options)
 }
 
+type ObjectTypeAttribute struct {
+	Id          int    `json:"id"`
+	Name        string `json:"name"`
+	Label       bool   `json:"label"`
+	Type        int    `json:"type"`
+	DefaultType struct {
+		Id   int    `json:"id"`
+		Name string `json:"name"`
+	} `json:"defaultType,omitempty"`
+	ReferenceType struct {
+		Id             int    `json:"id"`
+		Name           string `json:"name"`
+		Color          string `json:"color"`
+		Url16          string `json:"url16"`
+		Removable      bool   `json:"removable"`
+		ObjectSchemaId int    `json:"objectSchemaId"`
+	} `json:"referenceType,omitempty"`
+	ReferenceObjectTypeId int `json:"referenceObjectTypeId,omitempty"`
+	ReferenceObjectType   struct {
+		Id                        int       `json:"id"`
+		Name                      string    `json:"name"`
+		Type                      int       `json:"type"`
+		Description               string    `json:"description,omitempty"`
+		Created                   time.Time `json:"created"`
+		Updated                   time.Time `json:"updated"`
+		ObjectSchemaId            int       `json:"objectSchemaId"`
+		ParentObjectTypeInherited bool      `json:"parentObjectTypeInherited"`
+		ParentObjectTypeId        int       `json:"parentObjectTypeId,omitempty"`
+	} `json:"referenceObjectType,omitempty"`
+	Suffix string `json:"suffix,omitempty"`
+}
+
+type ObjectEntry struct {
+	Id         int    `json:"id"`
+	Key        string `json:"objectKey"`
+	Label      string `json:"label"`
+	Attributes []struct {
+		Id                    int `json:"id"`
+		ObjectTypeAttributeId int `json:"objectTypeAttributeId"`
+		ObjectAttributeValues []struct {
+			Value            string `json:"value,omitempty"`
+			DisplayValue     string `json:"displayValue"`
+			ReferencedObject struct {
+				Id         int    `json:"id"`
+				Label      string `json:"label"`
+				ObjectKey  string `json:"objectKey"`
+				ObjectType struct {
+					Id          int    `json:"id"`
+					Name        string `json:"name"`
+					Type        int    `json:"type"`
+					Description string `json:"description,omitempty"`
+				} `json:"objectType"`
+				Name     string `json:"name"`
+				Archived bool   `json:"archived"`
+			} `json:"referencedObject,omitempty"`
+		} `json:"objectAttributeValues"`
+		ObjectId int `json:"objectId"`
+	} `json:"attributes"`
+	ObjectType struct {
+		Id             int    `json:"id"`
+		Name           string `json:"name"`
+		Type           int    `json:"type"`
+		Description    string `json:"description"`
+		ObjectSchemaId int    `json:"objectSchemaId"`
+	} `json:"objectType"`
+	Created  time.Time `json:"created"`
+	Updated  time.Time `json:"updated"`
+	Name     string    `json:"name"`
+	Archived bool      `json:"archived"`
+}
+
 type CustomSearchAssetsResponse struct {
-	ObjectEntries        []interface{} `json:"objectEntries"`
-	ObjectTypeAttributes []interface{} `json:"objectTypeAttributes"`
-	PageSize             int           `json:"pageSize"`
+	ObjectEntries        []ObjectEntry         `json:"objectEntries"`
+	ObjectTypeAttributes []ObjectTypeAttribute `json:"objectTypeAttributes"`
+	PageSize             int                   `json:"pageSize"`
 }
 
 func (j *Jira) CustomSearchAssets(jiraOptions JiraOptions, search JiraSearchAssetOptions) ([]byte, error) {
@@ -513,43 +584,37 @@ func (j *Jira) CustomSearchAssets(jiraOptions JiraOptions, search JiraSearchAsse
 		return nil, err
 	}
 	u.Path = path.Join(u.Path, "/rest/insight/1.0/aql/objects")
-	u.RawQuery = params.Encode()
 
-	response, err := utils.HttpGetRaw(j.client, u.String(), "application/json", j.getAuth(jiraOptions))
-	if err != nil {
-		return nil, err
+	result := CustomSearchAssetsResponse{
+		ObjectTypeAttributes: make([]ObjectTypeAttribute, 0),
+		ObjectEntries:        make([]ObjectEntry, 0, 1024),
 	}
 
-	parsedResponse, err := jsonJiraAssetsUnmarshal(response)
-	if err != nil {
-		return nil, err
-	}
-
-	assets := parsedResponse.ObjectEntries
-	attributes := parsedResponse.ObjectTypeAttributes
-	pageSize := parsedResponse.PageSize
-
-	for page := 2; page <= pageSize; page++ {
+	for page := 1; ; page++ {
 		params.Set("page", strconv.Itoa(page))
 		u.RawQuery = params.Encode()
 
-		pageResponse, err := utils.HttpGetRaw(j.client, u.String(), "application/json", j.getAuth(jiraOptions))
+		response, err := utils.HttpGetRaw(j.client, u.String(), "application/json", j.getAuth(jiraOptions))
 		if err != nil {
 			return nil, err
 		}
 
-		pageParsedResponse, err := jsonJiraAssetsUnmarshal(pageResponse)
-		if err != nil {
+		var parsedResponse CustomSearchAssetsResponse
+		if err := json.Unmarshal(response, &parsedResponse); err != nil {
 			return nil, err
 		}
 
-		assets = append(assets, pageParsedResponse.ObjectEntries...)
+		if page == 1 {
+			result.ObjectTypeAttributes = parsedResponse.ObjectTypeAttributes
+		}
+
+		result.ObjectEntries = append(result.ObjectEntries, parsedResponse.ObjectEntries...)
+
+		if page >= parsedResponse.PageSize {
+			break
+		}
 	}
 
-	result := map[string]interface{}{
-		"objects":    assets,
-		"attributes": attributes,
-	}
 	return json.Marshal(result)
 }
 

@@ -16,8 +16,6 @@ github.com/cpuguy83/go-md2man/v2 v2.0.1/go.mod h1:tgQtvFlXSQOSOSIRvRPT7W67SCa46t
 github.com/davecgh/go-spew v1.1.0/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/davecgh/go-spew v1.1.1 h1:vj9j/u1bqnvCEfJOwUhtlOARqs3+rkHYY13jYWTU97c=
 github.com/davecgh/go-spew v1.1.1/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
-github.com/devopsext/utils v0.4.7 h1:9/FaKnP60Yzyb90+PYLzmalpTDUkOwn55QPD1QBoH/Y=
-github.com/devopsext/utils v0.4.7/go.mod h1:3Apwsy4/k+baHRxsHuK0ipqdgK/YNHif0fZmO7m0W4Q=
 github.com/go-asn1-ber/asn1-ber v1.5.7 h1:DTX+lbVTWaTw1hQ+PbZPlnDZPEIs0SS/GCZAl535dDk=
 github.com/go-asn1-ber/asn1-ber v1.5.7/go.mod h1:hEBeB/ic+5LoWskz+yKT7vGhhPYkProFKoKdwZRWMe0=
 github.com/go-ldap/ldap/v3 v3.4.10 h1:ot/iwPOhfpNVgB1o+AVXljizWZ9JTp7YF5oeyONmcJU=

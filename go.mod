@@ -2,7 +2,7 @@ module github.com/devopsext/tools
 
 go 1.23
 
-//replace github.com/devopsext/utils => ./../utils
+replace github.com/devopsext/utils => ./../utils
 
 require (
 	github.com/Masterminds/sprig/v3 v3.2.2
