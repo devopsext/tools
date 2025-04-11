@@ -186,14 +186,14 @@ func jsonJiraMarshal(issue interface{}, cf map[string]interface{}) ([]byte, erro
 }
 
 // we need custom json unmarshal for Jira Assets to support pagination
-func jsonJiraAssetsUnmarshal(a []byte) (map[string]interface{}, error) {
-	var assets interface{}
-	err := json.Unmarshal(a, &assets)
+func jsonJiraAssetsUnmarshal(a []byte) (*CustomSearchAssetsResponse, error) {
+	assets := &CustomSearchAssetsResponse{} // Initialize the pointer
+	decoder := json.NewDecoder(bytes.NewReader(a))
+	err := decoder.Decode(assets)
 	if err != nil {
 		return nil, err
 	}
-	m := assets.(map[string]interface{})
-	return m, nil
+	return assets, nil
 }
 
 func (j *Jira) getAuth(opts JiraOptions) string {
@@ -251,8 +251,7 @@ func (j *Jira) CustomCreateIssue(jiraOptions JiraOptions, createOptions JiraIssu
 	cf := make(map[string]interface{})
 
 	if !utils.IsEmpty(createOptions.CustomFields) {
-		var err error
-		err = json.Unmarshal([]byte(createOptions.CustomFields), &cf)
+		err := json.Unmarshal([]byte(createOptions.CustomFields), &cf)
 		if err != nil {
 			return nil, err
 		}
@@ -367,8 +366,7 @@ func (j *Jira) CustomUpdateIssue(jiraOptions JiraOptions, issueOptions JiraIssue
 	cf := make(map[string]interface{})
 
 	if !utils.IsEmpty(issueOptions.CustomFields) {
-		var err error
-		err = json.Unmarshal([]byte(issueOptions.CustomFields), &cf)
+		err := json.Unmarshal([]byte(issueOptions.CustomFields), &cf)
 		if err != nil {
 			return nil, err
 		}
@@ -498,52 +496,59 @@ func (j *Jira) SearchIssue(options JiraSearchIssueOptions) ([]byte, error) {
 	return j.CustomSearchIssue(j.options, options)
 }
 
-func (j *Jira) CustomSearchAssets(jiraOptions JiraOptions, search JiraSearchAssetOptions) ([]byte, error) {
+type CustomSearchAssetsResponse struct {
+	ObjectEntries        []interface{} `json:"objectEntries"`
+	ObjectTypeAttributes []interface{} `json:"objectTypeAttributes"`
+	PageSize             int           `json:"pageSize"`
+}
 
-	params := make(url.Values)
-	params.Add("qlQuery", search.SearchPattern)
-	params.Add("resultPerPage", strconv.Itoa(search.ResultPerPage))
+func (j *Jira) CustomSearchAssets(jiraOptions JiraOptions, search JiraSearchAssetOptions) ([]byte, error) {
+	params := url.Values{
+		"qlQuery":       []string{search.SearchPattern},
+		"resultPerPage": []string{strconv.Itoa(search.ResultPerPage)},
+	}
 
 	u, err := url.Parse(jiraOptions.URL)
 	if err != nil {
 		return nil, err
 	}
-
 	u.Path = path.Join(u.Path, "/rest/insight/1.0/aql/objects")
 	u.RawQuery = params.Encode()
-	a, err := utils.HttpGetRaw(j.client, u.String(), "application/json", j.getAuth(jiraOptions))
+
+	response, err := utils.HttpGetRaw(j.client, u.String(), "application/json", j.getAuth(jiraOptions))
 	if err != nil {
 		return nil, err
 	}
 
-	// We need to check if there is a pagination in the answer, if so we need to get all results
-	m, err := jsonJiraAssetsUnmarshal(a)
+	parsedResponse, err := jsonJiraAssetsUnmarshal(response)
 	if err != nil {
 		return nil, err
 	}
-	assetsObj := m["objectEntries"].([]interface{})
-	objAttr := m["objectTypeAttributes"].([]interface{})
-	pageSize := m["pageSize"].(float64)
-	if pageSize > 1 {
-		for i := 2; i <= int(pageSize); i++ {
-			params.Set("page", strconv.Itoa(i))
-			u.RawQuery = params.Encode()
-			a, err := utils.HttpGetRaw(j.client, u.String(), "application/json", j.getAuth(jiraOptions))
-			if err != nil {
-				return nil, err
-			}
-			m, err := jsonJiraAssetsUnmarshal(a)
-			if err != nil {
-				return nil, err
-			}
-			assetsObjPage := m["objectEntries"].([]interface{})
-			assetsObj = append(assetsObj, assetsObjPage...)
+
+	assets := parsedResponse.ObjectEntries
+	attributes := parsedResponse.ObjectTypeAttributes
+	pageSize := parsedResponse.PageSize
+
+	for page := 2; page <= pageSize; page++ {
+		params.Set("page", strconv.Itoa(page))
+		u.RawQuery = params.Encode()
+
+		pageResponse, err := utils.HttpGetRaw(j.client, u.String(), "application/json", j.getAuth(jiraOptions))
+		if err != nil {
+			return nil, err
 		}
 
+		pageParsedResponse, err := jsonJiraAssetsUnmarshal(pageResponse)
+		if err != nil {
+			return nil, err
+		}
+
+		assets = append(assets, pageParsedResponse.ObjectEntries...)
 	}
+
 	result := map[string]interface{}{
-		"objects":    assetsObj,
-		"attributes": objAttr,
+		"objects":    assets,
+		"attributes": attributes,
 	}
 	return json.Marshal(result)
 }
