@@ -2,8 +2,6 @@ module github.com/devopsext/tools
 
 go 1.23
 
-replace github.com/devopsext/utils => ./../utils
-
 require (
 	github.com/Masterminds/sprig/v3 v3.2.2
 	github.com/araddon/dateparse v0.0.0-20210429162001-6b43995a97de
@@ -27,6 +25,8 @@ require (
 	github.com/huandu/xstrings v1.3.1 // indirect
 	github.com/imdario/mergo v0.3.11 // indirect
 	github.com/inconshreveable/mousetrap v1.0.0 // indirect
+	github.com/josharian/intern v1.0.0 // indirect
+	github.com/mailru/easyjson v0.9.0 // indirect
 	github.com/mitchellh/copystructure v1.0.0 // indirect
 	github.com/mitchellh/reflectwalk v1.0.0 // indirect
 	github.com/shopspring/decimal v1.2.0 // indirect
