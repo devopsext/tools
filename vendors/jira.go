@@ -170,6 +170,111 @@ type JiraAsset struct {
 	Attributes   []JiraAssetAttribute `json:"attributes"`
 }
 
+//easyjson:json
+type IQLObjectType struct {
+	Id                        int       `json:"id"`
+	Name                      string    `json:"name"`
+	Type                      int       `json:"type"`
+	Position                  int       `json:"position"`
+	Created                   time.Time `json:"created"`
+	Updated                   time.Time `json:"updated"`
+	ObjectCount               int       `json:"objectCount"`
+	ParentObjectTypeId        int       `json:"parentObjectTypeId"`
+	ObjectSchemaId            int       `json:"objectSchemaId"`
+	Inherited                 bool      `json:"inherited"`
+	AbstractObjectType        bool      `json:"abstractObjectType"`
+	ParentObjectTypeInherited bool      `json:"parentObjectTypeInherited"`
+}
+
+//easyjson:json
+type IQLObjectAttributeValue struct {
+	Value          string `json:"value,omitempty"`
+	DisplayValue   string `json:"displayValue"`
+	SearchValue    string `json:"searchValue"`
+	ReferencedType bool   `json:"referencedType"`
+	Status         struct {
+		Id             int    `json:"id"`
+		Name           string `json:"name"`
+		Category       int    `json:"category"`
+		ObjectSchemaId int    `json:"objectSchemaId"`
+	} `json:"status,omitempty"`
+	ReferencedObject IQLObjectEntry `json:"referencedObject,omitempty"`
+}
+
+//easyjson:json
+type IQLObjectAttribute struct {
+	Id                    int                       `json:"id"`
+	ObjectTypeAttributeId int                       `json:"objectTypeAttributeId"`
+	ObjectAttributeValues []IQLObjectAttributeValue `json:"objectAttributeValues"`
+	ObjectId              int                       `json:"objectId"`
+}
+
+//easyjson:json
+type IQLObjectEntry struct {
+	Id         int                  `json:"id"`
+	Label      string               `json:"label"`
+	ObjectKey  string               `json:"objectKey"`
+	ObjectType IQLObjectType        `json:"objectType"`
+	Created    time.Time            `json:"created"`
+	Updated    time.Time            `json:"updated"`
+	Timestamp  int64                `json:"timestamp"`
+	Attributes []IQLObjectAttribute `json:"attributes"`
+	Name       string               `json:"name"`
+	Archived   bool                 `json:"archived"`
+}
+
+//easyjson:json
+type IQLObjectTypeAttribute struct {
+	Id          int    `json:"id"`
+	Name        string `json:"name"`
+	Label       bool   `json:"label"`
+	Type        int    `json:"type"`
+	DefaultType struct {
+		Id   int    `json:"id"`
+		Name string `json:"name"`
+	} `json:"defaultType,omitempty"`
+	Hidden                  bool          `json:"hidden"`
+	IncludeChildObjectTypes bool          `json:"includeChildObjectTypes"`
+	UniqueAttribute         bool          `json:"uniqueAttribute"`
+	Options                 string        `json:"options"`
+	Position                int           `json:"position"`
+	Description             string        `json:"description,omitempty"`
+	TypeValueMulti          []string      `json:"typeValueMulti,omitempty"`
+	ReferenceObjectTypeId   int           `json:"referenceObjectTypeId,omitempty"`
+	ReferenceObjectType     IQLObjectType `json:"referenceObjectType,omitempty"`
+	Suffix                  string        `json:"suffix,omitempty"`
+	RegexValidation         string        `json:"regexValidation,omitempty"`
+	QlQuery                 string        `json:"qlQuery,omitempty"`
+	Iql                     string        `json:"iql,omitempty"`
+}
+
+//easyjson:json
+type IQLObjectsResponse struct {
+	ObjectEntries         []IQLObjectEntry         `json:"objectEntries"`
+	ObjectTypeAttributes  []IQLObjectTypeAttribute `json:"objectTypeAttributes"`
+	ObjectTypeId          int                      `json:"objectTypeId"`
+	ObjectTypeIsInherited bool                     `json:"objectTypeIsInherited"`
+	AbstractObjectType    bool                     `json:"abstractObjectType"`
+	TotalFilterCount      int                      `json:"totalFilterCount"`
+	StartIndex            int                      `json:"startIndex"`
+	ToIndex               int                      `json:"toIndex"`
+	PageObjectSize        int                      `json:"pageObjectSize"`
+	PageNumber            int                      `json:"pageNumber"`
+	OrderWay              string                   `json:"orderWay"`
+	QlQuery               string                   `json:"qlQuery"`
+	QlQuerySearchResult   bool                     `json:"qlQuerySearchResult"`
+	ConversionPossible    bool                     `json:"conversionPossible"`
+	Iql                   string                   `json:"iql"`
+	IqlSearchResult       bool                     `json:"iqlSearchResult"`
+	PageSize              int                      `json:"pageSize"`
+}
+
+//easyjson:json
+type CustomSearchAssetsResponse struct {
+	ObjectTypeAttributes []IQLObjectTypeAttribute `json:"attributes"`
+	ObjectEntries        []IQLObjectEntry         `json:"objects"`
+}
+
 // we need custom json marshal for Jira due to possible using of custom fields
 func jsonJiraMarshal(issue interface{}, cf map[string]interface{}) ([]byte, error) {
 	m, err := common.InterfaceToMap("", issue)
@@ -483,111 +588,6 @@ func (j *Jira) CustomSearchIssue(jiraOptions JiraOptions, search JiraSearchIssue
 
 func (j *Jira) SearchIssue(options JiraSearchIssueOptions) ([]byte, error) {
 	return j.CustomSearchIssue(j.options, options)
-}
-
-//easyjson:json
-type IQLObjectType struct {
-	Id                        int       `json:"id"`
-	Name                      string    `json:"name"`
-	Type                      int       `json:"type"`
-	Position                  int       `json:"position"`
-	Created                   time.Time `json:"created"`
-	Updated                   time.Time `json:"updated"`
-	ObjectCount               int       `json:"objectCount"`
-	ParentObjectTypeId        int       `json:"parentObjectTypeId"`
-	ObjectSchemaId            int       `json:"objectSchemaId"`
-	Inherited                 bool      `json:"inherited"`
-	AbstractObjectType        bool      `json:"abstractObjectType"`
-	ParentObjectTypeInherited bool      `json:"parentObjectTypeInherited"`
-}
-
-//easyjson:json
-type IQLObjectAttributeValue struct {
-	Value          string `json:"value,omitempty"`
-	DisplayValue   string `json:"displayValue"`
-	SearchValue    string `json:"searchValue"`
-	ReferencedType bool   `json:"referencedType"`
-	Status         struct {
-		Id             int    `json:"id"`
-		Name           string `json:"name"`
-		Category       int    `json:"category"`
-		ObjectSchemaId int    `json:"objectSchemaId"`
-	} `json:"status,omitempty"`
-	ReferencedObject IQLObjectEntry `json:"referencedObject,omitempty"`
-}
-
-//easyjson:json
-type IQLObjectAttribute struct {
-	Id                    int                       `json:"id"`
-	ObjectTypeAttributeId int                       `json:"objectTypeAttributeId"`
-	ObjectAttributeValues []IQLObjectAttributeValue `json:"objectAttributeValues"`
-	ObjectId              int                       `json:"objectId"`
-}
-
-//easyjson:json
-type IQLObjectEntry struct {
-	Id         int                  `json:"id"`
-	Label      string               `json:"label"`
-	ObjectKey  string               `json:"objectKey"`
-	ObjectType IQLObjectType        `json:"objectType"`
-	Created    time.Time            `json:"created"`
-	Updated    time.Time            `json:"updated"`
-	Timestamp  int64                `json:"timestamp"`
-	Attributes []IQLObjectAttribute `json:"attributes"`
-	Name       string               `json:"name"`
-	Archived   bool                 `json:"archived"`
-}
-
-//easyjson:json
-type IQLObjectTypeAttribute struct {
-	Id          int    `json:"id"`
-	Name        string `json:"name"`
-	Label       bool   `json:"label"`
-	Type        int    `json:"type"`
-	DefaultType struct {
-		Id   int    `json:"id"`
-		Name string `json:"name"`
-	} `json:"defaultType,omitempty"`
-	Hidden                  bool          `json:"hidden"`
-	IncludeChildObjectTypes bool          `json:"includeChildObjectTypes"`
-	UniqueAttribute         bool          `json:"uniqueAttribute"`
-	Options                 string        `json:"options"`
-	Position                int           `json:"position"`
-	Description             string        `json:"description,omitempty"`
-	TypeValueMulti          []string      `json:"typeValueMulti,omitempty"`
-	ReferenceObjectTypeId   int           `json:"referenceObjectTypeId,omitempty"`
-	ReferenceObjectType     IQLObjectType `json:"referenceObjectType,omitempty"`
-	Suffix                  string        `json:"suffix,omitempty"`
-	RegexValidation         string        `json:"regexValidation,omitempty"`
-	QlQuery                 string        `json:"qlQuery,omitempty"`
-	Iql                     string        `json:"iql,omitempty"`
-}
-
-//easyjson:json
-type IQLObjectsResponse struct {
-	ObjectEntries         []IQLObjectEntry         `json:"objectEntries"`
-	ObjectTypeAttributes  []IQLObjectTypeAttribute `json:"objectTypeAttributes"`
-	ObjectTypeId          int                      `json:"objectTypeId"`
-	ObjectTypeIsInherited bool                     `json:"objectTypeIsInherited"`
-	AbstractObjectType    bool                     `json:"abstractObjectType"`
-	TotalFilterCount      int                      `json:"totalFilterCount"`
-	StartIndex            int                      `json:"startIndex"`
-	ToIndex               int                      `json:"toIndex"`
-	PageObjectSize        int                      `json:"pageObjectSize"`
-	PageNumber            int                      `json:"pageNumber"`
-	OrderWay              string                   `json:"orderWay"`
-	QlQuery               string                   `json:"qlQuery"`
-	QlQuerySearchResult   bool                     `json:"qlQuerySearchResult"`
-	ConversionPossible    bool                     `json:"conversionPossible"`
-	Iql                   string                   `json:"iql"`
-	IqlSearchResult       bool                     `json:"iqlSearchResult"`
-	PageSize              int                      `json:"pageSize"`
-}
-
-//easyjson:json
-type CustomSearchAssetsResponse struct {
-	ObjectTypeAttributes []IQLObjectTypeAttribute `json:"attributes"`
-	ObjectEntries        []IQLObjectEntry         `json:"objects"`
 }
 
 func (j *Jira) httpGetStream(url string) (bytes.Buffer, error) {
