@@ -4,16 +4,20 @@ import (
 	"bytes"
 	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"fmt"
+	"io"
 	"mime/multipart"
 	"net/http"
 	"net/url"
 	"path"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/devopsext/tools/common"
 	"github.com/devopsext/utils"
+	"github.com/mailru/easyjson"
 )
 
 type Jira struct {
@@ -166,6 +170,111 @@ type JiraAsset struct {
 	Attributes   []JiraAssetAttribute `json:"attributes"`
 }
 
+//easyjson:json
+type IQLObjectType struct {
+	Id                        int       `json:"id"`
+	Name                      string    `json:"name"`
+	Type                      int       `json:"type"`
+	Position                  int       `json:"position"`
+	Created                   time.Time `json:"created"`
+	Updated                   time.Time `json:"updated"`
+	ObjectCount               int       `json:"objectCount"`
+	ParentObjectTypeId        int       `json:"parentObjectTypeId"`
+	ObjectSchemaId            int       `json:"objectSchemaId"`
+	Inherited                 bool      `json:"inherited"`
+	AbstractObjectType        bool      `json:"abstractObjectType"`
+	ParentObjectTypeInherited bool      `json:"parentObjectTypeInherited"`
+}
+
+//easyjson:json
+type IQLObjectAttributeValue struct {
+	Value          string `json:"value,omitempty"`
+	DisplayValue   string `json:"displayValue"`
+	SearchValue    string `json:"searchValue"`
+	ReferencedType bool   `json:"referencedType"`
+	Status         struct {
+		Id             int    `json:"id"`
+		Name           string `json:"name"`
+		Category       int    `json:"category"`
+		ObjectSchemaId int    `json:"objectSchemaId"`
+	} `json:"status,omitempty"`
+	ReferencedObject IQLObjectEntry `json:"referencedObject,omitempty"`
+}
+
+//easyjson:json
+type IQLObjectAttribute struct {
+	Id                    int                       `json:"id"`
+	ObjectTypeAttributeId int                       `json:"objectTypeAttributeId"`
+	ObjectAttributeValues []IQLObjectAttributeValue `json:"objectAttributeValues"`
+	ObjectId              int                       `json:"objectId"`
+}
+
+//easyjson:json
+type IQLObjectEntry struct {
+	Id         int                  `json:"id"`
+	Label      string               `json:"label"`
+	ObjectKey  string               `json:"objectKey"`
+	ObjectType IQLObjectType        `json:"objectType"`
+	Created    time.Time            `json:"created"`
+	Updated    time.Time            `json:"updated"`
+	Timestamp  int64                `json:"timestamp"`
+	Attributes []IQLObjectAttribute `json:"attributes"`
+	Name       string               `json:"name"`
+	Archived   bool                 `json:"archived"`
+}
+
+//easyjson:json
+type IQLObjectTypeAttribute struct {
+	Id          int    `json:"id"`
+	Name        string `json:"name"`
+	Label       bool   `json:"label"`
+	Type        int    `json:"type"`
+	DefaultType struct {
+		Id   int    `json:"id"`
+		Name string `json:"name"`
+	} `json:"defaultType,omitempty"`
+	Hidden                  bool          `json:"hidden"`
+	IncludeChildObjectTypes bool          `json:"includeChildObjectTypes"`
+	UniqueAttribute         bool          `json:"uniqueAttribute"`
+	Options                 string        `json:"options"`
+	Position                int           `json:"position"`
+	Description             string        `json:"description,omitempty"`
+	TypeValueMulti          []string      `json:"typeValueMulti,omitempty"`
+	ReferenceObjectTypeId   int           `json:"referenceObjectTypeId,omitempty"`
+	ReferenceObjectType     IQLObjectType `json:"referenceObjectType,omitempty"`
+	Suffix                  string        `json:"suffix,omitempty"`
+	RegexValidation         string        `json:"regexValidation,omitempty"`
+	QlQuery                 string        `json:"qlQuery,omitempty"`
+	Iql                     string        `json:"iql,omitempty"`
+}
+
+//easyjson:json
+type IQLObjectsResponse struct {
+	ObjectEntries         []IQLObjectEntry         `json:"objectEntries"`
+	ObjectTypeAttributes  []IQLObjectTypeAttribute `json:"objectTypeAttributes"`
+	ObjectTypeId          int                      `json:"objectTypeId"`
+	ObjectTypeIsInherited bool                     `json:"objectTypeIsInherited"`
+	AbstractObjectType    bool                     `json:"abstractObjectType"`
+	TotalFilterCount      int                      `json:"totalFilterCount"`
+	StartIndex            int                      `json:"startIndex"`
+	ToIndex               int                      `json:"toIndex"`
+	PageObjectSize        int                      `json:"pageObjectSize"`
+	PageNumber            int                      `json:"pageNumber"`
+	OrderWay              string                   `json:"orderWay"`
+	QlQuery               string                   `json:"qlQuery"`
+	QlQuerySearchResult   bool                     `json:"qlQuerySearchResult"`
+	ConversionPossible    bool                     `json:"conversionPossible"`
+	Iql                   string                   `json:"iql"`
+	IqlSearchResult       bool                     `json:"iqlSearchResult"`
+	PageSize              int                      `json:"pageSize"`
+}
+
+//easyjson:json
+type CustomSearchAssetsResponse struct {
+	ObjectTypeAttributes []IQLObjectTypeAttribute `json:"attributes"`
+	ObjectEntries        []IQLObjectEntry         `json:"objects"`
+}
+
 // we need custom json marshal for Jira due to possible using of custom fields
 func jsonJiraMarshal(issue interface{}, cf map[string]interface{}) ([]byte, error) {
 	m, err := common.InterfaceToMap("", issue)
@@ -185,30 +294,15 @@ func jsonJiraMarshal(issue interface{}, cf map[string]interface{}) ([]byte, erro
 	return json.Marshal(m)
 }
 
-// we need custom json unmarshal for Jira Assets to support pagination
-func jsonJiraAssetsUnmarshal(a []byte) (map[string]interface{}, error) {
-	var assets interface{}
-	err := json.Unmarshal(a, &assets)
-	if err != nil {
-		return nil, err
-	}
-	m := assets.(map[string]interface{})
-	return m, nil
-}
-
 func (j *Jira) getAuth(opts JiraOptions) string {
-
-	auth := ""
 	if !utils.IsEmpty(opts.User) {
 		userPass := fmt.Sprintf("%s:%s", opts.User, opts.Password)
-		auth = fmt.Sprintf("Basic %s", base64.StdEncoding.EncodeToString([]byte(userPass)))
-		return auth
+		return "Basic " + base64.StdEncoding.EncodeToString([]byte(userPass))
 	}
 	if !utils.IsEmpty(opts.AccessToken) {
-		auth = fmt.Sprintf("Bearer %s", opts.AccessToken)
-		return auth
+		return "Bearer " + opts.AccessToken
 	}
-	return auth
+	return ""
 }
 
 func (j *Jira) CustomCreateIssue(jiraOptions JiraOptions, createOptions JiraIssueOptions) ([]byte, error) {
@@ -251,8 +345,7 @@ func (j *Jira) CustomCreateIssue(jiraOptions JiraOptions, createOptions JiraIssu
 	cf := make(map[string]interface{})
 
 	if !utils.IsEmpty(createOptions.CustomFields) {
-		var err error
-		err = json.Unmarshal([]byte(createOptions.CustomFields), &cf)
+		err := json.Unmarshal([]byte(createOptions.CustomFields), &cf)
 		if err != nil {
 			return nil, err
 		}
@@ -367,8 +460,7 @@ func (j *Jira) CustomUpdateIssue(jiraOptions JiraOptions, issueOptions JiraIssue
 	cf := make(map[string]interface{})
 
 	if !utils.IsEmpty(issueOptions.CustomFields) {
-		var err error
-		err = json.Unmarshal([]byte(issueOptions.CustomFields), &cf)
+		err := json.Unmarshal([]byte(issueOptions.CustomFields), &cf)
 		if err != nil {
 			return nil, err
 		}
@@ -498,54 +590,80 @@ func (j *Jira) SearchIssue(options JiraSearchIssueOptions) ([]byte, error) {
 	return j.CustomSearchIssue(j.options, options)
 }
 
-func (j *Jira) CustomSearchAssets(jiraOptions JiraOptions, search JiraSearchAssetOptions) ([]byte, error) {
+func (j *Jira) httpGetStream(url string) (bytes.Buffer, error) {
+	headers := make(map[string]string)
+	headers["Authorization"] = j.getAuth(j.options)
+	headers["Accept"] = "application/json"
+	//headers["Content-Type"] = "application/json"
 
-	params := make(url.Values)
-	params.Add("qlQuery", search.SearchPattern)
-	params.Add("resultPerPage", strconv.Itoa(search.ResultPerPage))
+	res := bytes.Buffer{}
+
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		return res, err
+	}
+
+	for k, v := range headers {
+		if !utils.IsEmpty(v) {
+			req.Header.Set(k, v)
+		}
+	}
+
+	resp, err := j.client.Do(req)
+	if err != nil {
+		return res, err
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		return res, errors.New(resp.Status)
+	}
+	_, err = io.Copy(&res, resp.Body)
+	return res, err
+}
+
+func (j *Jira) CustomSearchAssets(jiraOptions JiraOptions, search JiraSearchAssetOptions) ([]byte, error) {
+	params := url.Values{
+		"qlQuery":       []string{search.SearchPattern},
+		"resultPerPage": []string{strconv.Itoa(search.ResultPerPage)},
+	}
 
 	u, err := url.Parse(jiraOptions.URL)
 	if err != nil {
 		return nil, err
 	}
-
 	u.Path = path.Join(u.Path, "/rest/insight/1.0/aql/objects")
-	u.RawQuery = params.Encode()
-	a, err := utils.HttpGetRaw(j.client, u.String(), "application/json", j.getAuth(jiraOptions))
-	if err != nil {
-		return nil, err
+
+	result := &CustomSearchAssetsResponse{
+		ObjectTypeAttributes: make([]IQLObjectTypeAttribute, 0),
+		ObjectEntries:        make([]IQLObjectEntry, 0, 1024),
 	}
 
-	// We need to check if there is a pagination in the answer, if so we need to get all results
-	m, err := jsonJiraAssetsUnmarshal(a)
-	if err != nil {
-		return nil, err
-	}
-	assetsObj := m["objectEntries"].([]interface{})
-	objAttr := m["objectTypeAttributes"].([]interface{})
-	pageSize := m["pageSize"].(float64)
-	if pageSize > 1 {
-		for i := 2; i <= int(pageSize); i++ {
-			params.Set("page", strconv.Itoa(i))
-			u.RawQuery = params.Encode()
-			a, err := utils.HttpGetRaw(j.client, u.String(), "application/json", j.getAuth(jiraOptions))
-			if err != nil {
-				return nil, err
-			}
-			m, err := jsonJiraAssetsUnmarshal(a)
-			if err != nil {
-				return nil, err
-			}
-			assetsObjPage := m["objectEntries"].([]interface{})
-			assetsObj = append(assetsObj, assetsObjPage...)
+	for page := 1; ; page++ {
+		params.Set("page", strconv.Itoa(page))
+		u.RawQuery = params.Encode()
+
+		response, err := j.httpGetStream(u.String())
+		if err != nil {
+			return nil, err
 		}
 
+		var parsedResponse IQLObjectsResponse
+		if err := easyjson.Unmarshal(response.Bytes(), &parsedResponse); err != nil {
+			return nil, err
+		}
+
+		if page == 1 {
+			result.ObjectTypeAttributes = parsedResponse.ObjectTypeAttributes
+		}
+
+		result.ObjectEntries = append(result.ObjectEntries, parsedResponse.ObjectEntries...)
+
+		if page >= parsedResponse.PageSize {
+			break
+		}
 	}
-	result := map[string]interface{}{
-		"objects":    assetsObj,
-		"attributes": objAttr,
-	}
-	return json.Marshal(result)
+
+	return easyjson.Marshal(result)
 }
 
 func (j *Jira) SearchAssets(options JiraSearchAssetOptions) ([]byte, error) {
