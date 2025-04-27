@@ -216,7 +216,22 @@ func (h *HttpServerCallProcessor) HandleRequest(w http.ResponseWriter, r *http.R
 
 	var rarr []interface{}
 	if len(arr) > 0 {
-		rarr = arr
+
+		for _, v := range arr {
+			switch v.(type) {
+			case []byte:
+
+				var i interface{}
+				err := json.Unmarshal(v.([]byte), &i)
+				if err != nil {
+					rarr = append(rarr, v)
+					continue
+				}
+				rarr = append(rarr, i)
+			default:
+				rarr = append(rarr, v)
+			}
+		}
 	}
 
 	res := &HttpServerCallRespone{
@@ -352,6 +367,7 @@ func (h *HttpServer) Start(wg *sync.WaitGroup) {
 		if h.options.Tls {
 
 			srv.TLSConfig = &tls.Config{
+				ClientAuth:         tls.RequireAndVerifyClientCert,
 				ClientCAs:          caPool,
 				Certificates:       certificates,
 				InsecureSkipVerify: h.options.Insecure,

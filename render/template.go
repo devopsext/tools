@@ -1150,16 +1150,90 @@ func (tpl *Template) JiraCreateAsset(params map[string]interface{}) ([]byte, err
 
 	objectTypeId, _ := params["objectTypeId"].(int)
 	objectSchemeId, _ := params["objectSchemeId"].(string)
-	repositoryId, _ := params["repositoryId"].(int)
 	nameId, _ := params["nameId"].(int)
+	name, _ := params["name"].(string)
 	descriptionId, _ := params["descriptionId"].(int)
 	description, _ := params["description"].(string)
-	name, _ := params["name"].(string)
+	repositoryId, _ := params["repositoryId"].(int)
 	repository, _ := params["repository"].(string)
 	titleId, _ := params["titleId"].(int)
 	title, _ := params["title"].(string)
 	tierId, _ := params["tierId"].(int)
 	tier, _ := params["tier"].(string)
+	businessProcessId, _ := params["businessProcessId"].(int)
+	businessProcessesKeysRaw, _ := params["businessProcessesKeys"].([]interface{})
+	dependenciesId, _ := params["dependenciesId"].(int)
+	dependenciesKeysRaw, _ := params["dependenciesKeys"].([]interface{})
+	teamId, _ := params["teamId"].(int)
+	teamKey, _ := params["teamKey"].(string)
+	groupId, _ := params["groupId"].(int)
+	groupKey, _ := params["groupKey"].(string)
+	thirdPartyId, _ := params["thirdPartyId"].(int)
+	thirdPartyKey, _ := params["thirdPartyKey"].(string)
+	decommissionedId, _ := params["decommissionedId"].(int)
+	decommissionedKey, _ := params["decommissionedKey"].(string)
+
+	fmt.Println("third party key", thirdPartyKey)
+	fmt.Println("decommissioned key", decommissionedKey)
+
+	businessProcessesKeys := make([]string, len(businessProcessesKeysRaw))
+	for i, key := range businessProcessesKeysRaw {
+		businessProcessesKeys[i] = fmt.Sprint(key)
+	}
+	businessProcessesAttributesValues := make([]vendors.JiraAssetAttributeValue, 0)
+	for _, businessProcessKey := range businessProcessesKeys {
+		businessProcessesAttributesValues = append(businessProcessesAttributesValues, vendors.JiraAssetAttributeValue{
+			Value: businessProcessKey,
+		})
+	}
+	businessProcesses := vendors.JiraAssetAttribute{
+		ObjectTypeAttributeId: businessProcessId,
+		ObjectAttributeValues: businessProcessesAttributesValues,
+	}
+
+	dependenciesKeys := make([]string, len(dependenciesKeysRaw))
+	for i, key := range dependenciesKeysRaw {
+		dependenciesKeys[i] = fmt.Sprint(key)
+	}
+
+	dependenciesAttributesValues := make([]vendors.JiraAssetAttributeValue, 0)
+	for _, dependencyKey := range dependenciesKeys {
+		dependenciesAttributesValues = append(dependenciesAttributesValues, vendors.JiraAssetAttributeValue{
+			Value: dependencyKey,
+		})
+	}
+	dependencies := vendors.JiraAssetAttribute{
+		ObjectTypeAttributeId: dependenciesId,
+		ObjectAttributeValues: dependenciesAttributesValues,
+	}
+
+	team := vendors.JiraAssetAttribute{
+		ObjectTypeAttributeId: teamId,
+		ObjectAttributeValues: []vendors.JiraAssetAttributeValue{
+			{Value: teamKey},
+		},
+	}
+
+	group := vendors.JiraAssetAttribute{
+		ObjectTypeAttributeId: groupId,
+		ObjectAttributeValues: []vendors.JiraAssetAttributeValue{
+			{Value: groupKey},
+		},
+	}
+
+	isThirdParty := vendors.JiraAssetAttribute{
+		ObjectTypeAttributeId: thirdPartyId,
+		ObjectAttributeValues: []vendors.JiraAssetAttributeValue{
+			{Value: thirdPartyKey},
+		},
+	}
+
+	isDecommissioned := vendors.JiraAssetAttribute{
+		ObjectTypeAttributeId: decommissionedId,
+		ObjectAttributeValues: []vendors.JiraAssetAttributeValue{
+			{Value: decommissionedKey},
+		},
+	}
 
 	jiraOptions := vendors.JiraOptions{
 		URL:         url,
@@ -1170,24 +1244,69 @@ func (tpl *Template) JiraCreateAsset(params map[string]interface{}) ([]byte, err
 		AccessToken: token,
 	}
 	jiraIssueOptions := vendors.JiraCreateAssetOptions{
-		Name:           name,
-		ObjectSchemeId: objectSchemeId,
-		ObjectTypeId:   objectTypeId,
-		RepositoryId:   repositoryId,
-		NameId:         nameId,
-		DescriptionId:  descriptionId,
-		Description:    description,
-		Repository:     repository,
-		TitleId:        titleId,
-		Title:          title,
-		TierId:         tierId,
-		Tier:           tier,
+		Name:              name,
+		ObjectSchemeId:    objectSchemeId,
+		ObjectTypeId:      objectTypeId,
+		RepositoryId:      repositoryId,
+		NameId:            nameId,
+		DescriptionId:     descriptionId,
+		Description:       description,
+		Repository:        repository,
+		TitleId:           titleId,
+		Title:             title,
+		TierId:            tierId,
+		Tier:              tier,
+		BusinessProcesses: &businessProcesses,
+		Team:              &team,
+		Dependencies:      &dependencies,
+		Group:             &group,
+		IsThirdParty:      &isThirdParty,
+		IsDecommissioned:  &isDecommissioned,
 	}
 
 	jira := vendors.NewJira(jiraOptions)
 
 	response, err := jira.CreateAsset(jiraIssueOptions)
 	if err != nil {
+		return nil, err
+	}
+
+	return response, nil
+}
+
+func (tpl *Template) JiraUpdateAsset(params map[string]interface{}) ([]byte, error) {
+	url, _ := params["url"].(string)
+	timeout, _ := params["timeout"].(int)
+	if timeout == 0 {
+		timeout = 10
+	}
+	insecure, _ := params["insecure"].(bool)
+	user, _ := params["user"].(string)
+	password, _ := params["password"].(string)
+	token, _ := params["token"].(string)
+
+	objectId, _ := params["objectId"].(string)
+	jsonData, _ := params["json"].(string)
+
+	jiraOptions := vendors.JiraOptions{
+		URL:         url,
+		Timeout:     timeout,
+		Insecure:    insecure,
+		User:        user,
+		Password:    password,
+		AccessToken: token,
+	}
+
+	jiraUpdateOptions := vendors.JiraUpdateAssetOptions{
+		ObjectId: objectId,
+		Json:     jsonData,
+	}
+
+	jira := vendors.NewJira(jiraOptions)
+
+	response, err := jira.UpdateAsset(jiraUpdateOptions)
+	if err != nil {
+		fmt.Printf("\n\n\nJira API error response: %s\n\n\n", string(response))
 		return nil, err
 	}
 
@@ -1483,6 +1602,39 @@ func (tpl *Template) JiraCreateIssue(params map[string]interface{}) ([]byte, err
 	return response, nil
 }
 
+func (tpl *Template) LdapGetGroupMembers(params map[string]interface{}) ([]byte, error) {
+
+	ldapOptions := vendors.LdapOptions{
+		URL:      params["url"].(string),
+		User:     params["user"].(string),
+		Password: params["password"].(string),
+		Timeout:  params["timeout"].(int),
+		Insecure: params["insecure"].(bool),
+		BaseDN:   params["baseDN"].(string),
+	}
+
+	filterObjectValue := params["filterObjectValue"].(string)
+	filterCNValue := params["filterCNValue"].(string)
+
+	ldap, err := vendors.NewLdapClient(ldapOptions, tpl.logger)
+	if err != nil {
+		tpl.logger.Error("Failed to create LDAP client: %v", err)
+		return nil, err
+	}
+	defer ldap.Close()
+
+	filter := fmt.Sprintf("(&(objectClass=%s*)(cn=%s))", filterObjectValue, filterCNValue)
+
+	attributes := []string{"distinguishedName", "cn", "memberUid"} // check
+
+	membersJson, err := ldap.GetGroupMembers(filter, attributes)
+	if err != nil {
+		tpl.logger.Error("Failed to get group members: %v", err)
+		return nil, err
+	}
+	return membersJson, nil
+}
+
 func (tpl *Template) GrafanaCreateDashboard(params map[string]interface{}) ([]byte, error) {
 
 	url, _ := params["url"].(string)
@@ -1521,18 +1673,18 @@ func (tpl *Template) GrafanaCreateDashboard(params map[string]interface{}) ([]by
 	}
 
 	grafanaOptions := vendors.GrafanaOptions{
-		URL:               url,
-		Timeout:           timeout,
-		Insecure:          insecure,
-		APIKey:            token,
-		OrgID:             orgID,
-		DashboardUID:      dUID,
-		DashboardSlug:     dSlug,
-		DashboardTimezone: dTimeZone,
+		URL:      url,
+		Timeout:  timeout,
+		Insecure: insecure,
+		APIKey:   token,
+		OrgID:    orgID,
 	}
 
-	grafanaCreateDashboardOptions := vendors.GrafanaCreateDahboardOptions{
+	grafanaCreateDashboardOptions := vendors.GrafanaDahboardOptions{
 		Title:     title,
+		UID:       dUID,
+		Slug:      dSlug,
+		Timezone:  dTimeZone,
 		FolderUID: fUID,
 		Tags:      tags,
 		From:      from,
@@ -1583,18 +1735,18 @@ func (tpl *Template) GrafanaCopyDashboard(params map[string]interface{}) ([]byte
 	clonedUID, _ := params["cloneduid"].(string)
 
 	grafanaOptions := vendors.GrafanaOptions{
-		URL:               url,
-		Timeout:           timeout,
-		Insecure:          insecure,
-		APIKey:            token,
-		OrgID:             orgID,
-		DashboardUID:      dUID,
-		DashboardSlug:     dSlug,
-		DashboardTimezone: dTimeZone,
+		URL:      url,
+		Timeout:  timeout,
+		Insecure: insecure,
+		APIKey:   token,
+		OrgID:    orgID,
 	}
 
-	grafanaCreateDashboardOptions := vendors.GrafanaCreateDahboardOptions{
+	grafanaCopyDashboardOptions := vendors.GrafanaDahboardOptions{
 		Title:     title,
+		UID:       dUID,
+		Slug:      dSlug,
+		Timezone:  dTimeZone,
 		FolderUID: fUID,
 		Tags:      tags,
 		From:      from,
@@ -1606,7 +1758,7 @@ func (tpl *Template) GrafanaCopyDashboard(params map[string]interface{}) ([]byte
 
 	grafana := vendors.NewGrafana(grafanaOptions)
 
-	response, err := grafana.CopyDashboard(grafanaCreateDashboardOptions)
+	response, err := grafana.CopyDashboard(grafanaCopyDashboardOptions)
 	if err != nil {
 		return nil, err
 	}
@@ -1641,13 +1793,15 @@ func (tpl *Template) PagerDutyCreateIncident(params map[string]interface{}) ([]b
 	urgency, _ := params["urgency"].(string)
 	serviceID, _ := params["serviceID"].(string)
 	priorityID, _ := params["priorityID"].(string)
+	incidentType, _ := params["incidentType"].(string)
 
 	incidentOptions := vendors.PagerDutyIncidentOptions{
-		Title:      title,
-		Body:       body,
-		Urgency:    urgency,
-		ServiceID:  serviceID,
-		PriorityID: priorityID,
+		Title:        title,
+		Body:         body,
+		Urgency:      urgency,
+		ServiceID:    serviceID,
+		PriorityID:   priorityID,
+		IncidentType: incidentType,
 	}
 
 	from, _ := params["from"].(string)
@@ -2426,6 +2580,7 @@ func (tpl *Template) setTemplateFuncs(funcs map[string]any) {
 	funcs["jiraUpdateIssue"] = tpl.JiraUpdateIssue
 	funcs["jiraIssueTransition"] = tpl.JiraIssueTransition
 	funcs["jiraGetIssueTransition"] = tpl.JiraGetIssueTransition
+	funcs["jiraUpdateAsset"] = tpl.JiraUpdateAsset
 
 	funcs["grafanaCreateDashboard"] = tpl.GrafanaCreateDashboard
 	funcs["grafanaCopyDashboard"] = tpl.GrafanaCopyDashboard
@@ -2443,6 +2598,8 @@ func (tpl *Template) setTemplateFuncs(funcs map[string]any) {
 	funcs["vmStart"] = tpl.VMStart
 	funcs["vmStop"] = tpl.VMStop
 	funcs["vmStatus"] = tpl.VMStatus
+
+	funcs["ldapGetGroupMember"] = tpl.LdapGetGroupMembers
 
 	funcs["prometheusGet"] = tpl.PrometheusGet
 }

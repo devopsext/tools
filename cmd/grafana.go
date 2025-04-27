@@ -10,24 +10,34 @@ import (
 )
 
 var grafanaOptions = vendors.GrafanaOptions{
-	URL:               envGet("GRAFANA_URL", "").(string),
-	Timeout:           envGet("GRAFANA_TIMEOUT", 30).(int),
-	Insecure:          envGet("GRAFANA_INSECURE", false).(bool),
-	APIKey:            envGet("GRAFANA_API_KEY", "").(string),
-	OrgID:             envGet("GRAFANA_ORG_ID", "1").(string),
-	DashboardUID:      envGet("GRAFANA_DASHBOARD_UID", "").(string),
-	DashboardSlug:     envGet("GRAFANA_DASHBOARD_SLUG", "").(string),
-	DashboardTimezone: envGet("GRAFANA_DASHBOARD_TIMEZONE", "UTC").(string),
+	URL:      envGet("GRAFANA_URL", "").(string),
+	Timeout:  envGet("GRAFANA_TIMEOUT", 30).(int),
+	Insecure: envGet("GRAFANA_INSECURE", false).(bool),
+	APIKey:   envGet("GRAFANA_API_KEY", "").(string),
+	OrgID:    envGet("GRAFANA_ORG_ID", "1").(string),
 }
 
-var grafanaCreateDashboardOptions = vendors.GrafanaCreateDahboardOptions{
+var grafanaDashboardOptions = vendors.GrafanaDahboardOptions{
 	Title:     envGet("GRAFANA_DASHBOARD_TITLE", "").(string),
+	UID:       envGet("GRAFANA_DASHBOARD_UID", "").(string),
+	Slug:      envGet("GRAFANA_DASHBOARD_SLUG", "").(string),
+	Timezone:  envGet("GRAFANA_DASHBOARD_TIMEZONE", "UTC").(string),
 	FolderUID: envGet("GRAFANA_DASHBOARD_FOLDER_UID", "").(string),
+	FolderID:  envGet("GRAFANA_DASHBOARD_FOLDER_ID", 0).(int),
 	Tags:      strings.Split(envGet("GRAFANA_DASHBOARD_TAGS", "").(string), ","),
 	From:      envGet("GRAFANA_DASHBOARD_FROM", "now-1h").(string),
 	To:        envGet("GRAFANA_DASHBOARD_TO", "now").(string),
+	SaveUID:   envGet("GRAFANA_DASHBOARD_SAVE_UID", true).(bool),
+	Overwrite: envGet("GRAFANA_DASHBOARD_OVERWRITE", false).(bool),
 	Cloned: vendors.GrafanaClonedDahboardOptions{
+		URL:         envGet("GRAFANA_DASHBOARD_CLONED_URL", "").(string),
+		Timeout:     envGet("GRAFANA_DASHBOARD_CLONED_TIMEOUT", 30).(int),
+		Insecure:    envGet("GRAFANA_DASHBOARD_CLONED_INSECURE", false).(bool),
+		APIKey:      envGet("GRAFANA_DASHBOARD_CLONED_API_KEY", "").(string),
+		OrgID:       envGet("GRAFANA_DASHBOARD_CLONED_ORG_ID", "1").(string),
 		UID:         envGet("GRAFANA_DASHBOARD_CLONED_UID", "").(string),
+		FolderUID:   envGet("GRAFANA_DASHBOARD_CLONED_FOLDER_UID", "").(string),
+		FolderID:    envGet("GRAFANA_DASHBOARD_CLONED_FOLDER_ID", 0).(int),
 		Annotations: strings.Split(envGet("GRAFANA_DASHBOARD_CLONED_ANNOTATIONS", "").(string), ","),
 		PanelIDs:    strings.Split(envGet("GRAFANA_DASHBOARD_CLONED_PANEL_IDS", "").(string), ","),
 		PanelTitles: strings.Split(envGet("GRAFANA_DASHBOARD_CLONED_PANEL_TITLES", "").(string), ","),
@@ -37,6 +47,25 @@ var grafanaCreateDashboardOptions = vendors.GrafanaCreateDahboardOptions{
 		Count:       envGet("GRAFANA_DASHBOARD_CLONED_COUNT", 3).(int),
 		Width:       envGet("GRAFANA_DASHBOARD_CLONED_WIDTH", 6).(int),
 		Height:      envGet("GRAFANA_DASHBOARD_CLONED_HEIGHT", 7).(int),
+	},
+}
+
+var grafanaLibraryElementOptions = vendors.GrafanaLibraryElementOptions{
+	Name:     envGet("GRAFANA_LIBRARY_ELEMENT_TITLE", "").(string),
+	UID:      envGet("GRAFANA_LIBRARY_ELEMENT_UID", "").(string),
+	FolderID: envGet("GRAFANA_LIBRARY_ELEMENT_FOLDER_ID", 0).(int),
+	Kind:     envGet("GRAFANA_LIBRARY_ELEMENT_KIND", "1").(string),
+	SaveUID:  envGet("GRAFANA_LIBRARY_ELEMENT_SAVE_UID", true).(bool),
+	Cloned: vendors.GrafanaClonedLibraryElementOptions{
+		URL:      envGet("GRAFANA_LIBRARY_ELEMENT_CLONED_URL", "").(string),
+		Timeout:  envGet("GRAFANA_LIBRARY_ELEMENT_CLONED_TIMEOUT", 30).(int),
+		Insecure: envGet("GRAFANA_LIBRARY_ELEMENT_CLONED_INSECURE", false).(bool),
+		APIKey:   envGet("GRAFANA_LIBRARY_ELEMENT_CLONED_API_KEY", "").(string),
+		OrgID:    envGet("GRAFANA_LIBRARY_ELEMENT_CLONED_ORG_ID", "1").(string),
+		Name:     envGet("GRAFANA_LIBRARY_ELEMENT_CLONED_TITLE", "").(string),
+		UID:      envGet("GRAFANA_LIBRARY_ELEMENT_CLONED_UID", "").(string),
+		FolderID: envGet("GRAFANA_LIBRARY_ELEMENT_CLONED_FOLDER_ID", 0).(int),
+		Kind:     envGet("GRAFANA_LIBRARY_ELEMENT_CLONED_KIND", "1").(string),
 	},
 }
 
@@ -92,59 +121,216 @@ func NewGrafanaCommand() *cobra.Command {
 	flags.BoolVar(&grafanaOptions.Insecure, "grafana-insecure", grafanaOptions.Insecure, "Grafana insecure")
 	flags.StringVar(&grafanaOptions.APIKey, "grafana-api-key", grafanaOptions.APIKey, "Grafana api key")
 	flags.StringVar(&grafanaOptions.OrgID, "grafana-org-id", grafanaOptions.OrgID, "Grafana org id")
-	flags.StringVar(&grafanaOptions.DashboardUID, "grafana-dashboard-uid", grafanaOptions.DashboardUID, "Grafana dashboard uid")
-	flags.StringVar(&grafanaOptions.DashboardSlug, "grafana-dashboard-slug", grafanaOptions.DashboardSlug, "Grafana dashboard slug")
-	flags.StringVar(&grafanaOptions.DashboardTimezone, "grafana-dashboard-timezone", grafanaOptions.DashboardTimezone, "Grafana dashboard timezone")
 
 	flags.StringVar(&grafanaOutput.Output, "grafana-output", grafanaOutput.Output, "Grafana output")
 	flags.StringVar(&grafanaOutput.Query, "grafana-output-query", grafanaOutput.Query, "Grafana output query")
+
+	getDashboardCmd := cobra.Command{
+		Use:   "get-dashboards",
+		Short: "Get dashboards by uid",
+		Run: func(cmd *cobra.Command, args []string) {
+			stdout.Debug("Grafana getting dashboards...")
+
+			bytes, err := grafanaNew(stdout).GetDashboards(grafanaDashboardOptions)
+			if err != nil {
+				stdout.Error(err)
+				return
+			}
+			common.OutputJson(grafanaOutput, "Grafana", []interface{}{grafanaOptions}, bytes, stdout)
+		},
+	}
+	flags = getDashboardCmd.PersistentFlags()
+	flags.StringVar(&grafanaDashboardOptions.UID, "grafana-dashboard-uid", grafanaDashboardOptions.UID, "Grafana dashboard uid")
+	grafanaCmd.AddCommand(&getDashboardCmd)
+
+	getLibraryElementCmd := cobra.Command{
+		Use:   "get-library-element",
+		Short: "Get library element by uid",
+		Run: func(cmd *cobra.Command, args []string) {
+			stdout.Debug("Grafana getting library element...")
+
+			bytes, err := grafanaNew(stdout).GetLibraryElement(grafanaLibraryElementOptions)
+			if err != nil {
+				stdout.Error(err)
+				return
+			}
+			common.OutputJson(grafanaOutput, "Grafana", []interface{}{grafanaOptions}, bytes, stdout)
+		},
+	}
+	flags = getLibraryElementCmd.PersistentFlags()
+	flags.StringVar(&grafanaLibraryElementOptions.UID, "grafana-library-element-uid", grafanaLibraryElementOptions.UID, "Grafana library element uid")
+	grafanaCmd.AddCommand(&getLibraryElementCmd)
+
+	searchDashboardCmd := cobra.Command{
+		Use:   "search-dashboards",
+		Short: "search dashboards by folder/dashboard UID",
+		Run: func(cmd *cobra.Command, args []string) {
+			stdout.Debug("Grafana searching dashboard...")
+			common.Debug("Grafana", grafanaDashboardOptions, stdout)
+
+			bytes, err := grafanaNew(stdout).SearchDashboards(grafanaDashboardOptions)
+			if err != nil {
+				stdout.Error(err)
+				return
+			}
+			common.OutputJson(grafanaOutput, "Grafana", []interface{}{grafanaOptions, grafanaDashboardOptions}, bytes, stdout)
+		},
+	}
+	flags = searchDashboardCmd.PersistentFlags()
+	flags.StringVar(&grafanaDashboardOptions.UID, "grafana-dashboard-uid", grafanaDashboardOptions.UID, "Grafana dashboard uid")
+	flags.StringVar(&grafanaDashboardOptions.FolderUID, "grafana-dashboard-folder-uid", grafanaDashboardOptions.FolderUID, "Grafana dashboard folder uid")
+	flags.IntVar(&grafanaDashboardOptions.FolderID, "grafana-dashboard-folder-id", grafanaDashboardOptions.FolderID, "Grafana dashboard folder id (for compatibility with old Grafana versions)")
+	grafanaCmd.AddCommand(&searchDashboardCmd)
+
+	searchLibraryElementsCmd := cobra.Command{
+		Use:   "search-library-elements",
+		Short: "search library elements by folder ID",
+		Run: func(cmd *cobra.Command, args []string) {
+			stdout.Debug("Grafana searching library elements...")
+			common.Debug("Grafana", grafanaLibraryElementOptions, stdout)
+
+			bytes, err := grafanaNew(stdout).SearchLibraryElements(grafanaLibraryElementOptions)
+			if err != nil {
+				stdout.Error(err)
+				return
+			}
+			common.OutputJson(grafanaOutput, "Grafana", []interface{}{grafanaOptions, grafanaDashboardOptions}, bytes, stdout)
+		},
+	}
+	flags = searchLibraryElementsCmd.PersistentFlags()
+	flags.IntVar(&grafanaLibraryElementOptions.FolderID, "grafana-library-element-folder-id", grafanaLibraryElementOptions.FolderID, "Grafana library element folder id")
+
+	grafanaCmd.AddCommand(&searchLibraryElementsCmd)
+
+	copyDashboardCmd := cobra.Command{
+		Use:   "copy-dashboard",
+		Short: "copy dashboard",
+		Run: func(cmd *cobra.Command, args []string) {
+			stdout.Debug("Grafana copiyng dashboard...")
+			common.Debug("Grafana", grafanaDashboardOptions, stdout)
+
+			bytes, err := grafanaNew(stdout).CopyDashboard(grafanaDashboardOptions)
+			if err != nil {
+				stdout.Error(err)
+				return
+			}
+			common.OutputJson(grafanaOutput, "Grafana", []interface{}{grafanaOptions, grafanaDashboardOptions}, bytes, stdout)
+		},
+	}
+	flags = copyDashboardCmd.PersistentFlags()
+	flags.StringVar(&grafanaDashboardOptions.Title, "grafana-dashboard-title", grafanaDashboardOptions.Title, "Grafana dashboard title")
+	flags.StringVar(&grafanaDashboardOptions.FolderUID, "grafana-dashboard-folder-uid", grafanaDashboardOptions.FolderUID, "Grafana dashboard folder uid")
+	flags.StringSliceVar(&grafanaDashboardOptions.Tags, "grafana-dashboard-tags", grafanaDashboardOptions.Tags, "Grafana dashboard tags")
+	flags.StringVar(&grafanaDashboardOptions.From, "grafana-dashboard-from", grafanaDashboardOptions.From, "Grafana dashboard time from")
+	flags.StringVar(&grafanaDashboardOptions.To, "grafana-dashboard-to", grafanaDashboardOptions.To, "Grafana dashboard time to")
+	flags.BoolVar(&grafanaDashboardOptions.SaveUID, "grafana-dashboard-save-uid", grafanaDashboardOptions.SaveUID, "Save UID for copied Grafana dashboard")
+	flags.BoolVar(&grafanaDashboardOptions.Overwrite, "grafana-dashboard-overwrite", grafanaDashboardOptions.Overwrite, "Overwrite an existing Grafana dashboard")
+	flags.StringVar(&grafanaDashboardOptions.Cloned.URL, "grafana-dashboard-cloned-url", grafanaDashboardOptions.Cloned.URL, "Grafana Dashboard cloned URL exist")
+	flags.IntVar(&grafanaDashboardOptions.Cloned.Timeout, "grafana-dashboard-cloned-timeout", grafanaDashboardOptions.Cloned.Timeout, "Grafana Dashboard cloned timeout")
+	flags.BoolVar(&grafanaDashboardOptions.Cloned.Insecure, "grafana-dashboard-cloned-insecure", grafanaDashboardOptions.Cloned.Insecure, "Grafana Dashboard cloned insecure")
+	flags.StringVar(&grafanaDashboardOptions.Cloned.APIKey, "grafana-dashboard-cloned-api-key", grafanaDashboardOptions.Cloned.APIKey, "Grafana Dashboard cloned api-key")
+	flags.StringVar(&grafanaDashboardOptions.Cloned.UID, "grafana-dashboard-cloned-uid", grafanaDashboardOptions.Cloned.UID, "Grafana Dashboard cloned UID")
+	grafanaCmd.AddCommand(&copyDashboardCmd)
+
+	copyLibraryElementCmd := cobra.Command{
+		Use:   "copy-library-element",
+		Short: "copy library element",
+		Run: func(cmd *cobra.Command, args []string) {
+			stdout.Debug("Grafana copiyng library element...")
+			common.Debug("Grafana", grafanaLibraryElementOptions, stdout)
+
+			bytes, err := grafanaNew(stdout).CopyLibraryElement(grafanaLibraryElementOptions)
+			if err != nil {
+				stdout.Error(err)
+				return
+			}
+			common.OutputJson(grafanaOutput, "Grafana", []interface{}{grafanaOptions, grafanaLibraryElementOptions}, bytes, stdout)
+		},
+	}
+	flags = copyLibraryElementCmd.PersistentFlags()
+	flags.StringVar(&grafanaLibraryElementOptions.UID, "grafana-library-element-uid", grafanaLibraryElementOptions.UID, "Grafana library element uid")
+	flags.StringVar(&grafanaLibraryElementOptions.Name, "grafana-library-element-name", grafanaLibraryElementOptions.UID, "Grafana library element name")
+	flags.IntVar(&grafanaLibraryElementOptions.FolderID, "grafana-library-element-folder-id", grafanaLibraryElementOptions.FolderID, "Grafana library element folder id")
+	flags.BoolVar(&grafanaLibraryElementOptions.SaveUID, "grafana-library-element-save-uid", grafanaLibraryElementOptions.SaveUID, "Save UID for copied Grafana library element")
+	flags.StringVar(&grafanaLibraryElementOptions.Cloned.URL, "grafana-library-element-cloned-url", grafanaLibraryElementOptions.Cloned.URL, "Grafana Dashboard cloned URL exist")
+	flags.IntVar(&grafanaLibraryElementOptions.Cloned.Timeout, "grafana-library-element-cloned-timeout", grafanaLibraryElementOptions.Cloned.Timeout, "Grafana Dashboard cloned timeout")
+	flags.BoolVar(&grafanaLibraryElementOptions.Cloned.Insecure, "grafana-library-element-cloned-insecure", grafanaLibraryElementOptions.Cloned.Insecure, "Grafana Dashboard cloned insecure")
+	flags.StringVar(&grafanaLibraryElementOptions.Cloned.APIKey, "grafana-library-element-cloned-api-key", grafanaLibraryElementOptions.Cloned.APIKey, "Grafana Dashboard cloned api-key")
+	flags.StringVar(&grafanaLibraryElementOptions.Cloned.UID, "grafana-library-element-cloned-uid", grafanaLibraryElementOptions.Cloned.UID, "Grafana Dashboard cloned UID")
+	flags.IntVar(&grafanaLibraryElementOptions.Cloned.FolderID, "grafana-library-element-cloned-folder-id", grafanaLibraryElementOptions.Cloned.FolderID, "Grafana library element folder id")
+
+	grafanaCmd.AddCommand(&copyLibraryElementCmd)
 
 	createDashboardCmd := cobra.Command{
 		Use:   "create-dashboard",
 		Short: "Create dashboard",
 		Run: func(cmd *cobra.Command, args []string) {
 			stdout.Debug("Grafana creating dashboard...")
-			common.Debug("Grafana", grafanaCreateDashboardOptions, stdout)
+			common.Debug("Grafana", grafanaDashboardOptions, stdout)
 
-			if utils.IsEmpty(grafanaCreateDashboardOptions.Title) {
+			if utils.IsEmpty(grafanaDashboardOptions.Title) {
 				stdout.Error("Grafana create title is required")
 				return
 			}
 
-			bytes, err := grafanaNew(stdout).CreateDashboard(grafanaCreateDashboardOptions)
+			bytes, err := grafanaNew(stdout).CreateDashboard(grafanaDashboardOptions)
 			if err != nil {
 				stdout.Error(err)
 				return
 			}
-			common.OutputJson(grafanaOutput, "Grafana", []interface{}{grafanaOptions, grafanaCreateDashboardOptions}, bytes, stdout)
+			common.OutputJson(grafanaOutput, "Grafana", []interface{}{grafanaOptions, grafanaDashboardOptions}, bytes, stdout)
 		},
 	}
 	flags = createDashboardCmd.PersistentFlags()
-	flags.StringVar(&grafanaCreateDashboardOptions.Title, "grafana-dashboard-title", grafanaCreateDashboardOptions.Title, "Grafana dashboard title")
-	flags.StringVar(&grafanaCreateDashboardOptions.FolderUID, "grafana-dashboard-folder-uid", grafanaCreateDashboardOptions.FolderUID, "Grafana dashboard folder uid")
-	flags.StringSliceVar(&grafanaCreateDashboardOptions.Tags, "grafana-dashboard-tags", grafanaCreateDashboardOptions.Tags, "Grafana dashboard tags")
-	flags.StringVar(&grafanaCreateDashboardOptions.From, "grafana-dashboard-from", grafanaCreateDashboardOptions.From, "Grafana dashboard time from")
-	flags.StringVar(&grafanaCreateDashboardOptions.To, "grafana-dashboard-to", grafanaCreateDashboardOptions.To, "Grafana dashboard time to")
-	flags.StringVar(&grafanaCreateDashboardOptions.Cloned.UID, "grafana-dashboard-cloned-uid", grafanaCreateDashboardOptions.Cloned.UID, "Grafana dashboard cloned uuid")
-	flags.StringSliceVar(&grafanaCreateDashboardOptions.Cloned.Annotations, "grafana-dashboard-cloned-annotations", grafanaCreateDashboardOptions.Cloned.Annotations, "Grafana dashboard cloned annotations")
-	flags.StringSliceVar(&grafanaCreateDashboardOptions.Cloned.PanelIDs, "grafana-dashboard-cloned-panel-ids", grafanaCreateDashboardOptions.Cloned.PanelIDs, "Grafana dashboard cloned panel ids")
-	flags.StringSliceVar(&grafanaCreateDashboardOptions.Cloned.PanelTitles, "grafana-dashboard-cloned-panel-titles", grafanaCreateDashboardOptions.Cloned.PanelTitles, "Grafana dashboard cloned panel titles")
-	flags.StringSliceVar(&grafanaCreateDashboardOptions.Cloned.PanelSeries, "grafana-dashboard-cloned-panel-series", grafanaCreateDashboardOptions.Cloned.PanelSeries, "Grafana dashboard cloned panel series")
-	flags.BoolVar(&grafanaCreateDashboardOptions.Cloned.LegendRight, "grafana-dashboard-cloned-legend-right", grafanaCreateDashboardOptions.Cloned.LegendRight, "Grafana dashboard cloned legend right")
-	flags.BoolVar(&grafanaCreateDashboardOptions.Cloned.Arrange, "grafana-dashboard-cloned-arrange", grafanaCreateDashboardOptions.Cloned.Arrange, "Grafana dashboard cloned arrange")
-	flags.IntVar(&grafanaCreateDashboardOptions.Cloned.Count, "grafana-dashboard-cloned-count", grafanaCreateDashboardOptions.Cloned.Count, "Grafana dashboard cloned count per line")
-	flags.IntVar(&grafanaCreateDashboardOptions.Cloned.Width, "grafana-dashboard-cloned-width", grafanaCreateDashboardOptions.Cloned.Width, "Grafana dashboard cloned width")
-	flags.IntVar(&grafanaCreateDashboardOptions.Cloned.Height, "grafana-dashboard-cloned-height", grafanaCreateDashboardOptions.Cloned.Height, "Grafana dashboard cloned height")
+	flags.StringVar(&grafanaDashboardOptions.Title, "grafana-dashboard-title", grafanaDashboardOptions.Title, "Grafana dashboard title")
+	flags.StringVar(&grafanaDashboardOptions.Timezone, "grafana-dashboard-timezone", grafanaDashboardOptions.Timezone, "Grafana dashboard timezone")
+	flags.StringVar(&grafanaDashboardOptions.FolderUID, "grafana-dashboard-folder-uid", grafanaDashboardOptions.FolderUID, "Grafana dashboard folder uid")
+	flags.StringSliceVar(&grafanaDashboardOptions.Tags, "grafana-dashboard-tags", grafanaDashboardOptions.Tags, "Grafana dashboard tags")
+	flags.StringVar(&grafanaDashboardOptions.From, "grafana-dashboard-from", grafanaDashboardOptions.From, "Grafana dashboard time from")
+	flags.StringVar(&grafanaDashboardOptions.To, "grafana-dashboard-to", grafanaDashboardOptions.To, "Grafana dashboard time to")
+	flags.StringVar(&grafanaDashboardOptions.Cloned.URL, "grafana-dashboard-cloned-url", grafanaDashboardOptions.Cloned.URL, "Grafana Dashboard cloned URL exist")
+	flags.IntVar(&grafanaDashboardOptions.Cloned.Timeout, "grafana-dashboard-cloned-timeout", grafanaDashboardOptions.Cloned.Timeout, "Grafana Dashboard cloned timeout")
+	flags.BoolVar(&grafanaDashboardOptions.Cloned.Insecure, "grafana-dashboard-cloned-insecure", grafanaDashboardOptions.Cloned.Insecure, "Grafana Dashboard cloned insecure")
+	flags.StringVar(&grafanaDashboardOptions.Cloned.APIKey, "grafana-dashboard-cloned-api-key", grafanaDashboardOptions.Cloned.APIKey, "Grafana Dashboard cloned api-key")
+	flags.StringVar(&grafanaDashboardOptions.Cloned.UID, "grafana-dashboard-cloned-uid", grafanaDashboardOptions.Cloned.UID, "Grafana dashboard cloned uuid")
+	flags.StringSliceVar(&grafanaDashboardOptions.Cloned.Annotations, "grafana-dashboard-cloned-annotations", grafanaDashboardOptions.Cloned.Annotations, "Grafana dashboard cloned annotations")
+	flags.StringSliceVar(&grafanaDashboardOptions.Cloned.PanelIDs, "grafana-dashboard-cloned-panel-ids", grafanaDashboardOptions.Cloned.PanelIDs, "Grafana dashboard cloned panel ids")
+	flags.StringSliceVar(&grafanaDashboardOptions.Cloned.PanelTitles, "grafana-dashboard-cloned-panel-titles", grafanaDashboardOptions.Cloned.PanelTitles, "Grafana dashboard cloned panel titles")
+	flags.StringSliceVar(&grafanaDashboardOptions.Cloned.PanelSeries, "grafana-dashboard-cloned-panel-series", grafanaDashboardOptions.Cloned.PanelSeries, "Grafana dashboard cloned panel series")
+	flags.BoolVar(&grafanaDashboardOptions.Cloned.LegendRight, "grafana-dashboard-cloned-legend-right", grafanaDashboardOptions.Cloned.LegendRight, "Grafana dashboard cloned legend right")
+	flags.BoolVar(&grafanaDashboardOptions.Cloned.Arrange, "grafana-dashboard-cloned-arrange", grafanaDashboardOptions.Cloned.Arrange, "Grafana dashboard cloned arrange")
+	flags.IntVar(&grafanaDashboardOptions.Cloned.Count, "grafana-dashboard-cloned-count", grafanaDashboardOptions.Cloned.Count, "Grafana dashboard cloned count per line")
+	flags.IntVar(&grafanaDashboardOptions.Cloned.Width, "grafana-dashboard-cloned-width", grafanaDashboardOptions.Cloned.Width, "Grafana dashboard cloned width")
+	flags.IntVar(&grafanaDashboardOptions.Cloned.Height, "grafana-dashboard-cloned-height", grafanaDashboardOptions.Cloned.Height, "Grafana dashboard cloned height")
 	grafanaCmd.AddCommand(&createDashboardCmd)
+
+	deleteDashboardCmd := cobra.Command{
+		Use:   "delete-dashboard",
+		Short: "delete dashboard by uid",
+		Run: func(cmd *cobra.Command, args []string) {
+			stdout.Debug("Grafana deleting dashboard...")
+			common.Debug("Grafana", grafanaDashboardOptions, stdout)
+
+			bytes, err := grafanaNew(stdout).DeleteDashboards(grafanaDashboardOptions)
+			if err != nil {
+				stdout.Error(err)
+				return
+			}
+			common.OutputJson(grafanaOutput, "Grafana", []interface{}{grafanaOptions, grafanaDashboardOptions}, bytes, stdout)
+		},
+	}
+	flags = deleteDashboardCmd.PersistentFlags()
+	flags.StringVar(&grafanaDashboardOptions.UID, "grafana-dashboard-uid", grafanaDashboardOptions.UID, "Grafana dashboard uid")
+	grafanaCmd.AddCommand(&deleteDashboardCmd)
 
 	renderImageCmd := cobra.Command{
 		Use:   "render-image",
 		Short: "Render image",
 		Run: func(cmd *cobra.Command, args []string) {
 			stdout.Debug("Grafana rendering image...")
-			common.Debug("Grafana", grafanaRenderImageOptions, stdout)
+			common.Debug("Grafana", []interface{}{grafanaDashboardOptions, grafanaRenderImageOptions}, stdout)
 
-			bytes, err := grafanaNew(stdout).RenderImage(grafanaRenderImageOptions)
+			bytes, err := grafanaNew(stdout).RenderImage(grafanaDashboardOptions, grafanaRenderImageOptions)
 			if err != nil {
 				stdout.Error(err)
 				return
@@ -153,28 +339,15 @@ func NewGrafanaCommand() *cobra.Command {
 		},
 	}
 	flags = renderImageCmd.PersistentFlags()
+	flags.StringVar(&grafanaDashboardOptions.UID, "grafana-dashboard-uid", grafanaDashboardOptions.UID, "Grafana dashboard uid")
+	flags.StringVar(&grafanaDashboardOptions.Slug, "grafana-dashboard-slug", grafanaDashboardOptions.Slug, "Grafana dashboard slug")
+	flags.StringVar(&grafanaDashboardOptions.Timezone, "grafana-dashboard-timezone", grafanaDashboardOptions.Timezone, "Grafana dashboard timezone")
 	flags.StringVar(&grafanaRenderImageOptions.PanelID, "grafana-image-panel-id", grafanaRenderImageOptions.PanelID, "Grafana image panel id")
 	flags.StringVar(&grafanaRenderImageOptions.From, "grafana-image-from", grafanaRenderImageOptions.From, "Grafana image from")
 	flags.StringVar(&grafanaRenderImageOptions.To, "grafana-image-to", grafanaRenderImageOptions.To, "Grafana image to")
 	flags.IntVar(&grafanaRenderImageOptions.Width, "grafana-image-width", grafanaRenderImageOptions.Width, "Grafana image width")
 	flags.IntVar(&grafanaRenderImageOptions.Height, "grafana-image-height", grafanaRenderImageOptions.Height, "Grafana image height")
 	grafanaCmd.AddCommand(&renderImageCmd)
-
-	getDashboardCmd := cobra.Command{
-		Use:   "get-dashboards",
-		Short: "Get dashboards",
-		Run: func(cmd *cobra.Command, args []string) {
-			stdout.Debug("Grafana getting dashboards...")
-
-			bytes, err := grafanaNew(stdout).GetDashboards()
-			if err != nil {
-				stdout.Error(err)
-				return
-			}
-			common.OutputJson(grafanaOutput, "Grafana", []interface{}{grafanaOptions}, bytes, stdout)
-		},
-	}
-	grafanaCmd.AddCommand(&getDashboardCmd)
 
 	getAnnotationsCmd := cobra.Command{
 		Use:   "get-annotations",
@@ -183,15 +356,16 @@ func NewGrafanaCommand() *cobra.Command {
 			stdout.Debug("Grafana getting annotations...")
 			common.Debug("Grafana", grafanaGetAnnotationsOptions, stdout)
 
-			bytes, err := grafanaNew(stdout).GetAnnotations(grafanaGetAnnotationsOptions)
+			bytes, err := grafanaNew(stdout).GetAnnotations(grafanaDashboardOptions, grafanaGetAnnotationsOptions)
 			if err != nil {
 				stdout.Error(err)
 				return
 			}
-			common.OutputJson(grafanaOutput, "Grafana", []interface{}{grafanaOptions, grafanaGetAnnotationsOptions}, bytes, stdout)
+			common.OutputJson(grafanaOutput, "Grafana", []interface{}{grafanaOptions, grafanaDashboardOptions, grafanaGetAnnotationsOptions}, bytes, stdout)
 		},
 	}
 	flags = getAnnotationsCmd.PersistentFlags()
+	flags.StringVar(&grafanaDashboardOptions.Timezone, "grafana-dashboard-timezone", grafanaDashboardOptions.Timezone, "Grafana dashboard timezone")
 	flags.StringVar(&grafanaGetAnnotationsOptions.From, "grafana-annotation-from", grafanaGetAnnotationsOptions.From, "Grafana annotation date from")
 	flags.StringVar(&grafanaGetAnnotationsOptions.To, "grafana-annotation-to", grafanaGetAnnotationsOptions.To, "Grafana annotation date to")
 	flags.StringVar(&grafanaGetAnnotationsOptions.Tags, "grafana-annotation-tags", grafanaGetAnnotationsOptions.Tags, "Grafana annotations tags (comma separated, optional)")
