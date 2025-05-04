@@ -61,6 +61,12 @@ type HtmlTemplate struct {
 	template *htmlTemplate.Template
 }
 
+type HTTPResult struct {
+    Body []byte
+    Error string
+    StatusCode int
+}
+
 func (tpl *Template) ParserLine() (int, error) {
 
 	var i interface{} = tpl.tpl
@@ -983,6 +989,78 @@ func (tpl *Template) HttpGet(params map[string]interface{}) ([]byte, error) {
 		Transport: transport,
 	}
 	return utils.HttpGetRaw(&client, url, contentType, authorization)
+}
+
+func (tpl *Template) HttpGet2(params map[string]interface{}) HTTPResult {
+
+    result := HTTPResult{}
+
+	if len(params) == 0 {
+	    result.Error = fmt.Sprintf("HttpGet err => %s", "no params allowed")
+        result.StatusCode = -1
+        return result
+	}
+
+	url, _ := params["url"].(string)
+	timeout, _ := params["timeout"].(int)
+	if timeout == 0 {
+		timeout = 5
+	}
+
+	insecure, _ := params["insecure"].(bool)
+	contentType, _ := params["contentType"].(string)
+	authorization, _ := params["authorization"].(string)
+
+	clientCrt, _ := params["clientCrt"].(string)
+	clientKey, _ := params["clientKey"].(string)
+
+	var certs []tls.Certificate
+	if !utils.IsEmpty(clientCrt) && !utils.IsEmpty(clientKey) {
+		pair, err := tls.X509KeyPair([]byte(clientCrt), []byte(clientKey))
+		if err != nil {
+		    result.Error = fmt.Sprintf("HttpGet err => %s", err)
+		    result.StatusCode = -1
+			return result
+		}
+		certs = append(certs, pair)
+	}
+
+	var rootCAs *x509.CertPool
+	clientCA, _ := params["clientCA"].(string)
+	if !utils.IsEmpty(clientCA) {
+		rootCAs := x509.NewCertPool()
+		rootCAs.AppendCertsFromPEM([]byte(clientCA))
+	}
+
+	var transport = &http.Transport{
+		Dial:                (&net.Dialer{Timeout: time.Duration(timeout) * time.Second}).Dial,
+		TLSHandshakeTimeout: time.Duration(timeout) * time.Second,
+		TLSClientConfig: &tls.Config{
+			RootCAs:            rootCAs,
+			Certificates:       certs,
+			InsecureSkipVerify: insecure,
+		},
+	}
+
+	client := http.Client{
+		Timeout:   time.Duration(timeout) * time.Second,
+		Transport: transport,
+	}
+
+    // Call the HttpGetRaw4 function
+    body, err := utils.HttpGetRaw(&client, url, contentType, authorization)
+    if err != nil {
+        result.Error = fmt.Sprintf("HttpGetRaw err => %s", err)
+        result.StatusCode = -1
+        //tpl.logger.Error("Failed to get %v.", url)
+        //return nil, fmt.Errorf("HttpGetRaw err => %w", err)
+        return result
+    }
+
+    result.Body = body
+    result.StatusCode = 200
+
+	return result
 }
 
 func (tpl *Template) HttpPost(params map[string]interface{}) ([]byte, error) {
@@ -2567,6 +2645,7 @@ func (tpl *Template) setTemplateFuncs(funcs map[string]any) {
 
 	funcs["httpGetHeader"] = tpl.HttpGetHeader
 	funcs["httpGet"] = tpl.HttpGet
+	funcs["httpGet2"] = tpl.HttpGet2
 	funcs["httpGetSilent"] = tpl.HttpGetSilent
 	funcs["httpPost"] = tpl.HttpPost
 	funcs["httpForm"] = tpl.HttpForm
