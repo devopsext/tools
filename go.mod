@@ -1,6 +1,6 @@
 module github.com/devopsext/tools
 
-go 1.23
+go 1.24
 
 require (
 	github.com/Masterminds/sprig/v3 v3.2.2
