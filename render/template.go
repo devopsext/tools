@@ -34,10 +34,10 @@ import (
 )
 
 const (
-    DefaultTimeout = 5 * time.Second
-    ErrorCodeParam = -1
-    ErrorCodeTLS   = -2
-    ErrorCodeHTTP  = -3
+	DefaultTimeout = 5 * time.Second
+	ErrorCodeParam = -1
+	ErrorCodeTLS   = -2
+	ErrorCodeHTTP  = -3
 )
 
 type TemplateOptions struct {
@@ -69,9 +69,9 @@ type HtmlTemplate struct {
 }
 
 type HTTPResult struct {
-    Body []byte
-    Error string
-    StatusCode int
+	Body       []byte
+	Error      string
+	StatusCode int
 }
 
 func (tpl *Template) ParserLine() (int, error) {
@@ -1000,20 +1000,20 @@ func (tpl *Template) HttpGet(params map[string]interface{}) ([]byte, error) {
 
 func (tpl *Template) HttpGetExt(params map[string]interface{}) HTTPResult {
 
-    result := HTTPResult{}
+	result := HTTPResult{}
 
 	if len(params) == 0 {
-	    result.Error = "no parameters provided"
-        result.StatusCode = ErrorCodeParam
-        return result
+		result.Error = "no parameters provided"
+		result.StatusCode = ErrorCodeParam
+		return result
 	}
 
 	url, _ := params["url"].(string)
 	if url == "" {
-        result.Error = "URL parameter is required"
-        result.StatusCode = ErrorCodeParam
-        return result
-    }
+		result.Error = "URL parameter is required"
+		result.StatusCode = ErrorCodeParam
+		return result
+	}
 
 	timeout, _ := params["timeout"].(int)
 	if timeout == 0 {
@@ -1031,8 +1031,8 @@ func (tpl *Template) HttpGetExt(params map[string]interface{}) HTTPResult {
 	if !utils.IsEmpty(clientCrt) && !utils.IsEmpty(clientKey) {
 		pair, err := tls.X509KeyPair([]byte(clientCrt), []byte(clientKey))
 		if err != nil {
-		    result.Error = fmt.Errorf("Failed to load client key pair: %w", err).Error()
-		    result.StatusCode = ErrorCodeTLS
+			result.Error = fmt.Errorf("Failed to load client key pair: %w", err).Error()
+			result.StatusCode = ErrorCodeTLS
 			return result
 		}
 		certs = append(certs, pair)
@@ -1060,29 +1060,29 @@ func (tpl *Template) HttpGetExt(params map[string]interface{}) HTTPResult {
 		Transport: transport,
 	}
 
-    start := time.Now()
-    defer func() {
-        tpl.logger.Debug("HTTP request completed",
-            "url", url,
-            "duration", time.Since(start),
-            "status", result.StatusCode)
-    }()
+	start := time.Now()
+	defer func() {
+		tpl.logger.Debug("HTTP request completed",
+			"url", url,
+			"duration", time.Since(start),
+			"status", result.StatusCode)
+	}()
 
-    // Call the HttpGetRaw4 function
-    body, err := utils.HttpGetRaw(&client, url, contentType, authorization)
-    if err != nil {
-        result.Error = fmt.Errorf("HTTP request failed: %w", err).Error()
-        result.StatusCode = ErrorCodeHTTP
+	// Call the HttpGetRaw4 function
+	body, err := utils.HttpGetRaw(&client, url, contentType, authorization)
+	if err != nil {
+		result.Error = fmt.Errorf("HTTP request failed: %w", err).Error()
+		result.StatusCode = ErrorCodeHTTP
 
-        // Try to get status code from error if possible
-        if respErr, ok := err.(interface{ StatusCode() int }); ok {
-            result.StatusCode = respErr.StatusCode()
-        }
-        return result
-    }
+		// Try to get status code from error if possible
+		if respErr, ok := err.(interface{ StatusCode() int }); ok {
+			result.StatusCode = respErr.StatusCode()
+		}
+		return result
+	}
 
-    result.Body = body
-    result.StatusCode = http.StatusOK
+	result.Body = body
+	result.StatusCode = http.StatusOK
 
 	return result
 }
@@ -1955,6 +1955,48 @@ func (tpl *Template) PagerDutySendNoteToIncident(params map[string]interface{}) 
 	return pagerDuty.CreateIncidentNote(noteOptions, createOptions)
 }
 
+func (tpl *Template) AIResponse(params map[string]interface{}) ([]byte, error) {
+	apiKey, _ := params["apiKey"].(string)
+	model, _ := params["model"].(string)
+	timeout, _ := params["timeout"].(int)
+	if timeout == 0 {
+		timeout = 30
+	}
+
+	var messages []map[string]string
+	if rawMessages, ok := params["messages"].([]interface{}); ok {
+		for _, rawMsg := range rawMessages {
+			if msg, ok := rawMsg.(map[string]interface{}); ok {
+				role, roleOk := msg["role"].(string)
+				content, contentOk := msg["content"].(string)
+				if roleOk && contentOk {
+					messages = append(messages, map[string]string{
+						"role":    role,
+						"content": content,
+					})
+				}
+			}
+		}
+	}
+
+	if len(messages) == 0 {
+		messages = append(messages, map[string]string{
+			"role":    "user",
+			"content": "Hello",
+		})
+	}
+
+	options := vendors.OpenAIOptions{
+		APIKey:   apiKey,
+		Model:    model,
+		Timeout:  timeout,
+		Messages: messages,
+	}
+
+	openAI := vendors.NewOpenAI(options)
+	return openAI.CreateChatCompletion(options)
+}
+
 func (tpl *Template) PrometheusGet(params map[string]interface{}) ([]byte, error) {
 
 	if len(params) == 0 {
@@ -2701,6 +2743,7 @@ func (tpl *Template) setTemplateFuncs(funcs map[string]any) {
 	funcs["vmStart"] = tpl.VMStart
 	funcs["vmStop"] = tpl.VMStop
 	funcs["vmStatus"] = tpl.VMStatus
+	funcs["aiResponse"] = tpl.AIResponse
 
 	funcs["ldapGetGroupMember"] = tpl.LdapGetGroupMembers
 
