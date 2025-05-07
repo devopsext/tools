@@ -33,6 +33,13 @@ import (
 	"github.com/tidwall/gjson"
 )
 
+const (
+    DefaultTimeout = 5 * time.Second
+    ErrorCodeParam = -1
+    ErrorCodeTLS   = -2
+    ErrorCodeHTTP  = -3
+)
+
 type TemplateOptions struct {
 	Name        string
 	Object      string
@@ -991,17 +998,23 @@ func (tpl *Template) HttpGet(params map[string]interface{}) ([]byte, error) {
 	return utils.HttpGetRaw(&client, url, contentType, authorization)
 }
 
-func (tpl *Template) HttpGet2(params map[string]interface{}) HTTPResult {
+func (tpl *Template) HttpGetExt(params map[string]interface{}) HTTPResult {
 
     result := HTTPResult{}
 
 	if len(params) == 0 {
-	    result.Error = fmt.Sprintf("HttpGet err => %s", "no params allowed")
-        result.StatusCode = -1
+	    result.Error = "no parameters provided"
+        result.StatusCode = ErrorCodeParam
         return result
 	}
 
 	url, _ := params["url"].(string)
+	if url == "" {
+        result.Error = "URL parameter is required"
+        result.StatusCode = ErrorCodeParam
+        return result
+    }
+
 	timeout, _ := params["timeout"].(int)
 	if timeout == 0 {
 		timeout = 5
@@ -1018,8 +1031,8 @@ func (tpl *Template) HttpGet2(params map[string]interface{}) HTTPResult {
 	if !utils.IsEmpty(clientCrt) && !utils.IsEmpty(clientKey) {
 		pair, err := tls.X509KeyPair([]byte(clientCrt), []byte(clientKey))
 		if err != nil {
-		    result.Error = fmt.Sprintf("HttpGet err => %s", err)
-		    result.StatusCode = -1
+		    result.Error = fmt.Errorf("Failed to load client key pair: %w", err).Error()
+		    result.StatusCode = ErrorCodeTLS
 			return result
 		}
 		certs = append(certs, pair)
@@ -1047,18 +1060,29 @@ func (tpl *Template) HttpGet2(params map[string]interface{}) HTTPResult {
 		Transport: transport,
 	}
 
+    start := time.Now()
+    defer func() {
+        tpl.logger.Debug("HTTP request completed",
+            "url", url,
+            "duration", time.Since(start),
+            "status", result.StatusCode)
+    }()
+
     // Call the HttpGetRaw4 function
     body, err := utils.HttpGetRaw(&client, url, contentType, authorization)
     if err != nil {
-        result.Error = fmt.Sprintf("HttpGetRaw err => %s", err)
-        result.StatusCode = -1
-        //tpl.logger.Error("Failed to get %v.", url)
-        //return nil, fmt.Errorf("HttpGetRaw err => %w", err)
+        result.Error = fmt.Errorf("HTTP request failed: %w", err).Error()
+        result.StatusCode = ErrorCodeHTTP
+
+        // Try to get status code from error if possible
+        if respErr, ok := err.(interface{ StatusCode() int }); ok {
+            result.StatusCode = respErr.StatusCode()
+        }
         return result
     }
 
     result.Body = body
-    result.StatusCode = 200
+    result.StatusCode = http.StatusOK
 
 	return result
 }
@@ -2645,7 +2669,7 @@ func (tpl *Template) setTemplateFuncs(funcs map[string]any) {
 
 	funcs["httpGetHeader"] = tpl.HttpGetHeader
 	funcs["httpGet"] = tpl.HttpGet
-	funcs["httpGet2"] = tpl.HttpGet2
+	funcs["httpGetExt"] = tpl.HttpGetExt
 	funcs["httpGetSilent"] = tpl.HttpGetSilent
 	funcs["httpPost"] = tpl.HttpPost
 	funcs["httpForm"] = tpl.HttpForm
