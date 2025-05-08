@@ -33,6 +33,13 @@ import (
 	"github.com/tidwall/gjson"
 )
 
+const (
+    DefaultTimeout = 5 * time.Second
+    ErrorCodeParam = -1
+    ErrorCodeTLS   = -2
+    ErrorCodeHTTP  = -3
+)
+
 type TemplateOptions struct {
 	Name        string
 	Object      string
@@ -59,6 +66,12 @@ type TextTemplate struct {
 type HtmlTemplate struct {
 	Template
 	template *htmlTemplate.Template
+}
+
+type HTTPResult struct {
+    Body []byte
+    Error string
+    StatusCode int
 }
 
 func (tpl *Template) ParserLine() (int, error) {
@@ -995,6 +1008,95 @@ func (tpl *Template) HttpGet(params map[string]interface{}) ([]byte, error) {
 		Transport: transport,
 	}
 	return utils.HttpGetRaw(&client, url, contentType, authorization)
+}
+
+func (tpl *Template) HttpGetExt(params map[string]interface{}) HTTPResult {
+
+    result := HTTPResult{}
+
+	if len(params) == 0 {
+	    result.Error = "no parameters provided"
+        result.StatusCode = ErrorCodeParam
+        return result
+	}
+
+	url, _ := params["url"].(string)
+	if url == "" {
+        result.Error = "URL parameter is required"
+        result.StatusCode = ErrorCodeParam
+        return result
+    }
+
+	timeout, _ := params["timeout"].(int)
+	if timeout == 0 {
+		timeout = 5
+	}
+
+	insecure, _ := params["insecure"].(bool)
+	contentType, _ := params["contentType"].(string)
+	authorization, _ := params["authorization"].(string)
+
+	clientCrt, _ := params["clientCrt"].(string)
+	clientKey, _ := params["clientKey"].(string)
+
+	var certs []tls.Certificate
+	if !utils.IsEmpty(clientCrt) && !utils.IsEmpty(clientKey) {
+		pair, err := tls.X509KeyPair([]byte(clientCrt), []byte(clientKey))
+		if err != nil {
+		    result.Error = fmt.Errorf("Failed to load client key pair: %w", err).Error()
+		    result.StatusCode = ErrorCodeTLS
+			return result
+		}
+		certs = append(certs, pair)
+	}
+
+	var rootCAs *x509.CertPool
+	clientCA, _ := params["clientCA"].(string)
+	if !utils.IsEmpty(clientCA) {
+		rootCAs := x509.NewCertPool()
+		rootCAs.AppendCertsFromPEM([]byte(clientCA))
+	}
+
+	var transport = &http.Transport{
+		Dial:                (&net.Dialer{Timeout: time.Duration(timeout) * time.Second}).Dial,
+		TLSHandshakeTimeout: time.Duration(timeout) * time.Second,
+		TLSClientConfig: &tls.Config{
+			RootCAs:            rootCAs,
+			Certificates:       certs,
+			InsecureSkipVerify: insecure,
+		},
+	}
+
+	client := http.Client{
+		Timeout:   time.Duration(timeout) * time.Second,
+		Transport: transport,
+	}
+
+    start := time.Now()
+    defer func() {
+        tpl.logger.Debug("HTTP request completed",
+            "url", url,
+            "duration", time.Since(start),
+            "status", result.StatusCode)
+    }()
+
+    // Call the HttpGetRaw4 function
+    body, err := utils.HttpGetRaw(&client, url, contentType, authorization)
+    if err != nil {
+        result.Error = fmt.Errorf("HTTP request failed: %w", err).Error()
+        result.StatusCode = ErrorCodeHTTP
+
+        // Try to get status code from error if possible
+        if respErr, ok := err.(interface{ StatusCode() int }); ok {
+            result.StatusCode = respErr.StatusCode()
+        }
+        return result
+    }
+
+    result.Body = body
+    result.StatusCode = http.StatusOK
+
+	return result
 }
 
 func (tpl *Template) HttpPost(params map[string]interface{}) ([]byte, error) {
@@ -2583,6 +2685,7 @@ func (tpl *Template) setTemplateFuncs(funcs map[string]any) {
 
 	funcs["httpGetHeader"] = tpl.HttpGetHeader
 	funcs["httpGet"] = tpl.HttpGet
+	funcs["httpGetExt"] = tpl.HttpGetExt
 	funcs["httpGetSilent"] = tpl.HttpGetSilent
 	funcs["httpPost"] = tpl.HttpPost
 	funcs["httpForm"] = tpl.HttpForm
