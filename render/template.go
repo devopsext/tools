@@ -868,6 +868,18 @@ func (tpl *Template) UUID() string {
 	return uuid.String()
 }
 
+func (tpl *Template) StringList(items ...string) []string {
+	return items
+}
+
+func (tpl *Template) IntList(items ...int64) []int64 {
+	return items
+}
+
+func (tpl *Template) FloatList(items ...float64) []float64 {
+	return items
+}
+
 // url, contentType, authorization string, timeout int
 func (tpl *Template) HttpGetHeader(params map[string]interface{}) ([]byte, error) {
 	if len(params) == 0 {
@@ -2563,6 +2575,10 @@ func (tpl *Template) setTemplateFuncs(funcs map[string]any) {
 	funcs["error"] = tpl.Error
 	funcs["uuid"] = tpl.UUID
 
+	funcs["stringList"] = tpl.StringList
+	funcs["intList"] = tpl.IntList
+	funcs["floatList"] = tpl.FloatList
+
 	funcs["catchpointInstantTest"] = tpl.CatchpointInstantTest
 
 	funcs["httpGetHeader"] = tpl.HttpGetHeader
@@ -2584,13 +2600,17 @@ func (tpl *Template) setTemplateFuncs(funcs map[string]any) {
 
 	funcs["grafanaCreateDashboard"] = tpl.GrafanaCreateDashboard
 	funcs["grafanaCopyDashboard"] = tpl.GrafanaCopyDashboard
+
 	funcs["pagerDutyCreateIncident"] = tpl.PagerDutyCreateIncident
 	funcs["pagerDutySendNoteToIncident"] = tpl.PagerDutySendNoteToIncident
+
 	funcs["templateRender"] = tpl.TemplateRender
 	funcs["templateRenderFile"] = tpl.TemplateRenderFile
+
 	funcs["googleCalendarGetEvents"] = tpl.GoogleCalendarGetEvents
 	funcs["googleCalendarInsertEvent"] = tpl.GoogleCalendarInsertEvent
 	funcs["googleCalendarDeleteEvents"] = tpl.GoogleCalendarDeleteEvents
+
 	funcs["sshRun"] = tpl.SSHRun
 	funcs["listFilesWithModTime"] = tpl.ListFilesWithModTime
 
