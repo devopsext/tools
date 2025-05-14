@@ -85,6 +85,11 @@ type GrafanaLibraryElementOptions struct {
 	Cloned   GrafanaClonedLibraryElementOptions
 }
 
+type GrafanaFolderOptions struct {
+	Title string
+	UID   string
+}
+
 type GrafanaClonedLibraryElementOptions struct {
 	URL      string
 	Timeout  int
@@ -295,6 +300,26 @@ func (g *Grafana) CustomGetDashboards(grafanaOptions GrafanaOptions, grafanaDash
 
 func (g *Grafana) GetDashboards(dashboardOptions GrafanaDahboardOptions) ([]byte, error) {
 	return g.CustomGetDashboards(g.options, dashboardOptions)
+}
+
+func (g *Grafana) CustomGetFolder(grafanaOptions GrafanaOptions, grafanaFolderOptions GrafanaFolderOptions) ([]byte, error) {
+	u, err := url.Parse(grafanaOptions.URL)
+	if err != nil {
+		return nil, err
+	}
+
+	switch {
+	case !utils.IsEmpty(grafanaFolderOptions.UID):
+		u.Path = path.Join(u.Path, fmt.Sprintf("/api/folders/%s", grafanaFolderOptions.UID))
+	case utils.IsEmpty(grafanaFolderOptions.UID):
+		u.Path = path.Join(u.Path, "/api/folders")
+	}
+
+	return utils.HttpGetRaw(g.client, u.String(), "", g.getAuth(grafanaOptions))
+}
+
+func (g *Grafana) GetFolder(folderOptions GrafanaFolderOptions) ([]byte, error) {
+	return g.CustomGetFolder(g.options, folderOptions)
 }
 
 func (g *Grafana) CustomDeleteDashboards(grafanaOptions GrafanaOptions, grafanaDashboardOptions GrafanaDahboardOptions) ([]byte, error) {
