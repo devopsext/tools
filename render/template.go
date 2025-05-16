@@ -465,6 +465,16 @@ func (tpl *Template) FromJson(i interface{}) (interface{}, error) {
 	return r, nil
 }
 
+func (tpl *Template)FromJsonStringToMap(jsonStr string) (map[string]interface{}, error) {
+    var r map[string]interface{}
+    err := json.Unmarshal([]byte(jsonStr), &r)
+    if err != nil {
+        return nil, err
+    }
+
+    return r, nil
+}
+
 // split is a version of strings.Split that can be piped
 func (tpl *Template) Split(sep, s string) ([]string, error) {
 	s = strings.TrimSpace(s)
@@ -2647,6 +2657,7 @@ func (tpl *Template) setTemplateFuncs(funcs map[string]any) {
 	funcs["toJSON"] = tpl.ToJson // deprecated
 	funcs["toJson"] = tpl.ToJson
 	funcs["fromJson"] = tpl.FromJson
+	funcs["fromJsonStringToMap"] = tpl.FromJsonStringToMap
 	funcs["split"] = tpl.Split
 	funcs["join"] = tpl.Join
 	funcs["isEmpty"] = tpl.IsEmpty
