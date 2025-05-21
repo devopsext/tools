@@ -30,10 +30,10 @@ type Netbox struct {
 }
 
 type NetxboxAPIResponse struct {
-	Count    int             `json:"count"`
-	Next     string          `json:"next"`
-	Previous string          `json:"previous"`
-	Results  json.RawMessage `json:"results"`
+	Count    int           `json:"count"`
+	Next     string        `json:"next"`
+	Previous string        `json:"previous"`
+	Results  []interface{} `json:"results"`
 }
 
 func (n *Netbox) getAuth(options NetboxOptions) string {
@@ -81,7 +81,7 @@ func (n *Netbox) CustomGetDevices(options NetboxOptions, netboxDeviceOptions Net
 		return utils.HttpGetRaw(n.client, u.String(), "application/json", n.getAuth(options))
 	}
 
-	var devices json.RawMessage
+	var devices []interface{}
 
 	for {
 		resp, err := utils.HttpGetRaw(n.client, u.String(), "application/json", n.getAuth(options))
@@ -109,7 +109,7 @@ func (n *Netbox) CustomGetDevices(options NetboxOptions, netboxDeviceOptions Net
 		}
 	}
 
-	return devices, nil
+	return json.Marshal(devices)
 }
 
 func (n *Netbox) GetDevices(deviceOptions NetboxDeviceOptions) ([]byte, error) {

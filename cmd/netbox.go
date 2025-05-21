@@ -51,6 +51,7 @@ func NewNetboxCommand() *cobra.Command {
 	flags.StringVar(&netboxOptions.Token, "netbox-token", netboxOptions.Token, "Netbox token")
 	flags.StringVar(&netboxOptions.Limit, "netbox-limit", netboxOptions.Limit, "Netbox API limit")
 	flags.BoolVar(&netboxOptions.Brief, "netbox-brief", netboxOptions.Brief, "Netbox API brief param")
+	flags.StringToStringVar(&netboxOptions.Filter, "netbox-filter", netboxOptions.Filter, "Netbox API filter params")
 	flags.StringVar(&netboxOutput.Output, "netbox-output", netboxOutput.Output, "Netbox output")
 	flags.StringVar(&netboxOutput.Query, "netbox-output-query", netboxOutput.Query, "Netbox output query")
 
