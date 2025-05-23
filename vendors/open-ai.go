@@ -62,7 +62,7 @@ func (ai *OpenAI) CreateChatCompletion(options OpenAIOptions) ([]byte, error) {
 		openai.ChatCompletionRequest{
 			Model:       model,
 			Messages:    messages,
-			Temperature: 0.2, // Lower temperature for more deterministic outputs
+			Temperature: 0.3, // Lower temperature for more deterministic outputs
 			TopP:        0.9,
 			MaxTokens:   1000, // Increased token limit for complex report analysis
 		},
