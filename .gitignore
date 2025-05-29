@@ -189,3 +189,5 @@ tools.crt
 
 public.key
 private.key
+
+trace.log
