@@ -29,15 +29,16 @@ import (
 	"github.com/devopsext/tools/vendors"
 	utils "github.com/devopsext/utils"
 	"github.com/google/uuid"
+	"gopkg.in/yaml.v3"
 
 	"github.com/tidwall/gjson"
 )
 
 const (
-    DefaultTimeout = 5 * time.Second
-    ErrorCodeParam = -1
-    ErrorCodeTLS   = -2
-    ErrorCodeHTTP  = -3
+	DefaultTimeout = 5 * time.Second
+	ErrorCodeParam = -1
+	ErrorCodeTLS   = -2
+	ErrorCodeHTTP  = -3
 )
 
 type TemplateOptions struct {
@@ -69,9 +70,9 @@ type HtmlTemplate struct {
 }
 
 type HTTPResult struct {
-    Body []byte
-    Error string
-    StatusCode int
+	Body       []byte
+	Error      string
+	StatusCode int
 }
 
 func (tpl *Template) ParserLine() (int, error) {
@@ -463,6 +464,16 @@ func (tpl *Template) FromJson(i interface{}) (interface{}, error) {
 		return nil, err
 	}
 	return r, nil
+}
+
+// toYaml converts the given structure into a deeply nested Yaml string.
+func (tpl *Template) ToYaml(i interface{}) (string, error) {
+
+	result, err := yaml.Marshal(i)
+	if err != nil {
+		return "", err
+	}
+	return string(bytes.TrimSpace(result)), err
 }
 
 // split is a version of strings.Split that can be piped
@@ -1012,20 +1023,20 @@ func (tpl *Template) HttpGet(params map[string]interface{}) ([]byte, error) {
 
 func (tpl *Template) HttpGetExt(params map[string]interface{}) HTTPResult {
 
-    result := HTTPResult{}
+	result := HTTPResult{}
 
 	if len(params) == 0 {
-	    result.Error = "no parameters provided"
-        result.StatusCode = ErrorCodeParam
-        return result
+		result.Error = "no parameters provided"
+		result.StatusCode = ErrorCodeParam
+		return result
 	}
 
 	url, _ := params["url"].(string)
 	if url == "" {
-        result.Error = "URL parameter is required"
-        result.StatusCode = ErrorCodeParam
-        return result
-    }
+		result.Error = "URL parameter is required"
+		result.StatusCode = ErrorCodeParam
+		return result
+	}
 
 	timeout, _ := params["timeout"].(int)
 	if timeout == 0 {
@@ -1043,8 +1054,8 @@ func (tpl *Template) HttpGetExt(params map[string]interface{}) HTTPResult {
 	if !utils.IsEmpty(clientCrt) && !utils.IsEmpty(clientKey) {
 		pair, err := tls.X509KeyPair([]byte(clientCrt), []byte(clientKey))
 		if err != nil {
-		    result.Error = fmt.Errorf("Failed to load client key pair: %w", err).Error()
-		    result.StatusCode = ErrorCodeTLS
+			result.Error = fmt.Errorf("Failed to load client key pair: %w", err).Error()
+			result.StatusCode = ErrorCodeTLS
 			return result
 		}
 		certs = append(certs, pair)
@@ -1072,29 +1083,29 @@ func (tpl *Template) HttpGetExt(params map[string]interface{}) HTTPResult {
 		Transport: transport,
 	}
 
-    start := time.Now()
-    defer func() {
-        tpl.logger.Debug("HTTP request completed",
-            "url", url,
-            "duration", time.Since(start),
-            "status", result.StatusCode)
-    }()
+	start := time.Now()
+	defer func() {
+		tpl.logger.Debug("HTTP request completed",
+			"url", url,
+			"duration", time.Since(start),
+			"status", result.StatusCode)
+	}()
 
-    // Call the HttpGetRaw4 function
-    body, err := utils.HttpGetRaw(&client, url, contentType, authorization)
-    if err != nil {
-        result.Error = fmt.Errorf("HTTP request failed: %w", err).Error()
-        result.StatusCode = ErrorCodeHTTP
+	// Call the HttpGetRaw4 function
+	body, err := utils.HttpGetRaw(&client, url, contentType, authorization)
+	if err != nil {
+		result.Error = fmt.Errorf("HTTP request failed: %w", err).Error()
+		result.StatusCode = ErrorCodeHTTP
 
-        // Try to get status code from error if possible
-        if respErr, ok := err.(interface{ StatusCode() int }); ok {
-            result.StatusCode = respErr.StatusCode()
-        }
-        return result
-    }
+		// Try to get status code from error if possible
+		if respErr, ok := err.(interface{ StatusCode() int }); ok {
+			result.StatusCode = respErr.StatusCode()
+		}
+		return result
+	}
 
-    result.Body = body
-    result.StatusCode = http.StatusOK
+	result.Body = body
+	result.StatusCode = http.StatusOK
 
 	return result
 }
@@ -2647,6 +2658,8 @@ func (tpl *Template) setTemplateFuncs(funcs map[string]any) {
 	funcs["toJSON"] = tpl.ToJson // deprecated
 	funcs["toJson"] = tpl.ToJson
 	funcs["fromJson"] = tpl.FromJson
+	funcs["toYaml"] = tpl.ToYaml
+	funcs["toYml"] = tpl.ToYaml
 	funcs["split"] = tpl.Split
 	funcs["join"] = tpl.Join
 	funcs["isEmpty"] = tpl.IsEmpty
