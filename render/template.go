@@ -1242,6 +1242,69 @@ func (tpl *Template) HttpPut(params map[string]interface{}) ([]byte, error) {
 	return utils.HttpPutRaw(&client, u, contentType, authorization, body)
 }
 
+func (tpl *Template) HttpPatch(params map[string]interface{}) ([]byte, error) {
+	if len(params) == 0 {
+		return nil, fmt.Errorf("HttpPut err => %s", "no params allowed")
+	}
+
+	u, _ := params["url"].(string)
+	timeout, _ := params["timeout"].(int)
+	if timeout == 0 {
+		timeout = 5
+	}
+
+	insecure, _ := params["insecure"].(bool)
+	contentType, _ := params["contentType"].(string)
+	authorization, _ := params["authorization"].(string)
+
+	var body []byte
+	if b := params["body"]; !utils.IsEmpty(b) {
+		switch v := b.(type) {
+		case string:
+			body = []byte(v)
+		case []byte:
+			body = v
+		default:
+			body = []byte(fmt.Sprintf("%s", v))
+		}
+	}
+
+	clientCrt, _ := params["clientCrt"].(string)
+	clientKey, _ := params["clientKey"].(string)
+	var certs []tls.Certificate
+	if !utils.IsEmpty(clientCrt) && !utils.IsEmpty(clientKey) {
+		pair, err := tls.X509KeyPair([]byte(clientCrt), []byte(clientKey))
+		if err != nil {
+			return nil, err
+		}
+		certs = append(certs, pair)
+	}
+
+	var rootCAs *x509.CertPool
+	clientCA, _ := params["clientCA"].(string)
+	if !utils.IsEmpty(clientCA) {
+		rootCAs = x509.NewCertPool()
+		rootCAs.AppendCertsFromPEM([]byte(clientCA))
+	}
+
+	transport := &http.Transport{
+		Dial:                (&net.Dialer{Timeout: time.Duration(timeout) * time.Second}).Dial,
+		DialContext:         (&net.Dialer{Timeout: time.Duration(timeout) * time.Second}).DialContext,
+		TLSHandshakeTimeout: time.Duration(timeout) * time.Second,
+		TLSClientConfig: &tls.Config{
+			RootCAs:            rootCAs,
+			Certificates:       certs,
+			InsecureSkipVerify: insecure,
+		},
+	}
+
+	client := http.Client{
+		Timeout:   time.Duration(timeout) * time.Second,
+		Transport: transport,
+	}
+	return utils.HttpPatchRaw(&client, u, contentType, authorization, body)
+}
+
 func (tpl *Template) HttpForm(params map[string]interface{}) ([]byte, error) {
 
 	if len(params) == 0 {
@@ -2765,6 +2828,7 @@ func (tpl *Template) setTemplateFuncs(funcs map[string]any) {
 	funcs["httpGetSilent"] = tpl.HttpGetSilent
 	funcs["httpPost"] = tpl.HttpPost
 	funcs["httpPut"] = tpl.HttpPut
+	funcs["httpPatch"] = tpl.HttpPatch
 	funcs["httpForm"] = tpl.HttpForm
 
 	funcs["jiraSearchAssets"] = tpl.JiraSearchAssets
