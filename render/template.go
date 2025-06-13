@@ -896,6 +896,10 @@ func (tpl *Template) StringList(items ...string) []string {
 	return items
 }
 
+func (tpl *Template) AppendString(arr []string, items ...string) []string {
+	return append(arr, items...)
+}
+
 func (tpl *Template) IntList(items ...int64) []int64 {
 	return items
 }
@@ -2817,6 +2821,8 @@ func (tpl *Template) setTemplateFuncs(funcs map[string]any) {
 	funcs["uuid"] = tpl.UUID
 
 	funcs["stringList"] = tpl.StringList
+	funcs["appendString"] = tpl.AppendString
+
 	funcs["intList"] = tpl.IntList
 	funcs["floatList"] = tpl.FloatList
 
