@@ -581,7 +581,7 @@ func (s *Slack) CustomGetConversationHistory(slackOptions SlackOptions, getConve
 		}
 	}
 
-	return utils.HttpPostRaw(s.client, s.apiURL(slackReactionsAdd), w.FormDataContentType(), s.getAuth(slackOptions), body.Bytes())
+	return utils.HttpPostRaw(s.client, s.apiURL(slackConversationsHistory), w.FormDataContentType(), s.getAuth(slackOptions), body.Bytes())
 
 }
 
