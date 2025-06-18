@@ -91,18 +91,21 @@ type GetConversationHistoryParameters struct {
 }
 
 type GetConversationHistoryResponse struct {
-	Ok       bool `json:"ok"`
+	Ok       bool   `json:"ok"`
+	Oldest   string `json:"oldest"`
 	Messages []struct {
-		Type string `json:"type"`
-		User string `json:"user"`
-		Text string `json:"text"`
-		Ts   string `json:"ts"`
+		Type      string `json:"type"`
+		Ts        string `json:"ts"`
+		Text      string `json:"text"`
+		Team      string `json:"team"`
+		Reactions []struct {
+			Name  string   `json:"name"`
+			Users []string `json:"users"`
+			Count int      `json:"count"`
+		} `json:"reactions"`
 	} `json:"messages"`
-	HasMore          bool `json:"has_more"`
-	PinCount         int  `json:"pin_count"`
-	ResponseMetadata struct {
-		NextCursor string `json:"next_cursor"`
-	} `json:"response_metadata"`
+	HasMore  bool `json:"has_more"`
+	PinCount int  `json:"pin_count"`
 }
 
 type SlackOutputOptions struct {
