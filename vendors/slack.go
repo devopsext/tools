@@ -104,8 +104,11 @@ type GetConversationHistoryResponse struct {
 			Count int      `json:"count"`
 		} `json:"reactions"`
 	} `json:"messages"`
-	HasMore  bool `json:"has_more"`
-	PinCount int  `json:"pin_count"`
+	HasMore          bool `json:"has_more"`
+	PinCount         int  `json:"pin_count"`
+	ResponseMetadata struct {
+		NextCursor string `json:"next_cursor"`
+	} `json:"response_metadata"`
 }
 
 type SlackOutputOptions struct {
