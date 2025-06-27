@@ -476,6 +476,23 @@ func (tpl *Template) ToYaml(i interface{}) (string, error) {
 	return string(bytes.TrimSpace(result)), err
 }
 
+func (tpl *Template) FromYaml(i interface{}) (interface{}, error) {
+
+	var d []byte
+	var r interface{}
+	ds, ok := i.([]byte)
+	if ok {
+		d = ds
+	} else {
+		d = []byte(fmt.Sprintf("%v", i))
+	}
+	err := yaml.Unmarshal(d, &r)
+	if err != nil {
+		return nil, err
+	}
+	return r, nil
+}
+
 // split is a version of strings.Split that can be piped
 func (tpl *Template) Split(sep, s string) ([]string, error) {
 	s = strings.TrimSpace(s)
@@ -2790,6 +2807,8 @@ func (tpl *Template) setTemplateFuncs(funcs map[string]any) {
 	funcs["fromJson"] = tpl.FromJson
 	funcs["toYaml"] = tpl.ToYaml
 	funcs["toYml"] = tpl.ToYaml
+	funcs["fromYaml"] = tpl.FromYaml
+	funcs["fromYml"] = tpl.FromYaml
 	funcs["split"] = tpl.Split
 	funcs["join"] = tpl.Join
 	funcs["isEmpty"] = tpl.IsEmpty
