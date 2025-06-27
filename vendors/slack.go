@@ -8,6 +8,7 @@ import (
 	"mime/multipart"
 	"net/http"
 	"net/url"
+	"strconv"
 
 	"github.com/devopsext/utils"
 )
@@ -23,6 +24,7 @@ const (
 	slackReactionsAdd          = "reactions.add"
 	slackUsersLookupByEmail    = "users.lookupByEmail"
 	slackUsergroupsUsersUpdate = "usergroups.users.update"
+	slackConversationsHistory  = "conversations.history"
 )
 
 type SlackOptions struct {
@@ -76,6 +78,37 @@ type SlackMessageResponse struct {
 	Channel string        `json:"channel"`
 	TS      string        `json:"ts"`
 	Message *SlackMessage `json:"message,omitempty"`
+}
+
+type GetConversationHistoryParameters struct {
+	ChannelID          string
+	Cursor             string
+	Inclusive          bool
+	Latest             string
+	Limit              int
+	Oldest             string
+	IncludeAllMetadata bool
+}
+
+type GetConversationHistoryResponse struct {
+	Ok       bool   `json:"ok"`
+	Oldest   string `json:"oldest"`
+	Messages []struct {
+		Type      string `json:"type"`
+		Ts        string `json:"ts"`
+		Text      string `json:"text"`
+		Team      string `json:"team"`
+		Reactions []struct {
+			Name  string   `json:"name"`
+			Users []string `json:"users"`
+			Count int      `json:"count"`
+		} `json:"reactions"`
+	} `json:"messages"`
+	HasMore          bool `json:"has_more"`
+	PinCount         int  `json:"pin_count"`
+	ResponseMetadata struct {
+		NextCursor string `json:"next_cursor"`
+	} `json:"response_metadata"`
 }
 
 type SlackOutputOptions struct {
@@ -495,6 +528,79 @@ func (s *Slack) CustomUpdateUsergroup(slackOptions SlackOptions, slackUpdateUser
 
 func (s *Slack) UpdateUsergroup(options SlackUsergroupUsers) ([]byte, error) {
 	return s.CustomUpdateUsergroup(s.options, options)
+}
+
+func (s *Slack) GetConversationHistory(options GetConversationHistoryParameters) ([]byte, error) {
+	return s.CustomGetConversationHistory(s.options, options)
+}
+
+func (s *Slack) CustomGetConversationHistory(slackOptions SlackOptions, getConversationHistoryParameters GetConversationHistoryParameters) ([]byte, error) {
+
+	var body bytes.Buffer
+	w := multipart.NewWriter(&body)
+	defer func() {
+		w.Close()
+	}()
+
+	if utils.IsEmpty(getConversationHistoryParameters.ChannelID) {
+		return nil, fmt.Errorf("channel_id is required")
+	}
+
+	if err := w.WriteField("channel", getConversationHistoryParameters.ChannelID); err != nil {
+		return nil, err
+	}
+
+	if !utils.IsEmpty(getConversationHistoryParameters.Cursor) {
+		if err := w.WriteField("thread_ts", getConversationHistoryParameters.Cursor); err != nil {
+			return nil, err
+		}
+	}
+
+	if getConversationHistoryParameters.Cursor != "" {
+		if err := w.WriteField("cursor", getConversationHistoryParameters.Cursor); err != nil {
+			return nil, err
+		}
+	}
+	if getConversationHistoryParameters.Inclusive {
+		if err := w.WriteField("inclusive", "1"); err != nil {
+			return nil, err
+		}
+	} else {
+		if err := w.WriteField("inclusive", "0"); err != nil {
+			return nil, err
+		}
+	}
+	if getConversationHistoryParameters.Latest != "" {
+		if err := w.WriteField("latest", getConversationHistoryParameters.Latest); err != nil {
+			return nil, err
+		}
+	}
+	if getConversationHistoryParameters.Limit != 0 {
+		if err := w.WriteField("limit", strconv.Itoa(getConversationHistoryParameters.Limit)); err != nil {
+			return nil, err
+		}
+	}
+	if getConversationHistoryParameters.Oldest != "" {
+		if err := w.WriteField("oldest", getConversationHistoryParameters.Oldest); err != nil {
+			return nil, err
+		}
+	}
+	if getConversationHistoryParameters.IncludeAllMetadata {
+		if err := w.WriteField("include_all_metadata", "1"); err != nil {
+			return nil, err
+		}
+	} else {
+		if err := w.WriteField("include_all_metadata", "0"); err != nil {
+			return nil, err
+		}
+	}
+
+	if err := w.Close(); err != nil {
+		return nil, err
+	}
+
+	return utils.HttpPostRaw(s.client, s.apiURL(slackConversationsHistory), w.FormDataContentType(), s.getAuth(slackOptions), body.Bytes())
+
 }
 
 func NewSlack(options SlackOptions) *Slack {
