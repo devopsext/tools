@@ -29,6 +29,7 @@ import (
 	"github.com/devopsext/tools/vendors"
 	utils "github.com/devopsext/utils"
 	"github.com/google/uuid"
+	"gopkg.in/yaml.v3"
 
 	"github.com/tidwall/gjson"
 )
@@ -465,6 +466,33 @@ func (tpl *Template) FromJson(i interface{}) (interface{}, error) {
 	return r, nil
 }
 
+// toYaml converts the given structure into a deeply nested Yaml string.
+func (tpl *Template) ToYaml(i interface{}) (string, error) {
+
+	result, err := yaml.Marshal(i)
+	if err != nil {
+		return "", err
+	}
+	return string(bytes.TrimSpace(result)), err
+}
+
+func (tpl *Template) FromYaml(i interface{}) (interface{}, error) {
+
+	var d []byte
+	var r interface{}
+	ds, ok := i.([]byte)
+	if ok {
+		d = ds
+	} else {
+		d = []byte(fmt.Sprintf("%v", i))
+	}
+	err := yaml.Unmarshal(d, &r)
+	if err != nil {
+		return nil, err
+	}
+	return r, nil
+}
+
 // split is a version of strings.Split that can be piped
 func (tpl *Template) Split(sep, s string) ([]string, error) {
 	s = strings.TrimSpace(s)
@@ -881,6 +909,22 @@ func (tpl *Template) UUID() string {
 	return uuid.String()
 }
 
+func (tpl *Template) StringList(items ...string) []string {
+	return items
+}
+
+func (tpl *Template) AppendString(arr []string, items ...string) []string {
+	return append(arr, items...)
+}
+
+func (tpl *Template) IntList(items ...int64) []int64 {
+	return items
+}
+
+func (tpl *Template) FloatList(items ...float64) []float64 {
+	return items
+}
+
 // url, contentType, authorization string, timeout int
 func (tpl *Template) HttpGetHeader(params map[string]interface{}) ([]byte, error) {
 	if len(params) == 0 {
@@ -1154,6 +1198,132 @@ func (tpl *Template) HttpPost(params map[string]interface{}) ([]byte, error) {
 		Transport: transport,
 	}
 	return utils.HttpPostRaw(&client, url, contentType, authorization, body)
+}
+
+func (tpl *Template) HttpPut(params map[string]interface{}) ([]byte, error) {
+	if len(params) == 0 {
+		return nil, fmt.Errorf("HttpPut err => %s", "no params allowed")
+	}
+
+	u, _ := params["url"].(string)
+	timeout, _ := params["timeout"].(int)
+	if timeout == 0 {
+		timeout = 5
+	}
+
+	insecure, _ := params["insecure"].(bool)
+	contentType, _ := params["contentType"].(string)
+	authorization, _ := params["authorization"].(string)
+
+	var body []byte
+	if b := params["body"]; !utils.IsEmpty(b) {
+		switch v := b.(type) {
+		case string:
+			body = []byte(v)
+		case []byte:
+			body = v
+		default:
+			body = []byte(fmt.Sprintf("%s", v))
+		}
+	}
+
+	clientCrt, _ := params["clientCrt"].(string)
+	clientKey, _ := params["clientKey"].(string)
+	var certs []tls.Certificate
+	if !utils.IsEmpty(clientCrt) && !utils.IsEmpty(clientKey) {
+		pair, err := tls.X509KeyPair([]byte(clientCrt), []byte(clientKey))
+		if err != nil {
+			return nil, err
+		}
+		certs = append(certs, pair)
+	}
+
+	var rootCAs *x509.CertPool
+	clientCA, _ := params["clientCA"].(string)
+	if !utils.IsEmpty(clientCA) {
+		rootCAs = x509.NewCertPool()
+		rootCAs.AppendCertsFromPEM([]byte(clientCA))
+	}
+
+	transport := &http.Transport{
+		Dial:                (&net.Dialer{Timeout: time.Duration(timeout) * time.Second}).Dial,
+		DialContext:         (&net.Dialer{Timeout: time.Duration(timeout) * time.Second}).DialContext,
+		TLSHandshakeTimeout: time.Duration(timeout) * time.Second,
+		TLSClientConfig: &tls.Config{
+			RootCAs:            rootCAs,
+			Certificates:       certs,
+			InsecureSkipVerify: insecure,
+		},
+	}
+
+	client := http.Client{
+		Timeout:   time.Duration(timeout) * time.Second,
+		Transport: transport,
+	}
+	return utils.HttpPutRaw(&client, u, contentType, authorization, body)
+}
+
+func (tpl *Template) HttpPatch(params map[string]interface{}) ([]byte, error) {
+	if len(params) == 0 {
+		return nil, fmt.Errorf("HttpPut err => %s", "no params allowed")
+	}
+
+	u, _ := params["url"].(string)
+	timeout, _ := params["timeout"].(int)
+	if timeout == 0 {
+		timeout = 5
+	}
+
+	insecure, _ := params["insecure"].(bool)
+	contentType, _ := params["contentType"].(string)
+	authorization, _ := params["authorization"].(string)
+
+	var body []byte
+	if b := params["body"]; !utils.IsEmpty(b) {
+		switch v := b.(type) {
+		case string:
+			body = []byte(v)
+		case []byte:
+			body = v
+		default:
+			body = []byte(fmt.Sprintf("%s", v))
+		}
+	}
+
+	clientCrt, _ := params["clientCrt"].(string)
+	clientKey, _ := params["clientKey"].(string)
+	var certs []tls.Certificate
+	if !utils.IsEmpty(clientCrt) && !utils.IsEmpty(clientKey) {
+		pair, err := tls.X509KeyPair([]byte(clientCrt), []byte(clientKey))
+		if err != nil {
+			return nil, err
+		}
+		certs = append(certs, pair)
+	}
+
+	var rootCAs *x509.CertPool
+	clientCA, _ := params["clientCA"].(string)
+	if !utils.IsEmpty(clientCA) {
+		rootCAs = x509.NewCertPool()
+		rootCAs.AppendCertsFromPEM([]byte(clientCA))
+	}
+
+	transport := &http.Transport{
+		Dial:                (&net.Dialer{Timeout: time.Duration(timeout) * time.Second}).Dial,
+		DialContext:         (&net.Dialer{Timeout: time.Duration(timeout) * time.Second}).DialContext,
+		TLSHandshakeTimeout: time.Duration(timeout) * time.Second,
+		TLSClientConfig: &tls.Config{
+			RootCAs:            rootCAs,
+			Certificates:       certs,
+			InsecureSkipVerify: insecure,
+		},
+	}
+
+	client := http.Client{
+		Timeout:   time.Duration(timeout) * time.Second,
+		Transport: transport,
+	}
+	return utils.HttpPatchRaw(&client, u, contentType, authorization, body)
 }
 
 func (tpl *Template) HttpForm(params map[string]interface{}) ([]byte, error) {
@@ -2677,6 +2847,10 @@ func (tpl *Template) setTemplateFuncs(funcs map[string]any) {
 	funcs["toJSON"] = tpl.ToJson // deprecated
 	funcs["toJson"] = tpl.ToJson
 	funcs["fromJson"] = tpl.FromJson
+	funcs["toYaml"] = tpl.ToYaml
+	funcs["toYml"] = tpl.ToYaml
+	funcs["fromYaml"] = tpl.FromYaml
+	funcs["fromYml"] = tpl.FromYaml
 	funcs["split"] = tpl.Split
 	funcs["join"] = tpl.Join
 	funcs["isEmpty"] = tpl.IsEmpty
@@ -2707,6 +2881,12 @@ func (tpl *Template) setTemplateFuncs(funcs map[string]any) {
 	funcs["error"] = tpl.Error
 	funcs["uuid"] = tpl.UUID
 
+	funcs["stringList"] = tpl.StringList
+	funcs["appendString"] = tpl.AppendString
+
+	funcs["intList"] = tpl.IntList
+	funcs["floatList"] = tpl.FloatList
+
 	funcs["catchpointInstantTest"] = tpl.CatchpointInstantTest
 
 	funcs["httpGetHeader"] = tpl.HttpGetHeader
@@ -2714,6 +2894,8 @@ func (tpl *Template) setTemplateFuncs(funcs map[string]any) {
 	funcs["httpGetExt"] = tpl.HttpGetExt
 	funcs["httpGetSilent"] = tpl.HttpGetSilent
 	funcs["httpPost"] = tpl.HttpPost
+	funcs["httpPut"] = tpl.HttpPut
+	funcs["httpPatch"] = tpl.HttpPatch
 	funcs["httpForm"] = tpl.HttpForm
 
 	funcs["jiraSearchAssets"] = tpl.JiraSearchAssets
@@ -2729,13 +2911,17 @@ func (tpl *Template) setTemplateFuncs(funcs map[string]any) {
 
 	funcs["grafanaCreateDashboard"] = tpl.GrafanaCreateDashboard
 	funcs["grafanaCopyDashboard"] = tpl.GrafanaCopyDashboard
+
 	funcs["pagerDutyCreateIncident"] = tpl.PagerDutyCreateIncident
 	funcs["pagerDutySendNoteToIncident"] = tpl.PagerDutySendNoteToIncident
+
 	funcs["templateRender"] = tpl.TemplateRender
 	funcs["templateRenderFile"] = tpl.TemplateRenderFile
+
 	funcs["googleCalendarGetEvents"] = tpl.GoogleCalendarGetEvents
 	funcs["googleCalendarInsertEvent"] = tpl.GoogleCalendarInsertEvent
 	funcs["googleCalendarDeleteEvents"] = tpl.GoogleCalendarDeleteEvents
+
 	funcs["sshRun"] = tpl.SSHRun
 	funcs["listFilesWithModTime"] = tpl.ListFilesWithModTime
 

@@ -51,7 +51,7 @@ meet.txt
 *.template
 jira-new-task.url
 pwapi.yml
-
+vendors/netbox_test.json
 
 
 # Created by https://www.toptal.com/developers/gitignore/api/jetbrains
@@ -189,3 +189,5 @@ tools.crt
 
 public.key
 private.key
+
+trace.log

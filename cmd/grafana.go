@@ -69,6 +69,11 @@ var grafanaLibraryElementOptions = vendors.GrafanaLibraryElementOptions{
 	},
 }
 
+var grafanaFolderOptions = vendors.GrafanaFolderOptions{
+	Title: envGet("GRAFANA_FOLDER_TITLE", "").(string),
+	UID:   envGet("GRAFANA_FOLDER_UID", "").(string),
+}
+
 var grafanaRenderImageOptions = vendors.GrafanaRenderImageOptions{
 	PanelID: envGet("GRAFANA_IMAGE_PANEL_ID", "").(string),
 	From:    envGet("GRAFANA_IMAGE_FROM", "").(string),
@@ -160,6 +165,25 @@ func NewGrafanaCommand() *cobra.Command {
 	flags = getLibraryElementCmd.PersistentFlags()
 	flags.StringVar(&grafanaLibraryElementOptions.UID, "grafana-library-element-uid", grafanaLibraryElementOptions.UID, "Grafana library element uid")
 	grafanaCmd.AddCommand(&getLibraryElementCmd)
+
+	getFolderCmd := cobra.Command{
+		Use:   "get-folder",
+		Short: "Get folder",
+		Run: func(cmd *cobra.Command, args []string) {
+			stdout.Debug("Grafana getting dashboards...")
+
+			bytes, err := grafanaNew(stdout).GetFolder(grafanaFolderOptions)
+			if err != nil {
+				stdout.Error(err)
+				return
+			}
+			common.OutputJson(grafanaOutput, "Grafana", []interface{}{grafanaOptions}, bytes, stdout)
+		},
+	}
+	flags = getFolderCmd.PersistentFlags()
+	flags.StringVar(&grafanaFolderOptions.UID, "grafana-folder-uid", grafanaFolderOptions.UID, "Grafana dashboard uid")
+	flags.StringVar(&grafanaFolderOptions.Title, "grafana-folder-title", grafanaFolderOptions.UID, "Grafana dashboard title")
+	grafanaCmd.AddCommand(&getFolderCmd)
 
 	searchDashboardCmd := cobra.Command{
 		Use:   "search-dashboards",

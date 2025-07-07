@@ -92,7 +92,9 @@ func Execute() {
 	rootCmd.AddCommand(NewAWSCommand())
 	rootCmd.AddCommand(NewSite24x7Command())
 	rootCmd.AddCommand(NewCatchpointCommand())
+	rootCmd.AddCommand(NewVirusTotalCommand())
 	rootCmd.AddCommand(NewCryptoCommand())
+	rootCmd.AddCommand(NewNetboxCommand())
 
 	rootCmd.AddCommand(NewTemplateCommand())
 	rootCmd.AddCommand(NewDateCommand())
