@@ -34,18 +34,20 @@ type JiraOptions struct {
 }
 
 type JiraIssueOptions struct {
-	IdOrKey      string
-	ProjectKey   string
-	Type         string
-	Priority     string
-	Assignee     string
-	Reporter     string
-	Summary      string
-	Description  string
-	CustomFields string
-	TransitionID string
-	Components   string
-	Labels       []string
+	IdOrKey            string
+	ProjectKey         string
+	Type               string
+	Priority           string
+	Assignee           string
+	Reporter           string
+	Summary            string
+	Description        string
+	CustomFields       string
+	TransitionID       string
+	Components         string
+	Labels             []string
+	UpdateAddLabels    []string
+	UpdateRemoveLabels []string
 }
 
 type JiraAddIssueCommentOptions struct {
@@ -99,7 +101,8 @@ type JiraIssueCreate struct {
 }
 
 type JiraIssueUpdate struct {
-	Fields *JiraIssueFields `json:"fields"`
+	Fields *JiraIssueFields        `json:"fields"`
+	Update *JiraIssueUpdatePayload `json:"update"`
 }
 type JiraIssueFields struct {
 	Project     *JiraIssueProject      `json:"project,omitempty"`
@@ -111,6 +114,15 @@ type JiraIssueFields struct {
 	Components  *[]JiraIssueComponents `json:"components,omitempty"`
 	Assignee    *JiraIssueAssignee     `json:"assignee,omitempty"`
 	Reporter    *JiraIssueReporter     `json:"reporter,omitempty"`
+}
+
+type JiraIssueUpdatePayload struct {
+	Labels []JiraIssueUpdateLabelOperation `json:"labels,omitempty"`
+}
+
+type JiraIssueUpdateLabelOperation struct {
+	Add    string `json:"add,omitempty"`
+	Remove string `json:"remove,omitempty"`
 }
 
 type JiraIssueAddComment struct {
@@ -440,11 +452,25 @@ func (j *Jira) AddIssueAttachment(issueOptions JiraIssueOptions, addAttachmentOp
 }
 
 func (j *Jira) CustomUpdateIssue(jiraOptions JiraOptions, issueOptions JiraIssueOptions) ([]byte, error) {
+	labelOperations := make([]JiraIssueUpdateLabelOperation, 0)
+	for _, v := range issueOptions.UpdateAddLabels {
+		labelOperations = append(labelOperations, JiraIssueUpdateLabelOperation{
+			Add: v,
+		})
+	}
+	for _, v := range issueOptions.UpdateRemoveLabels {
+		labelOperations = append(labelOperations, JiraIssueUpdateLabelOperation{
+			Remove: v,
+		})
+	}
 
 	issue := &JiraIssueUpdate{
 		Fields: &JiraIssueFields{
 			Summary:     issueOptions.Summary,
 			Description: issueOptions.Description,
+		},
+		Update: &JiraIssueUpdatePayload{
+			Labels: labelOperations,
 		},
 	}
 
