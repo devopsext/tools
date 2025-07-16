@@ -1750,6 +1750,15 @@ func (tpl *Template) JiraUpdateIssue(params map[string]interface{}) ([]byte, err
 	password, _ := params["password"].(string)
 	token, _ := params["token"].(string)
 
+	var updateAddLabels []string
+	if addLabels, ok := params["addLabels"].(string); ok {
+		updateAddLabels = strings.Split(addLabels, ",")
+	}
+	var updateRemoveLabels []string
+	if removeLabels, ok := params["removeLabels"].(string); ok {
+		updateRemoveLabels = strings.Split(removeLabels, ",")
+	}
+
 	key, _ := params["key"].(string)
 	summary, _ := params["summary"].(string)
 	description, _ := params["description"].(string)
@@ -1764,10 +1773,12 @@ func (tpl *Template) JiraUpdateIssue(params map[string]interface{}) ([]byte, err
 		AccessToken: token,
 	}
 	jiraIssueOptions := vendors.JiraIssueOptions{
-		IdOrKey:      key,
-		Summary:      summary,
-		Description:  description,
-		CustomFields: customFields,
+		IdOrKey:            key,
+		Summary:            summary,
+		Description:        description,
+		CustomFields:       customFields,
+		UpdateAddLabels:    updateAddLabels,
+		UpdateRemoveLabels: updateRemoveLabels,
 	}
 
 	jira := vendors.NewJira(jiraOptions)
