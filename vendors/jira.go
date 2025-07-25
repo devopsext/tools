@@ -617,7 +617,6 @@ func (j *Jira) SearchIssue(options JiraSearchIssueOptions) ([]byte, error) {
 }
 
 func (j *Jira) httpGetStream(url string) (bytes.Buffer, error) {
-
 	res := bytes.Buffer{}
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
@@ -641,27 +640,33 @@ func (j *Jira) httpGetStream(url string) (bytes.Buffer, error) {
 			continue
 		}
 
+		defer resp.Body.Close()
+
 		if resp.StatusCode == http.StatusTooManyRequests {
 			resErr = errors.New("too many requests")
 			retryAfter := resp.Header.Get("Retry-After")
-			resp.Body.Close()
-			if duration, err := strconv.ParseInt(retryAfter, 10, 64); err == nil {
-				time.Sleep(time.Second * time.Duration(duration))
-			} else {
-				time.Sleep(time.Second << attempt)
+			duration := time.Second << attempt
+			if retryAfter != "" {
+				if d, err := strconv.ParseInt(retryAfter, 10, 64); err == nil {
+					duration = time.Second * time.Duration(d)
+				} else if t, err := http.ParseTime(retryAfter); err == nil {
+					wait := time.Until(t)
+					if wait > 0 {
+						duration = wait
+					}
+				}
 			}
+			time.Sleep(duration)
 			continue
 		}
 
 		if resp.StatusCode != http.StatusOK {
 			resErr = errors.New(resp.Status)
-			resp.Body.Close()
 			time.Sleep(time.Second << attempt)
 			continue
 		}
 
 		_, err = io.Copy(&res, resp.Body)
-		resp.Body.Close()
 		return res, err
 	}
 	return res, resErr
