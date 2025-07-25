@@ -2368,6 +2368,54 @@ func (tpl *Template) GoogleCalendarDeleteEvents(params map[string]interface{}) (
 	return google.CalendarDeleteEvents(calendarOptions, calendarGetEventsOptions)
 }
 
+func (tpl *Template) GoogleMeetCreateSpace(params map[string]interface{}) ([]byte, error) {
+
+	timeout, _ := params["timeout"].(int)
+	if timeout == 0 {
+		timeout = 30
+	}
+	insecure, _ := params["insecure"].(bool)
+
+	// Read service account credentials from environment variables
+	serviceAccountKey := utils.EnvGet("GOOGLE_SERVICE_ACCOUNT_KEY", "").(string)
+	impersonateEmail := utils.EnvGet("GOOGLE_IMPERSONATE_EMAIL", "").(string)
+
+	if utils.IsEmpty(serviceAccountKey) {
+		return nil, fmt.Errorf("GOOGLE_SERVICE_ACCOUNT_KEY environment variable not set")
+	}
+
+	googleOptions := vendors.GoogleOptions{
+		Timeout:           timeout,
+		Insecure:          insecure,
+		ServiceAccountKey: serviceAccountKey,
+		ImpersonateEmail:  impersonateEmail,
+	}
+
+	google := vendors.NewGoogle(googleOptions, tpl.logger)
+
+	accessType, _ := params["accessType"].(string)
+	if accessType == "" {
+		accessType = "TRUSTED" // Default to organization-only
+	}
+
+	meetOptions := vendors.GoogleMeetOptions{
+		AccessType: accessType,
+	}
+
+	meetResponse, err := google.CreateMeetSpace(meetOptions)
+	if err != nil {
+		return nil, err
+	}
+
+	// Debug: Log the actual response
+	tpl.logger.Debug("Google Meet API response: %+v", meetResponse)
+	tpl.logger.Debug("Meeting URI: %s", meetResponse.MeetingUri)
+	tpl.logger.Debug("Meeting Code: %s", meetResponse.MeetingCode)
+
+	// Convert response to JSON bytes
+	return json.Marshal(meetResponse)
+}
+
 func (tpl *Template) SSHRun(params map[string]interface{}) ([]byte, error) {
 
 	user, _ := params["user"].(string)
@@ -2890,6 +2938,7 @@ func (tpl *Template) setTemplateFuncs(funcs map[string]any) {
 	funcs["googleCalendarGetEvents"] = tpl.GoogleCalendarGetEvents
 	funcs["googleCalendarInsertEvent"] = tpl.GoogleCalendarInsertEvent
 	funcs["googleCalendarDeleteEvents"] = tpl.GoogleCalendarDeleteEvents
+	funcs["googleMeetCreateSpace"] = tpl.GoogleMeetCreateSpace
 
 	funcs["sshRun"] = tpl.SSHRun
 	funcs["listFilesWithModTime"] = tpl.ListFilesWithModTime
