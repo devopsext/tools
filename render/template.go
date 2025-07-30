@@ -2447,7 +2447,6 @@ func (tpl *Template) SSHRun(params map[string]interface{}) ([]byte, error) {
 	}
 
 	return response, nil
-
 }
 
 func (tpl *Template) ListFilesWithModTime(rootDir string) (map[string]string, error) {
@@ -2596,7 +2595,6 @@ func (tpl *Template) VMStop(params map[string]interface{}) ([]byte, error) {
 	}
 
 	return response, nil
-
 }
 
 func (tpl *Template) VMStart(params map[string]interface{}) ([]byte, error) {
@@ -2829,7 +2827,72 @@ func (tpl *Template) CatchpointInstantTest(params map[string]interface{}) ([]byt
 	summaryBytes, _ := json.Marshal(summary)
 
 	return summaryBytes, nil
+}
 
+func (tpl *Template) K8sResourceDelete(params map[string]interface{}) ([]byte, error) {
+
+	config, _ := params["config"].(string)
+	timeout, _ := params["timeout"].(int)
+	if timeout <= 0 {
+		timeout = 30
+	}
+
+	options := vendors.K8sOptions{
+		Config:  config,
+		Timeout: timeout,
+	}
+
+	k8s := vendors.NewK8s(options, tpl.logger)
+
+	kind, _ := params["kind"].(string)
+	namespace, _ := params["namespace"].(string)
+	name, _ := params["name"].(string)
+
+	deleteOptions := vendors.K8sResourceDeleteOptions{
+		K8sResourceOptions: vendors.K8sResourceOptions{
+			Kind:      kind,
+			Namespace: namespace,
+			Name:      name,
+		},
+	}
+
+	return k8s.CustomResourceDelete(options, deleteOptions)
+}
+
+func (tpl *Template) K8sResourceScale(params map[string]interface{}) ([]byte, error) {
+
+	config, _ := params["config"].(string)
+	timeout, _ := params["timeout"].(int)
+	if timeout <= 0 {
+		timeout = 30
+	}
+
+	options := vendors.K8sOptions{
+		Config:  config,
+		Timeout: timeout,
+	}
+
+	k8s := vendors.NewK8s(options, tpl.logger)
+
+	kind, _ := params["kind"].(string)
+	namespace, _ := params["namespace"].(string)
+	name, _ := params["name"].(string)
+
+	replicas, _ := params["replicas"].(int)
+	if replicas <= 0 {
+		replicas = 0
+	}
+
+	scaleOptions := vendors.K8sResourceScaleOptions{
+		K8sResourceOptions: vendors.K8sResourceOptions{
+			Kind:      kind,
+			Namespace: namespace,
+			Name:      name,
+		},
+		Replicas: replicas,
+	}
+
+	return k8s.CustomResourceScale(options, scaleOptions)
 }
 
 func (tpl *Template) setTemplateFuncs(funcs map[string]any) {
@@ -2951,6 +3014,9 @@ func (tpl *Template) setTemplateFuncs(funcs map[string]any) {
 	funcs["ldapGetGroupMember"] = tpl.LdapGetGroupMembers
 
 	funcs["prometheusGet"] = tpl.PrometheusGet
+
+	funcs["k8sResourceDelete"] = tpl.K8sResourceDelete
+	funcs["k8sResourceScale"] = tpl.K8sResourceScale
 }
 
 func (tpl *Template) filterFuncsByContent(funcs map[string]any, content string) map[string]any {
