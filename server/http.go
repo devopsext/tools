@@ -175,22 +175,28 @@ func (h *HttpServerCallProcessor) HandleRequest(w http.ResponseWriter, r *http.R
 
 			s, ok := v.(string)
 			if ok {
-				// try as json
-				var vn interface{}
-				err := json.Unmarshal([]byte(s), &vn)
+				// try as map[string]interface{}
+				var m map[string]interface{}
+				err := json.Unmarshal([]byte(s), &m)
 				if err == nil {
+					params = append(params, m)
+					continue
+				}
 
-					m, ok := vn.(map[string]interface{})
-					if ok {
-						params = append(params, m)
-						continue
-					}
+				// try as []string
+				var sa []string
+				err = json.Unmarshal([]byte(s), &sa)
+				if err == nil {
+					params = append(params, sa)
+					continue
+				}
 
-					a, ok := vn.([]interface{})
-					if ok {
-						params = append(params, a)
-						continue
-					}
+				// try as []interface{}
+				var ia []string
+				err = json.Unmarshal([]byte(s), &ia)
+				if err == nil {
+					params = append(params, ia)
+					continue
 				}
 			}
 

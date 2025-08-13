@@ -12,6 +12,8 @@ var k8sResourceOptions = vendors.K8sResourceOptions{
 	Name:      envGet("K8S_RESOURCE_NAME", "").(string),
 }
 
+var k8sResourceDescribeOptions = vendors.K8sResourceDescribeOptions{}
+
 var k8sResourceDeleteOptions = vendors.K8sResourceDeleteOptions{}
 
 var k8sResourceScaleOptions = vendors.K8sResourceScaleOptions{
@@ -55,6 +57,26 @@ func NewK8sCommand() *cobra.Command {
 	flags.StringVar(&k8sResourceOptions.Namespace, "k8s-resource-namespace", k8sResourceOptions.Namespace, "K8s Resource namespace")
 	flags.StringVar(&k8sResourceOptions.Name, "k8s-resource-name", k8sResourceOptions.Name, "K8s Resource name")
 	k8sCmd.AddCommand(resourceCmd)
+
+	resourceDescribeCmd := &cobra.Command{
+		Use:   "describe",
+		Short: "K8s Resource describe",
+		Run: func(cmd *cobra.Command, args []string) {
+
+			stdout.Debug("K8s resource describing...")
+
+			k8sResourceDescribeOptions.K8sResourceOptions = k8sResourceOptions
+			common.Debug("K8s", k8sResourceDescribeOptions, stdout)
+
+			bytes, err := k8sNew(stdout).ResourceDescribe(k8sResourceDescribeOptions)
+			if err != nil {
+				stdout.Error(err)
+				return
+			}
+			common.OutputJson(k8sOutput, "K8s", []interface{}{k8sOptions, k8sResourceDescribeOptions}, bytes, stdout)
+		},
+	}
+	resourceCmd.AddCommand(resourceDescribeCmd)
 
 	resourceDeleteCmd := &cobra.Command{
 		Use:   "delete",

@@ -14,6 +14,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"regexp"
 	"sort"
@@ -1351,10 +1352,21 @@ func (tpl *Template) HttpForm(params map[string]interface{}) ([]byte, error) {
 			continue
 		}
 
-		// encode array to json
-		a, ok := v.([]interface{})
+		// encode interface array to json
+		ia, ok := v.([]interface{})
 		if ok {
-			b, err := json.Marshal(a)
+			b, err := json.Marshal(ia)
+			if err != nil {
+				return nil, err
+			}
+			form.Add(k, string(b))
+			continue
+		}
+
+		// encode string array to json
+		sa, ok := v.([]string)
+		if ok {
+			b, err := json.Marshal(sa)
 			if err != nil {
 				return nil, err
 			}
@@ -2829,6 +2841,36 @@ func (tpl *Template) CatchpointInstantTest(params map[string]interface{}) ([]byt
 	return summaryBytes, nil
 }
 
+func (tpl *Template) K8sResourceDescribe(params map[string]interface{}) ([]byte, error) {
+
+	config, _ := params["config"].(string)
+	timeout, _ := params["timeout"].(int)
+	if timeout <= 0 {
+		timeout = 30
+	}
+
+	options := vendors.K8sOptions{
+		Config:  config,
+		Timeout: timeout,
+	}
+
+	k8s := vendors.NewK8s(options, tpl.logger)
+
+	kind, _ := params["kind"].(string)
+	namespace, _ := params["namespace"].(string)
+	name, _ := params["name"].(string)
+
+	describeOptions := vendors.K8sResourceDescribeOptions{
+		K8sResourceOptions: vendors.K8sResourceOptions{
+			Kind:      kind,
+			Namespace: namespace,
+			Name:      name,
+		},
+	}
+
+	return k8s.CustomResourceDescribe(options, describeOptions)
+}
+
 func (tpl *Template) K8sResourceDelete(params map[string]interface{}) ([]byte, error) {
 
 	config, _ := params["config"].(string)
@@ -2878,7 +2920,15 @@ func (tpl *Template) K8sResourceScale(params map[string]interface{}) ([]byte, er
 	namespace, _ := params["namespace"].(string)
 	name, _ := params["name"].(string)
 
-	replicas, _ := params["replicas"].(int)
+	replicas, ok := params["replicas"].(int)
+	if !ok {
+		replicasStr, ok := params["replicas"].(string)
+		if ok {
+			replicas, _ = strconv.Atoi(replicasStr)
+		} else {
+			replicas = 0
+		}
+	}
 	if replicas <= 0 {
 		replicas = 0
 	}
@@ -2893,6 +2943,59 @@ func (tpl *Template) K8sResourceScale(params map[string]interface{}) ([]byte, er
 	}
 
 	return k8s.CustomResourceScale(options, scaleOptions)
+}
+
+func (tpl *Template) DirCreate(path string, mode int) error {
+
+	m := mode
+	if m <= 0 {
+		m = 755
+	}
+
+	err := os.MkdirAll(path, os.FileMode(m))
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (tpl *Template) FileCreate(path, content string, mode int) error {
+
+	m := mode
+	if m <= 0 {
+		m = 644
+	}
+	err := os.MkdirAll(filepath.Dir(path), 0755)
+	if err != nil {
+		return err
+	}
+	err = os.WriteFile(path, []byte(content), os.FileMode(m))
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (tpl *Template) Exec(path string, timeout int, params []string) ([]byte, error) {
+
+	name := filepath.Base(path)
+	dir := filepath.Dir(path)
+
+	ctx := context.Background()
+	if timeout > 0 {
+		var cancel context.CancelFunc
+		ctx, cancel = context.WithTimeout(ctx, time.Duration(timeout)*time.Millisecond)
+		defer cancel()
+	}
+
+	cmd := exec.CommandContext(ctx, name, params...)
+	cmd.Dir = dir
+
+	r, err := cmd.CombinedOutput()
+	if err != nil {
+		return nil, fmt.Errorf("%s: %s", err, r)
+	}
+	return r, nil
 }
 
 func (tpl *Template) setTemplateFuncs(funcs map[string]any) {
@@ -2962,6 +3065,7 @@ func (tpl *Template) setTemplateFuncs(funcs map[string]any) {
 	funcs["uuid"] = tpl.UUID
 
 	funcs["stringList"] = tpl.StringList
+	funcs["strings"] = tpl.StringList
 	funcs["appendString"] = tpl.AppendString
 
 	funcs["intList"] = tpl.IntList
@@ -3015,8 +3119,13 @@ func (tpl *Template) setTemplateFuncs(funcs map[string]any) {
 
 	funcs["prometheusGet"] = tpl.PrometheusGet
 
+	funcs["k8sResourceDescribe"] = tpl.K8sResourceDescribe
 	funcs["k8sResourceDelete"] = tpl.K8sResourceDelete
 	funcs["k8sResourceScale"] = tpl.K8sResourceScale
+
+	funcs["dirCreate"] = tpl.DirCreate
+	funcs["fileCreate"] = tpl.FileCreate
+	funcs["exec"] = tpl.Exec
 }
 
 func (tpl *Template) filterFuncsByContent(funcs map[string]any, content string) map[string]any {

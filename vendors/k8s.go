@@ -21,6 +21,10 @@ type K8sResourceOptions struct {
 	Name      string
 }
 
+type K8sResourceDescribeOptions struct {
+	K8sResourceOptions
+}
+
 type K8sResourceDeleteOptions struct {
 	K8sResourceOptions
 }
@@ -51,9 +55,24 @@ const (
 
 func newK8sClient(options K8sOptions) (*kubernetes.Clientset, error) {
 
-	config, err := clientcmd.BuildConfigFromFlags("", options.Config)
-	if err != nil {
-		return nil, err
+	var config *rest.Config
+
+	if utils.FileExists(options.Config) {
+		c, err := clientcmd.BuildConfigFromFlags("", options.Config)
+		if err != nil {
+			return nil, err
+		}
+		config = c
+	} else {
+		ocf, err := clientcmd.NewClientConfigFromBytes([]byte(options.Config))
+		if err != nil {
+			return nil, err
+		}
+		c, err := ocf.ClientConfig()
+		if err != nil {
+			return nil, err
+		}
+		config = c
 	}
 
 	clientset, err := kubernetes.NewForConfig(config)
@@ -76,6 +95,45 @@ func (k *K8s) getClientCtx(options K8sOptions) (*kubernetes.Clientset, context.C
 
 	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(options.Timeout)*time.Second)
 	return clientset, ctx, cancel, nil
+}
+
+func (k *K8s) resourceDescribe(clientset *kubernetes.Clientset, ctx context.Context, describeOptions K8sResourceDescribeOptions) rest.Result {
+
+	opts := metav1.GetOptions{}
+
+	var rClient rest.Interface
+
+	switch describeOptions.Kind {
+	case K8sResourceDeployments:
+		rClient = clientset.AppsV1().RESTClient()
+	default:
+		rClient = clientset.CoreV1().RESTClient()
+	}
+
+	r := rClient.Get().
+		UseProtobufAsDefaultIfPreferred(false).
+		NamespaceIfScoped(describeOptions.Namespace, !utils.IsEmpty(describeOptions.Namespace)).
+		Resource(describeOptions.Kind).
+		Name(describeOptions.Name).
+		VersionedParams(&opts, scheme.ParameterCodec).
+		Do(ctx)
+
+	return r
+}
+
+func (k *K8s) CustomResourceDescribe(options K8sOptions, describeOptions K8sResourceDescribeOptions) ([]byte, error) {
+
+	clientset, ctx, cancel, err := k.getClientCtx(options)
+	if err != nil {
+		return nil, err
+	}
+	defer cancel()
+
+	return k.resourceDescribe(clientset, ctx, describeOptions).Raw()
+}
+
+func (k *K8s) ResourceDescribe(options K8sResourceDescribeOptions) ([]byte, error) {
+	return k.CustomResourceDescribe(k.options, options)
 }
 
 func (k *K8s) CustomResourceDelete(options K8sOptions, deleteOptions K8sResourceDeleteOptions) ([]byte, error) {
@@ -123,17 +181,11 @@ func (k *K8s) CustomResourceScale(options K8sOptions, scaleOptions K8sResourceSc
 	}
 	defer cancel()
 
-	getOpts := metav1.GetOptions{}
-	rClient := clientset.AppsV1().RESTClient()
+	describeOpts := K8sResourceDescribeOptions{
+		K8sResourceOptions: scaleOptions.K8sResourceOptions,
+	}
 
-	rGet := rClient.Get().
-		UseProtobufAsDefaultIfPreferred(false).
-		NamespaceIfScoped(scaleOptions.Namespace, !utils.IsEmpty(scaleOptions.Namespace)).
-		Resource(scaleOptions.Kind).
-		Name(scaleOptions.Name).
-		VersionedParams(&getOpts, scheme.ParameterCodec).
-		Do(ctx)
-
+	rGet := k.resourceDescribe(clientset, ctx, describeOpts)
 	err = rGet.Error()
 	if err != nil {
 		return rGet.Raw()
@@ -188,6 +240,8 @@ func (k *K8s) CustomResourceScale(options K8sOptions, scaleOptions K8sResourceSc
 	}
 
 	updateOpts := metav1.UpdateOptions{}
+	rClient := clientset.AppsV1().RESTClient()
+
 	rPut := rClient.Put().
 		UseProtobufAsDefaultIfPreferred(false).
 		NamespaceIfScoped(scaleOptions.Namespace, !utils.IsEmpty(scaleOptions.Namespace)).
