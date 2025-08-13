@@ -131,6 +131,10 @@ type GoogleCalendarOptions struct {
 	ID string
 }
 
+type GoogleDocsOptions struct {
+	ID string
+}
+
 type GoogleOptions struct {
 	Timeout           int
 	Insecure          bool
@@ -210,6 +214,7 @@ const (
 	googleCalendarDeleteEvent = "/calendars/%s/events/%s"
 	googleMeetURL             = "https://meet.google.com/%s"
 	googleMeetLabel           = "meet.google.com/%s"
+	googleDocsURL             = "https://www.googleapis.com/drive/v3"
 )
 
 // go to https://developers.google.com/oauthplayground
@@ -737,6 +742,27 @@ func (g *Google) CustomCreateMeetSpace(googleOptions GoogleOptions, meetOptions 
 
 func (g *Google) CreateMeetSpace(meetOptions GoogleMeetOptions) (*GoogleMeetSpaceResponse, error) {
 	return g.CustomCreateMeetSpace(g.options, meetOptions)
+}
+
+func (g *Google) DocsCopyDocument(calendarOptions GoogleDocsOptions) ([]byte, error) {
+	r, err := g.refreshToken(g.options)
+	if err != nil {
+		return nil, err
+	}
+	g.logger.Debug("Access token => %s", r.AccessToken)
+
+	params := make(url.Values)
+	params.Add("access_token", r.AccessToken)
+
+	u, err := url.Parse(googleDocsURL)
+	if err != nil {
+		return nil, err
+	}
+
+	u.Path = path.Join(u.Path, "files", calendarOptions.ID, "copy")
+	u.RawQuery = params.Encode()
+
+	return utils.HttpPostRawWithHeaders(g.client, u.String(), nil, nil)
 }
 
 func NewGoogle(options GoogleOptions, logger common.Logger) *Google {

@@ -2416,6 +2416,35 @@ func (tpl *Template) GoogleMeetCreateSpace(params map[string]interface{}) ([]byt
 	return json.Marshal(meetResponse)
 }
 
+func (tpl *Template) GoogleDocsCopyDocument(params map[string]interface{}) ([]byte, error) {
+
+	timeout, _ := params["timeout"].(int)
+	if timeout == 0 {
+		timeout = 10
+	}
+	insecure, _ := params["insecure"].(bool)
+	clientID, _ := params["clientID"].(string)
+	clientSecret, _ := params["clientSecret"].(string)
+	token, _ := params["token"].(string)
+
+	googleOptions := vendors.GoogleOptions{
+		Timeout:           timeout,
+		Insecure:          insecure,
+		OAuthClientID:     clientID,
+		OAuthClientSecret: clientSecret,
+		RefreshToken:      token,
+	}
+
+	google := vendors.NewGoogle(googleOptions, tpl.logger)
+
+	documentId, _ := params["documentId"].(string)
+	docsOptions := vendors.GoogleDocsOptions{
+		ID: documentId,
+	}
+
+	return google.DocsCopyDocument(docsOptions)
+}
+
 func (tpl *Template) SSHRun(params map[string]interface{}) ([]byte, error) {
 
 	user, _ := params["user"].(string)
@@ -3002,6 +3031,7 @@ func (tpl *Template) setTemplateFuncs(funcs map[string]any) {
 	funcs["googleCalendarInsertEvent"] = tpl.GoogleCalendarInsertEvent
 	funcs["googleCalendarDeleteEvents"] = tpl.GoogleCalendarDeleteEvents
 	funcs["googleMeetCreateSpace"] = tpl.GoogleMeetCreateSpace
+	funcs["googleDocsCopyDocument"] = tpl.GoogleDocsCopyDocument
 
 	funcs["sshRun"] = tpl.SSHRun
 	funcs["listFilesWithModTime"] = tpl.ListFilesWithModTime
