@@ -1336,10 +1336,6 @@ func (tpl *Template) HttpForm(params map[string]interface{}) ([]byte, error) {
 	form := url.Values{}
 	for k, v := range params {
 
-		if utils.IsEmpty(v) {
-			continue
-		}
-
 		// encode map to json
 		m, ok := v.(map[string]interface{})
 		if ok {
@@ -2959,6 +2955,20 @@ func (tpl *Template) DirCreate(path string, mode int) error {
 	return nil
 }
 
+func (tpl *Template) DirRemove(path string, recursive bool) error {
+
+	var err error
+	if recursive {
+		err = os.RemoveAll(path)
+	} else {
+		err = os.Remove(path)
+	}
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 func (tpl *Template) FileCreate(path, content string, mode int) error {
 
 	m := mode
@@ -3000,6 +3010,7 @@ func (tpl *Template) Exec(path string, timeout int, params []string) ([]byte, er
 
 func (tpl *Template) setTemplateFuncs(funcs map[string]any) {
 
+	funcs["error"] = tpl.Error
 	funcs["parserLine"] = tpl.ParserLine
 
 	funcs["logError"] = tpl.LogError
@@ -3124,6 +3135,7 @@ func (tpl *Template) setTemplateFuncs(funcs map[string]any) {
 	funcs["k8sResourceScale"] = tpl.K8sResourceScale
 
 	funcs["dirCreate"] = tpl.DirCreate
+	funcs["dirRemove"] = tpl.DirRemove
 	funcs["fileCreate"] = tpl.FileCreate
 	funcs["exec"] = tpl.Exec
 }

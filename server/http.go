@@ -94,10 +94,10 @@ func (h *HttpServerCallProcessor) Path() string {
 func (h *HttpServerCallProcessor) request2String(request *HttpServerCallRequest) string {
 
 	pkg := ""
-	if !utils.IsEmpty(request.Package) {
-		pkg = fmt.Sprintf(" package: %s", request.Package)
+	if !utils.IsEmpty(request.Package) && request.Package != "<nil>" {
+		pkg = fmt.Sprintf("package: %s ", request.Package)
 	}
-	return fmt.Sprintf("name: %s%s params: %d timeout: %d", request.Name, pkg, len(request.Params), request.Timeout)
+	return fmt.Sprintf("%sname: %s params: %d timeout: %d", pkg, request.Name, len(request.Params), request.Timeout)
 }
 
 func (h *HttpServerCallProcessor) replaceByRegex(s, key string) string {
@@ -168,10 +168,6 @@ func (h *HttpServerCallProcessor) HandleRequest(w http.ResponseWriter, r *http.R
 
 	if len(request.Params) > 0 {
 		for _, v := range request.Params {
-
-			if utils.IsEmpty(v) {
-				continue
-			}
 
 			s, ok := v.(string)
 			if ok {
