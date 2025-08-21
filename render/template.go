@@ -467,6 +467,15 @@ func (tpl *Template) FromJson(i interface{}) (interface{}, error) {
 	return r, nil
 }
 
+func (tpl *Template) TryFromJson(i interface{}) interface{} {
+
+	r, err := tpl.FromJson(i)
+	if err != nil {
+		return nil
+	}
+	return r
+}
+
 // toYaml converts the given structure into a deeply nested Yaml string.
 func (tpl *Template) ToYaml(i interface{}) (string, error) {
 
@@ -715,6 +724,20 @@ func (tpl *Template) IfIPAndPort(obj interface{}) bool {
 	return tpl.IfIP(s)
 }
 
+func (tpl *Template) Error(format string, a ...any) error {
+
+	err := fmt.Errorf(format, a...)
+	return err
+}
+
+func (tpl *Template) IfError(flag interface{}, format string, a ...any) (string, error) {
+
+	if !utils.IsEmpty(flag) {
+		return "", tpl.Error(format, a...)
+	}
+	return "", nil
+}
+
 func (tpl *Template) Content(s string) (string, error) {
 
 	if utils.IsEmpty(s) {
@@ -898,12 +921,6 @@ func (tpl *Template) Sleep(ms int) string {
 	return ""
 }
 
-func (tpl *Template) Error(format string, a ...any) (string, error) {
-
-	err := fmt.Errorf(format, a...)
-	return err.Error(), err
-}
-
 func (tpl *Template) UUID() string {
 
 	uuid := uuid.New()
@@ -1041,6 +1058,71 @@ func (tpl *Template) HttpGet(params map[string]interface{}) ([]byte, error) {
 		Transport: transport,
 	}
 	return utils.HttpGetRaw(&client, url, contentType, authorization)
+}
+
+func (tpl *Template) HttpGetSilent(params map[string]interface{}) ([]byte, error) {
+	if len(params) == 0 {
+		return nil, fmt.Errorf("HttpGetSilent err => %s", "no params allowed")
+	}
+
+	url, _ := params["url"].(string)
+	insecure, _ := params["insecure"].(bool)
+	timeout, ok := params["timeout"].(int)
+	if !ok || timeout <= 0 {
+		timeout = 5
+	}
+
+	headers := map[string]string{}
+	for key, value := range params {
+		if key == "url" || key == "timeout" || key == "insecure" {
+			continue
+		}
+		if strValue, ok := value.(string); ok {
+			headers[key] = strValue
+		}
+	}
+
+	clientCrt, _ := params["clientCrt"].(string)
+	clientKey, _ := params["clientKey"].(string)
+
+	var certs []tls.Certificate
+	if !utils.IsEmpty(clientCrt) && !utils.IsEmpty(clientKey) {
+		pair, err := tls.X509KeyPair([]byte(clientCrt), []byte(clientKey))
+		if err != nil {
+			return nil, err
+		}
+		certs = append(certs, pair)
+	}
+
+	var rootCAs *x509.CertPool
+	clientCA, _ := params["clientCA"].(string)
+	if !utils.IsEmpty(clientCA) {
+		rootCAs := x509.NewCertPool()
+		rootCAs.AppendCertsFromPEM([]byte(clientCA))
+	}
+
+	var transport = &http.Transport{
+		Dial:                (&net.Dialer{Timeout: time.Duration(timeout) * time.Second}).Dial,
+		TLSHandshakeTimeout: time.Duration(timeout) * time.Second,
+		TLSClientConfig: &tls.Config{
+			RootCAs:            rootCAs,
+			Certificates:       certs,
+			InsecureSkipVerify: insecure,
+		},
+	}
+
+	client := http.Client{
+		Timeout:   time.Duration(timeout) * time.Second,
+		Transport: transport,
+	}
+
+	body, code, err := utils.HttpRequestRawWithHeadersOutCodeSilent(&client, "GET", url, headers, nil)
+
+	if err != nil {
+		return nil, fmt.Errorf("HttpGetSilent err => HTTP status %d, error: %v", code, err)
+	}
+
+	return body, nil
 }
 
 func (tpl *Template) HttpGetExt(params map[string]interface{}) HTTPResult {
@@ -1199,6 +1281,15 @@ func (tpl *Template) HttpPost(params map[string]interface{}) ([]byte, error) {
 		Transport: transport,
 	}
 	return utils.HttpPostRaw(&client, url, contentType, authorization, body)
+}
+
+func (tpl *Template) TryHttpPost(params map[string]interface{}) []byte {
+
+	r, err := tpl.HttpPost(params)
+	if err != nil {
+		return nil
+	}
+	return r
 }
 
 func (tpl *Template) HttpPut(params map[string]interface{}) ([]byte, error) {
@@ -3010,7 +3101,6 @@ func (tpl *Template) Exec(path string, timeout int, params []string) ([]byte, er
 
 func (tpl *Template) setTemplateFuncs(funcs map[string]any) {
 
-	funcs["error"] = tpl.Error
 	funcs["parserLine"] = tpl.ParserLine
 
 	funcs["logError"] = tpl.LogError
@@ -3041,6 +3131,7 @@ func (tpl *Template) setTemplateFuncs(funcs map[string]any) {
 	funcs["toJSON"] = tpl.ToJson // deprecated
 	funcs["toJson"] = tpl.ToJson
 	funcs["fromJson"] = tpl.FromJson
+	funcs["tryFromJson"] = tpl.TryFromJson
 	funcs["toYaml"] = tpl.ToYaml
 	funcs["toYml"] = tpl.ToYaml
 	funcs["fromYaml"] = tpl.FromYaml
@@ -3059,10 +3150,15 @@ func (tpl *Template) setTemplateFuncs(funcs map[string]any) {
 	funcs["unescapeString"] = tpl.UnescapeString
 	funcs["jsonata"] = tpl.Jsonata
 	funcs["gjson"] = tpl.Gjson
+
 	funcs["ifDef"] = tpl.IfDef
 	funcs["ifElse"] = tpl.IfElse
 	funcs["ifIP"] = tpl.IfIP
 	funcs["ifIPAndPort"] = tpl.IfIPAndPort
+
+	funcs["error"] = tpl.Error
+	funcs["ifError"] = tpl.IfError
+
 	funcs["content"] = tpl.Content
 	funcs["urlWait"] = tpl.URLWait
 	funcs["gitlabPipelineVars"] = tpl.GitlabPipelineVars
@@ -3089,6 +3185,7 @@ func (tpl *Template) setTemplateFuncs(funcs map[string]any) {
 	funcs["httpGetExt"] = tpl.HttpGetExt
 	funcs["httpGetSilent"] = tpl.HttpGetSilent
 	funcs["httpPost"] = tpl.HttpPost
+	funcs["tryHttpPost"] = tpl.TryHttpPost
 	funcs["httpPut"] = tpl.HttpPut
 	funcs["httpPatch"] = tpl.HttpPatch
 	funcs["httpForm"] = tpl.HttpForm
@@ -3313,69 +3410,4 @@ func NewHtmlTemplate(options TemplateOptions, logger common.Logger) (*HtmlTempla
 	tpl.options = options
 	tpl.logger = logger
 	return &tpl, nil
-}
-
-func (tpl *Template) HttpGetSilent(params map[string]interface{}) ([]byte, error) {
-	if len(params) == 0 {
-		return nil, fmt.Errorf("HttpGetSilent err => %s", "no params allowed")
-	}
-
-	url, _ := params["url"].(string)
-	insecure, _ := params["insecure"].(bool)
-	timeout, ok := params["timeout"].(int)
-	if !ok || timeout <= 0 {
-		timeout = 5
-	}
-
-	headers := map[string]string{}
-	for key, value := range params {
-		if key == "url" || key == "timeout" || key == "insecure" {
-			continue
-		}
-		if strValue, ok := value.(string); ok {
-			headers[key] = strValue
-		}
-	}
-
-	clientCrt, _ := params["clientCrt"].(string)
-	clientKey, _ := params["clientKey"].(string)
-
-	var certs []tls.Certificate
-	if !utils.IsEmpty(clientCrt) && !utils.IsEmpty(clientKey) {
-		pair, err := tls.X509KeyPair([]byte(clientCrt), []byte(clientKey))
-		if err != nil {
-			return nil, err
-		}
-		certs = append(certs, pair)
-	}
-
-	var rootCAs *x509.CertPool
-	clientCA, _ := params["clientCA"].(string)
-	if !utils.IsEmpty(clientCA) {
-		rootCAs := x509.NewCertPool()
-		rootCAs.AppendCertsFromPEM([]byte(clientCA))
-	}
-
-	var transport = &http.Transport{
-		Dial:                (&net.Dialer{Timeout: time.Duration(timeout) * time.Second}).Dial,
-		TLSHandshakeTimeout: time.Duration(timeout) * time.Second,
-		TLSClientConfig: &tls.Config{
-			RootCAs:            rootCAs,
-			Certificates:       certs,
-			InsecureSkipVerify: insecure,
-		},
-	}
-
-	client := http.Client{
-		Timeout:   time.Duration(timeout) * time.Second,
-		Transport: transport,
-	}
-
-	body, code, err := utils.HttpRequestRawWithHeadersOutCodeSilent(&client, "GET", url, headers, nil)
-
-	if err != nil {
-		return nil, fmt.Errorf("HttpGetSilent err => HTTP status %d, error: %v", code, err)
-	}
-
-	return body, nil
 }
