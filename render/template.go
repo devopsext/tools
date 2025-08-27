@@ -2525,6 +2525,7 @@ func (tpl *Template) GoogleDocsCopyDocument(params map[string]interface{}) ([]by
 	clientID, _ := params["clientID"].(string)
 	clientSecret, _ := params["clientSecret"].(string)
 	token, _ := params["token"].(string)
+	domain, _ := params["domain"].(string)
 
 	googleOptions := vendors.GoogleOptions{
 		Timeout:           timeout,
@@ -2538,7 +2539,8 @@ func (tpl *Template) GoogleDocsCopyDocument(params map[string]interface{}) ([]by
 
 	documentId, _ := params["documentId"].(string)
 	docsOptions := vendors.GoogleDocsOptions{
-		ID: documentId,
+		ID:     documentId,
+		Domain: domain,
 	}
 
 	return google.DocsCopyDocument(docsOptions)
