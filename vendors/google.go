@@ -132,7 +132,8 @@ type GoogleCalendarOptions struct {
 }
 
 type GoogleDocsOptions struct {
-	ID string
+	ID     string
+	Domain string
 }
 
 type GoogleOptions struct {
@@ -744,7 +745,7 @@ func (g *Google) CreateMeetSpace(meetOptions GoogleMeetOptions) (*GoogleMeetSpac
 	return g.CustomCreateMeetSpace(g.options, meetOptions)
 }
 
-func (g *Google) DocsCopyDocument(calendarOptions GoogleDocsOptions) ([]byte, error) {
+func (g *Google) DocsCopyDocument(docOptions GoogleDocsOptions) ([]byte, error) {
 	r, err := g.refreshToken(g.options)
 	if err != nil {
 		return nil, err
@@ -754,15 +755,62 @@ func (g *Google) DocsCopyDocument(calendarOptions GoogleDocsOptions) ([]byte, er
 	params := make(url.Values)
 	params.Add("access_token", r.AccessToken)
 
-	u, err := url.Parse(googleDocsURL)
+	copyURL, err := url.Parse(googleDocsURL)
 	if err != nil {
 		return nil, err
 	}
 
-	u.Path = path.Join(u.Path, "files", calendarOptions.ID, "copy")
-	u.RawQuery = params.Encode()
+	copyURL.Path = path.Join(copyURL.Path, "files", docOptions.ID, "copy")
+	copyURL.RawQuery = params.Encode()
 
-	return utils.HttpPostRawWithHeaders(g.client, u.String(), nil, nil)
+	copyResponseBytes, err := utils.HttpPostRawWithHeaders(g.client, copyURL.String(), nil, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	var copyResponse struct {
+		ID string `json:"id"`
+	} //local struct (for now)
+	if err := json.Unmarshal(copyResponseBytes, &copyResponse); err != nil {
+		return nil, err
+	}
+
+	newFileID := copyResponse.ID
+	if newFileID == "" {
+		return nil, err
+	}
+
+	if !utils.IsEmpty(docOptions.Domain) {
+
+		permissionURL, err := url.Parse(googleDocsURL)
+		if err != nil {
+			return nil, err
+		}
+		permissionURL.Path = path.Join(permissionURL.Path, "files", newFileID, "permissions")
+		permissionURL.RawQuery = params.Encode()
+
+		permissionBody := map[string]string{
+			"role":   "writer",
+			"type":   "domain",
+			"domain": docOptions.Domain,
+		}
+
+		permissionBodyBytes, err := json.Marshal(permissionBody)
+		if err != nil {
+			return nil, err
+		}
+
+		headers := map[string]string{
+			"Content-Type": "application/json",
+		}
+
+		_, err = utils.HttpPostRawWithHeaders(g.client, permissionURL.String(), headers, permissionBodyBytes)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return copyResponseBytes, nil
 }
 
 func NewGoogle(options GoogleOptions, logger common.Logger) *Google {
