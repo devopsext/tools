@@ -2,25 +2,39 @@ package vendors
 
 import (
 	"encoding/json"
-	"log"
 	"net/http"
 	"net/http/httptest"
-	"os"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 // Mock server that returns a fixed response
 func setupNetboxMockServer() *httptest.Server {
+	// Hardcoded JSON response that matches the NetxboxAPIResponse structure
+	mockResponse := `{
+		"count": 2,
+		"next": null,
+		"previous": null,
+		"results": [
+			{
+				"id": 11,
+				"name": "device-11",
+				"display": "Device 11"
+			},
+			{
+				"id": 12,
+				"name": "device-12",
+				"display": "Device 12"
+			}
+		]
+	}`
+
 	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		// Respond with a fixed JSON response or appropriate logic to simulate a Netbox server
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
-		// You need to add a test netbox_test.json with multiple devices
-		jsonData, err := os.ReadFile("netbox_test.json")
-		if err != nil {
-			log.Fatal(err)
-		}
-		w.Write(jsonData) // Simplified response
+		w.Write([]byte(mockResponse))
 	})
 	return httptest.NewServer(handler)
 }
@@ -30,16 +44,16 @@ func BenchmarkCustomGetDevices(b *testing.B) {
 	server := setupNetboxMockServer()
 	defer server.Close()
 
-	// Assume Netbox and related structs are defined elsewhere
+	// Create Netbox client with mock server
 	netbox := &Netbox{
-		client: server.Client(), // Use the mock server's client
+		client: server.Client(),
 		options: NetboxOptions{
-			URL: server.URL, // Use the mock server's URL
+			URL: server.URL,
 		},
 	}
 
 	netboxDeviceOptions := NetboxDeviceOptions{
-		// Fill with appropriate zero values or test cases
+		// Empty options for this test
 	}
 
 	b.ResetTimer()
@@ -52,42 +66,59 @@ func BenchmarkCustomGetDevices(b *testing.B) {
 }
 
 func TestCustomGetDevices(t *testing.T) {
-	// Setup the mock server
-	server := setupNetboxMockServer()
-	defer server.Close()
-
-	// Mock netbox with a fake client
-	// Assume Netbox and related structs are defined elsewhere
-	netbox := &Netbox{
-		client: server.Client(), // Use the mock server's client
-		options: NetboxOptions{
-			URL: server.URL, // Use the mock server's URL
+	// Define test cases
+	tests := []struct {
+		name                string
+		deviceID            string
+		expectedDeviceCount int
+		expectedFirstID     int
+		expectedSecondID    int
+	}{
+		{
+			name:                "Get all devices",
+			deviceID:            "",
+			expectedDeviceCount: 2,
+			expectedFirstID:     11,
+			expectedSecondID:    12,
 		},
 	}
 
-	options := NetboxOptions{
-		URL: server.URL,
-	}
-	netboxDeviceOptions := NetboxDeviceOptions{
-		DeviceID: "",
-	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// Setup the mock server
+			server := setupNetboxMockServer()
+			defer server.Close()
 
-	got, err := netbox.CustomGetDevices(options, netboxDeviceOptions)
-	if err != nil {
-		t.Fatalf("CustomGetDevices returned an error: %v", err)
-	}
+			// Create Netbox client with mock server
+			netbox := &Netbox{
+				client: server.Client(),
+				options: NetboxOptions{
+					URL: server.URL,
+				},
+			}
 
-	var data []NetboxDevice
+			options := NetboxOptions{
+				URL: server.URL,
+			}
+			netboxDeviceOptions := NetboxDeviceOptions{
+				DeviceID: tt.deviceID,
+			}
 
-	json.Unmarshal(got, &data)
-	if err != nil {
-		t.Fatalf("CustomGetDevices returned an error: %v", err)
-	}
+			// Call the function being tested
+			got, err := netbox.CustomGetDevices(options, netboxDeviceOptions)
 
-	if data[0].ID != 11 {
-		t.Errorf("CustomGetDevices returned ID for the first device = %d, want %d", data[0].ID, 11)
-	}
-	if data[1].ID != 12 {
-		t.Errorf("CustomGetDevices  returned ID for the first device = %d, want %d", data[0].ID, 12)
+			// Assert no error occurred
+			require.NoError(t, err, "CustomGetDevices should not return an error")
+
+			// Unmarshal the response
+			var data []NetboxDevice
+			err = json.Unmarshal(got, &data)
+			require.NoError(t, err, "Failed to unmarshal response")
+
+			// Assert the expected results
+			assert.Equal(t, tt.expectedDeviceCount, len(data), "Unexpected number of devices")
+			assert.Equal(t, tt.expectedFirstID, data[0].ID, "First device has unexpected ID")
+			assert.Equal(t, tt.expectedSecondID, data[1].ID, "Second device has unexpected ID")
+		})
 	}
 }

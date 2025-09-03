@@ -1,6 +1,8 @@
 package cmd
 
 import (
+	"encoding/json"
+
 	"github.com/devopsext/tools/common"
 	"github.com/devopsext/tools/vendors"
 	"github.com/spf13/cobra"
@@ -12,6 +14,8 @@ var googleOptions = vendors.GoogleOptions{
 	OAuthClientID:     envGet("GOOGLE_OAUTH_CLIENT_ID", "").(string),
 	OAuthClientSecret: envGet("GOOGLE_OAUTH_CLIENT_SECRET", "").(string),
 	RefreshToken:      envGet("GOOGLE_REFRESH_TOKEN", "").(string),
+	ServiceAccountKey: envGet("GOOGLE_SERVICE_ACCOUNT_KEY", "").(string),
+	ImpersonateEmail:  envGet("GOOGLE_IMPERSONATE_EMAIL", "").(string),
 }
 
 var googleCalendarOptions = vendors.GoogleCalendarOptions{
@@ -45,6 +49,10 @@ var googleCalendarDeleteEventOptions = vendors.GoogleCalendarDeleteEventOptions{
 	ID: envGet("GOOGLE_CALENDAR_EVENT_ID", "").(string),
 }
 
+var googleMeetOptions = vendors.GoogleMeetOptions{
+	AccessType: envGet("GOOGLE_MEET_ACCESS_TYPE", "TRUSTED").(string),
+}
+
 type GoogleCalendarInsertEventOptions struct {
 	SupportsAttachments bool
 	SourceTitle         string
@@ -76,9 +84,12 @@ func NewGoogleCommand() *cobra.Command {
 	flags.StringVar(&googleOptions.OAuthClientID, "google-oauth-client-id", googleOptions.OAuthClientID, "Google OAuth client id")
 	flags.StringVar(&googleOptions.OAuthClientSecret, "google-oauth-client-secret", googleOptions.OAuthClientSecret, "Google OAuth client secret")
 	flags.StringVar(&googleOptions.RefreshToken, "google-refresh-token", googleOptions.RefreshToken, "Google refresh token")
+	flags.StringVar(&googleOptions.ServiceAccountKey, "google-service-account-key", googleOptions.ServiceAccountKey, "Google service account key (JSON string or file path)")
+	flags.StringVar(&googleOptions.ImpersonateEmail, "google-impersonate-email", googleOptions.ImpersonateEmail, "Google impersonate email for domain-wide delegation")
 	flags.StringVar(&googleOutput.Output, "google-output", googleOutput.Output, "Google output")
 	flags.StringVar(&googleOutput.Query, "google-output-query", googleOutput.Query, "Google output query")
 
+	// Calendar commands
 	calendarCmd := &cobra.Command{
 		Use:   "calendar",
 		Short: "Calendar methods",
@@ -86,6 +97,41 @@ func NewGoogleCommand() *cobra.Command {
 	flags = calendarCmd.PersistentFlags()
 	flags.StringVar(&googleCalendarOptions.ID, "google-calendar-id", googleCalendarOptions.ID, "Google calendar id")
 	googleCmd.AddCommand(calendarCmd)
+
+	// Meet commands
+	meetCmd := &cobra.Command{
+		Use:   "meet",
+		Short: "Google Meet methods",
+	}
+	flags = meetCmd.PersistentFlags()
+	flags.StringVar(&googleMeetOptions.AccessType, "google-meet-access-type", googleMeetOptions.AccessType, "Google Meet access type (TRUSTED for org-only, OPEN for public)")
+	googleCmd.AddCommand(meetCmd)
+
+	meetCreateSpaceCmd := &cobra.Command{
+		Use:   "create-space",
+		Short: "Create Google Meet space",
+		Run: func(cmd *cobra.Command, args []string) {
+
+			stdout.Debug("Google Meet creating space...")
+			common.Debug("Google", googleMeetOptions, stdout)
+
+			meetResponse, err := googleNew(stdout).CreateMeetSpace(googleMeetOptions)
+			if err != nil {
+				stdout.Error("CreateMeetSpace error: %s", err)
+				return
+			}
+
+			// Convert response to bytes for output
+			bytes, err := json.Marshal(meetResponse)
+			if err != nil {
+				stdout.Error("JSON marshal error: %s", err)
+				return
+			}
+
+			common.OutputJson(googleOutput, "Google", []interface{}{googleOptions, googleMeetOptions}, bytes, stdout)
+		},
+	}
+	meetCmd.AddCommand(meetCreateSpaceCmd)
 
 	calendarGetEventsCmd := &cobra.Command{
 		Use:   "get-events",

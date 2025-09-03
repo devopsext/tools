@@ -94,10 +94,10 @@ func (h *HttpServerCallProcessor) Path() string {
 func (h *HttpServerCallProcessor) request2String(request *HttpServerCallRequest) string {
 
 	pkg := ""
-	if !utils.IsEmpty(request.Package) {
-		pkg = fmt.Sprintf(" package: %s", request.Package)
+	if !utils.IsEmpty(request.Package) && request.Package != "<nil>" {
+		pkg = fmt.Sprintf("package: %s ", request.Package)
 	}
-	return fmt.Sprintf("name: %s%s params: %d timeout: %d", request.Name, pkg, len(request.Params), request.Timeout)
+	return fmt.Sprintf("%sname: %s params: %d timeout: %d", pkg, request.Name, len(request.Params), request.Timeout)
 }
 
 func (h *HttpServerCallProcessor) replaceByRegex(s, key string) string {
@@ -169,28 +169,30 @@ func (h *HttpServerCallProcessor) HandleRequest(w http.ResponseWriter, r *http.R
 	if len(request.Params) > 0 {
 		for _, v := range request.Params {
 
-			if utils.IsEmpty(v) {
-				continue
-			}
-
 			s, ok := v.(string)
 			if ok {
-				// try as json
-				var vn interface{}
-				err := json.Unmarshal([]byte(s), &vn)
+				// try as map[string]interface{}
+				var m map[string]interface{}
+				err := json.Unmarshal([]byte(s), &m)
 				if err == nil {
+					params = append(params, m)
+					continue
+				}
 
-					m, ok := vn.(map[string]interface{})
-					if ok {
-						params = append(params, m)
-						continue
-					}
+				// try as []string
+				var sa []string
+				err = json.Unmarshal([]byte(s), &sa)
+				if err == nil {
+					params = append(params, sa)
+					continue
+				}
 
-					a, ok := vn.([]interface{})
-					if ok {
-						params = append(params, a)
-						continue
-					}
+				// try as []interface{}
+				var ia []string
+				err = json.Unmarshal([]byte(s), &ia)
+				if err == nil {
+					params = append(params, ia)
+					continue
 				}
 			}
 

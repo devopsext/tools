@@ -82,7 +82,7 @@ func prepare(message string, args ...interface{}) string {
 
 func (so *Stdout) exists(level logrus.Level, obj interface{}, args ...interface{}) (bool, string) {
 
-	if obj == nil {
+	if so == nil || so.log == nil || obj == nil {
 		return false, ""
 	}
 

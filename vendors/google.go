@@ -2,7 +2,14 @@ package vendors
 
 import (
 	"bytes"
+	"crypto"
+	"crypto/rand"
+	"crypto/rsa"
+	"crypto/sha256"
+	"crypto/x509"
+	"encoding/base64"
 	"encoding/json"
+	"encoding/pem"
 	"errors"
 	"fmt"
 	"mime/multipart"
@@ -10,6 +17,8 @@ import (
 	"net/url"
 	"path"
 	"strconv"
+	"strings"
+	"time"
 
 	"github.com/devopsext/tools/common"
 	"github.com/devopsext/utils"
@@ -122,12 +131,19 @@ type GoogleCalendarOptions struct {
 	ID string
 }
 
+type GoogleDocsOptions struct {
+	ID     string
+	Domain string
+}
+
 type GoogleOptions struct {
 	Timeout           int
 	Insecure          bool
 	OAuthClientID     string
 	OAuthClientSecret string
 	RefreshToken      string
+	ServiceAccountKey string
+	ImpersonateEmail  string
 }
 
 type GoogleTokenReponse struct {
@@ -143,13 +159,63 @@ type Google struct {
 	logger  common.Logger
 }
 
+type GoogleMeetSpaceConfig struct {
+	AccessType string `json:"accessType"`
+}
+
+type GoogleMeetSpaceRequest struct {
+	Config GoogleMeetSpaceConfig `json:"config"`
+}
+
+type GoogleMeetSpaceResponse struct {
+	Name        string `json:"name"`
+	MeetingUri  string `json:"meetingUri"`
+	MeetingCode string `json:"meetingCode"`
+}
+
+type GoogleMeetOptions struct {
+	AccessType string
+}
+
+// Service Account JSON structure
+type GoogleServiceAccount struct {
+	Type                    string `json:"type"`
+	ProjectID               string `json:"project_id"`
+	PrivateKeyID            string `json:"private_key_id"`
+	PrivateKey              string `json:"private_key"`
+	ClientEmail             string `json:"client_email"`
+	ClientID                string `json:"client_id"`
+	AuthURI                 string `json:"auth_uri"`
+	TokenURI                string `json:"token_uri"`
+	AuthProviderX509CertURL string `json:"auth_provider_x509_cert_url"`
+	ClientX509CertURL       string `json:"client_x509_cert_url"`
+}
+
+// JWT Claims for service account
+type GoogleJWTClaims struct {
+	Iss   string `json:"iss"`   // service account email
+	Sub   string `json:"sub"`   // impersonation email (for domain-wide delegation)
+	Scope string `json:"scope"` // required scopes
+	Aud   string `json:"aud"`   // token endpoint
+	Exp   int64  `json:"exp"`   // expiration time
+	Iat   int64  `json:"iat"`   // issued at time
+}
+
+// JWT Header
+type GoogleJWTHeader struct {
+	Alg string `json:"alg"`
+	Typ string `json:"typ"`
+}
+
 const (
 	googleOAuthURL            = "https://oauth2.googleapis.com"
 	googleCalendarURL         = "https://www.googleapis.com/calendar/v3"
+	googleMeetAPIURL          = "https://meet.googleapis.com/v2"
 	googleCalendarEvents      = "/calendars/%s/events"
 	googleCalendarDeleteEvent = "/calendars/%s/events/%s"
 	googleMeetURL             = "https://meet.google.com/%s"
 	googleMeetLabel           = "meet.google.com/%s"
+	googleDocsURL             = "https://www.googleapis.com/drive/v3"
 )
 
 // go to https://developers.google.com/oauthplayground
@@ -207,6 +273,193 @@ func (g *Google) refreshToken(opts GoogleOptions) (*GoogleTokenReponse, error) {
 		return nil, err
 	}
 	return &r, nil
+}
+
+// Service account authentication with domain-wide delegation
+func (g *Google) getServiceAccountToken(opts GoogleOptions) (string, error) {
+	if utils.IsEmpty(opts.ServiceAccountKey) {
+		return "", errors.New("service account key is required")
+	}
+
+	// Parse service account JSON
+	var serviceAccount GoogleServiceAccount
+	if strings.TrimSpace(opts.ServiceAccountKey)[0] == '{' {
+		// JSON string
+		err := json.Unmarshal([]byte(opts.ServiceAccountKey), &serviceAccount)
+		if err != nil {
+			return "", fmt.Errorf("failed to parse service account JSON: %v", err)
+		}
+	} else {
+		// File path - read file
+		data, err := utils.Content(opts.ServiceAccountKey)
+		if err != nil {
+			return "", fmt.Errorf("failed to read service account file: %v", err)
+		}
+		err = json.Unmarshal(data, &serviceAccount)
+		if err != nil {
+			return "", fmt.Errorf("failed to parse service account file: %v", err)
+		}
+	}
+
+	g.logger.Debug("Service account loaded: %s", serviceAccount.ClientEmail)
+
+	// Create JWT
+	jwt, err := g.createServiceAccountJWT(serviceAccount, opts.ImpersonateEmail)
+	if err != nil {
+		return "", fmt.Errorf("failed to create JWT: %v", err)
+	}
+
+	g.logger.Debug("JWT created successfully")
+
+	// Exchange JWT for access token
+	token, err := g.exchangeJWTForToken(jwt, serviceAccount.TokenURI)
+	if err != nil {
+		return "", fmt.Errorf("failed to exchange JWT for token: %v", err)
+	}
+
+	g.logger.Debug("Access token obtained successfully")
+	return token, nil
+}
+
+// Create and sign JWT for service account
+func (g *Google) createServiceAccountJWT(serviceAccount GoogleServiceAccount, impersonateEmail string) (string, error) {
+	// JWT Header
+	header := GoogleJWTHeader{
+		Alg: "RS256",
+		Typ: "JWT",
+	}
+
+	headerJSON, err := json.Marshal(header)
+	if err != nil {
+		return "", err
+	}
+	headerEncoded := base64.RawURLEncoding.EncodeToString(headerJSON)
+
+	// JWT Claims
+	now := time.Now()
+	claims := GoogleJWTClaims{
+		Iss:   serviceAccount.ClientEmail,
+		Scope: "https://www.googleapis.com/auth/meetings.space.created",
+		Aud:   serviceAccount.TokenURI,
+		Exp:   now.Add(time.Hour).Unix(),
+		Iat:   now.Unix(),
+	}
+
+	// Add impersonation for domain-wide delegation
+	if !utils.IsEmpty(impersonateEmail) {
+		claims.Sub = impersonateEmail
+		g.logger.Debug("Impersonating user: %s", impersonateEmail)
+	}
+
+	claimsJSON, err := json.Marshal(claims)
+	if err != nil {
+		return "", err
+	}
+	claimsEncoded := base64.RawURLEncoding.EncodeToString(claimsJSON)
+
+	// Create signature
+	message := headerEncoded + "." + claimsEncoded
+	signature, err := g.signJWT(message, serviceAccount.PrivateKey)
+	if err != nil {
+		return "", err
+	}
+
+	// Complete JWT
+	jwt := message + "." + signature
+	return jwt, nil
+}
+
+// Sign JWT using RSA-SHA256
+func (g *Google) signJWT(message, privateKeyPEM string) (string, error) {
+	// Parse private key
+	block, _ := pem.Decode([]byte(privateKeyPEM))
+	if block == nil {
+		return "", errors.New("failed to decode PEM block containing private key")
+	}
+
+	var privateKey *rsa.PrivateKey
+	var err error
+
+	// Try PKCS#1 format first, then PKCS#8
+	if block.Type == "RSA PRIVATE KEY" {
+		privateKey, err = x509.ParsePKCS1PrivateKey(block.Bytes)
+	} else if block.Type == "PRIVATE KEY" {
+		key, err := x509.ParsePKCS8PrivateKey(block.Bytes)
+		if err != nil {
+			return "", err
+		}
+		var ok bool
+		privateKey, ok = key.(*rsa.PrivateKey)
+		if !ok {
+			return "", errors.New("not an RSA private key")
+		}
+	} else {
+		return "", fmt.Errorf("unsupported key type: %s", block.Type)
+	}
+
+	if err != nil {
+		return "", err
+	}
+
+	// Sign the message
+	hashed := sha256.Sum256([]byte(message))
+	signature, err := rsa.SignPKCS1v15(rand.Reader, privateKey, crypto.SHA256, hashed[:])
+	if err != nil {
+		return "", err
+	}
+
+	return base64.RawURLEncoding.EncodeToString(signature), nil
+}
+
+// Exchange JWT for access token
+func (g *Google) exchangeJWTForToken(jwt, tokenURI string) (string, error) {
+	// Prepare form data
+	data := url.Values{}
+	data.Set("grant_type", "urn:ietf:params:oauth:grant-type:jwt-bearer")
+	data.Set("assertion", jwt)
+
+	// Make request
+	resp, err := g.client.Post(tokenURI, "application/x-www-form-urlencoded", strings.NewReader(data.Encode()))
+	if err != nil {
+		return "", err
+	}
+	defer resp.Body.Close()
+
+	// Parse response
+	var tokenResponse GoogleTokenReponse
+	err = json.NewDecoder(resp.Body).Decode(&tokenResponse)
+	if err != nil {
+		return "", err
+	}
+
+	if resp.StatusCode != 200 {
+		return "", fmt.Errorf("token exchange failed: %d - %s", resp.StatusCode, tokenResponse.AccessToken)
+	}
+
+	if utils.IsEmpty(tokenResponse.AccessToken) {
+		return "", errors.New("no access token received")
+	}
+
+	return tokenResponse.AccessToken, nil
+}
+
+// Get access token using either OAuth refresh or service account
+func (g *Google) getAccessToken(opts GoogleOptions) (string, error) {
+	// Try service account first if configured
+	if !utils.IsEmpty(opts.ServiceAccountKey) {
+		return g.getServiceAccountToken(opts)
+	}
+
+	// Fall back to OAuth refresh token
+	if !utils.IsEmpty(opts.RefreshToken) {
+		r, err := g.refreshToken(opts)
+		if err != nil {
+			return "", err
+		}
+		return r.AccessToken, nil
+	}
+
+	return "", errors.New("no authentication method configured. Need either service account key or OAuth refresh token")
 }
 
 // https://developers.google.com/calendar/api/v3/reference/events/get
@@ -435,6 +688,129 @@ func (g *Google) CustomCalendarDeleteEvents(googleOptions GoogleOptions, calenda
 
 func (g *Google) CalendarDeleteEvents(calendarOptions GoogleCalendarOptions, calendarGetEventsOptions GoogleCalendarGetEventsOptions) ([]byte, error) {
 	return g.CustomCalendarDeleteEvents(g.options, calendarOptions, calendarGetEventsOptions)
+}
+
+// Google Meet REST API methods
+
+func (g *Google) createMeetSpace(token string, meetOptions GoogleMeetOptions) ([]byte, error) {
+
+	requestData := GoogleMeetSpaceRequest{
+		Config: GoogleMeetSpaceConfig{
+			AccessType: meetOptions.AccessType, // "TRUSTED" for org-only
+		},
+	}
+
+	data, err := json.Marshal(requestData)
+	if err != nil {
+		return nil, err
+	}
+
+	headers := map[string]string{
+		"Authorization": fmt.Sprintf("Bearer %s", token),
+		"Content-Type":  "application/json",
+	}
+
+	u, err := url.Parse(googleMeetAPIURL)
+	if err != nil {
+		return nil, err
+	}
+	u.Path = path.Join(u.Path, "/spaces")
+
+	return utils.HttpPostRawWithHeaders(g.client, u.String(), headers, data)
+}
+
+func (g *Google) CustomCreateMeetSpace(googleOptions GoogleOptions, meetOptions GoogleMeetOptions) (*GoogleMeetSpaceResponse, error) {
+
+	accessToken, err := g.getAccessToken(googleOptions)
+	if err != nil {
+		return nil, err
+	}
+	g.logger.Debug("Access token obtained successfully (length: %d chars)", len(accessToken))
+
+	responseBytes, err := g.createMeetSpace(accessToken, meetOptions)
+	if err != nil {
+		return nil, err
+	}
+
+	var meetResponse GoogleMeetSpaceResponse
+	err = json.Unmarshal(responseBytes, &meetResponse)
+	if err != nil {
+		return nil, err
+	}
+
+	return &meetResponse, nil
+}
+
+func (g *Google) CreateMeetSpace(meetOptions GoogleMeetOptions) (*GoogleMeetSpaceResponse, error) {
+	return g.CustomCreateMeetSpace(g.options, meetOptions)
+}
+
+func (g *Google) DocsCopyDocument(docOptions GoogleDocsOptions) ([]byte, error) {
+	r, err := g.refreshToken(g.options)
+	if err != nil {
+		return nil, err
+	}
+	g.logger.Debug("Access token => %s", r.AccessToken)
+
+	params := make(url.Values)
+	params.Add("access_token", r.AccessToken)
+
+	copyURL, err := url.Parse(googleDocsURL)
+	if err != nil {
+		return nil, err
+	}
+
+	copyURL.Path = path.Join(copyURL.Path, "files", docOptions.ID, "copy")
+	copyURL.RawQuery = params.Encode()
+
+	copyResponseBytes, err := utils.HttpPostRawWithHeaders(g.client, copyURL.String(), nil, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	var copyResponse struct {
+		ID string `json:"id"`
+	} //local struct (for now)
+	if err := json.Unmarshal(copyResponseBytes, &copyResponse); err != nil {
+		return nil, err
+	}
+
+	newFileID := copyResponse.ID
+	if newFileID == "" {
+		return nil, err
+	}
+
+	if !utils.IsEmpty(docOptions.Domain) {
+
+		permissionURL, err := url.Parse(googleDocsURL)
+		if err != nil {
+			return nil, err
+		}
+		permissionURL.Path = path.Join(permissionURL.Path, "files", newFileID, "permissions")
+		permissionURL.RawQuery = params.Encode()
+
+		permissionBody := map[string]string{
+			"role":   "writer",
+			"type":   "domain",
+			"domain": docOptions.Domain,
+		}
+
+		permissionBodyBytes, err := json.Marshal(permissionBody)
+		if err != nil {
+			return nil, err
+		}
+
+		headers := map[string]string{
+			"Content-Type": "application/json",
+		}
+
+		_, err = utils.HttpPostRawWithHeaders(g.client, permissionURL.String(), headers, permissionBodyBytes)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return copyResponseBytes, nil
 }
 
 func NewGoogle(options GoogleOptions, logger common.Logger) *Google {

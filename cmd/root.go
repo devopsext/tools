@@ -95,6 +95,7 @@ func Execute() {
 	rootCmd.AddCommand(NewVirusTotalCommand())
 	rootCmd.AddCommand(NewCryptoCommand())
 	rootCmd.AddCommand(NewNetboxCommand())
+	rootCmd.AddCommand(NewK8sCommand())
 
 	rootCmd.AddCommand(NewTemplateCommand())
 	rootCmd.AddCommand(NewDateCommand())
