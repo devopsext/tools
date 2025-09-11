@@ -96,6 +96,7 @@ func Execute() {
 	rootCmd.AddCommand(NewCryptoCommand())
 	rootCmd.AddCommand(NewNetboxCommand())
 	rootCmd.AddCommand(NewK8sCommand())
+	rootCmd.AddCommand(NewTeleportCommand())
 
 	rootCmd.AddCommand(NewTemplateCommand())
 	rootCmd.AddCommand(NewDateCommand())
