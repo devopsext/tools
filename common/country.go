@@ -277,6 +277,7 @@ func init() {
 	countries["Vanuatu"] = NewCountryWithAliases("VU", []string{"VUT", "548"})
 	countries["Venezuela, Bolivarian Republic of"] = NewCountryWithAliases("VE", []string{"VEN", "862"})
 	countries["Vietnam"] = NewCountryWithAliases("VN", []string{"VNM", "704"})
+	countries["Viet Nam"] = NewCountryWithAliases("VN", []string{"VNM", "704"})
 	countries["Virgin Islands, British"] = NewCountryWithAliases("VG", []string{"VGB", "092"})
 	countries["Virgin Islands, U.S."] = NewCountryWithAliases("VI", []string{"VIR", "850"})
 	countries["Wallis and Futuna"] = NewCountryWithAliases("WF", []string{"WLF", "876"})
