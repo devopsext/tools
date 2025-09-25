@@ -1292,6 +1292,15 @@ func (tpl *Template) TryHttpPost(params map[string]interface{}) []byte {
 	return r
 }
 
+func (tpl *Template) TryHttpGet(params map[string]interface{}) []byte {
+
+	r, err := tpl.HttpGet(params)
+	if err != nil {
+		return nil
+	}
+	return r
+}
+
 func (tpl *Template) HttpPut(params map[string]interface{}) ([]byte, error) {
 	if len(params) == 0 {
 		return nil, fmt.Errorf("HttpPut err => %s", "no params allowed")
@@ -3213,6 +3222,7 @@ func (tpl *Template) setTemplateFuncs(funcs map[string]any) {
 
 	funcs["httpGetHeader"] = tpl.HttpGetHeader
 	funcs["httpGet"] = tpl.HttpGet
+	funcs["tryHttpGet"] = tpl.TryHttpGet
 	funcs["httpGetExt"] = tpl.HttpGetExt
 	funcs["httpGetSilent"] = tpl.HttpGetSilent
 	funcs["httpPost"] = tpl.HttpPost
