@@ -3063,12 +3063,8 @@ func (tpl *Template) paramAsInt(param interface{}, def int) int {
 	}
 	value, ok := param.(int)
 	if !ok {
-		valueStr, ok := param.(string)
-		if ok {
-			value, _ = strconv.Atoi(valueStr)
-		} else {
-			value = 0
-		}
+		valueStr := fmt.Sprintf("%v", param)
+		value, _ = strconv.Atoi(valueStr)
 	}
 	if utils.IsEmpty(param) {
 		return def
@@ -3310,6 +3306,7 @@ func (tpl *Template) setTemplateFuncs(funcs map[string]any) {
 	funcs["k8sResourceDescribe"] = tpl.K8sResourceDescribe
 	funcs["k8sResourceDelete"] = tpl.K8sResourceDelete
 	funcs["k8sResourceScale"] = tpl.K8sResourceScale
+	funcs["k8sResourceRestart"] = tpl.K8sResourceRestart
 
 	funcs["dirCreate"] = tpl.DirCreate
 	funcs["dirRemove"] = tpl.DirRemove
