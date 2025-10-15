@@ -77,12 +77,13 @@ type GrafanaDahboardOptions struct {
 }
 
 type GrafanaLibraryElementOptions struct {
-	Name     string
-	UID      string
-	FolderID int
-	Kind     string
-	SaveUID  bool
-	Cloned   GrafanaClonedLibraryElementOptions
+	Name      string
+	UID       string
+	FolderUID string
+	FolderID  int
+	Kind      string
+	SaveUID   bool
+	Cloned    GrafanaClonedLibraryElementOptions
 }
 
 type GrafanaFolderOptions struct {
@@ -91,15 +92,16 @@ type GrafanaFolderOptions struct {
 }
 
 type GrafanaClonedLibraryElementOptions struct {
-	URL      string
-	Timeout  int
-	Insecure bool
-	APIKey   string
-	OrgID    string
-	Name     string
-	UID      string
-	FolderID int
-	Kind     string
+	URL       string
+	Timeout   int
+	Insecure  bool
+	APIKey    string
+	OrgID     string
+	Name      string
+	UID       string
+	FolderUID string
+	FolderID  int
+	Kind      string
 }
 
 type GrafanaOptions struct {
@@ -156,6 +158,7 @@ type GrafanaLibraryElement struct {
 	ID          int                       `json:"id,omitempty"`
 	OrgID       int                       `json:"orgId,omitempty"`
 	FolderID    int                       `json:"folderId,omitempty"`
+	FolderUID   string                    `json:"folderUid,omitempty"`
 	UID         string                    `json:"uid,omitempty"`
 	Name        string                    `json:"name,omitempty"`
 	Kind        int                       `json:"kind,omitempty"`
@@ -374,7 +377,10 @@ func (g *Grafana) CustomSearchLibraryElements(grafanaOptions GrafanaOptions, gra
 
 	var params = make(url.Values)
 
-	if !utils.IsEmpty(grafanaLibraryElementOptions.FolderID) {
+	switch {
+	case !utils.IsEmpty(grafanaLibraryElementOptions.FolderUID):
+		params.Add("folderFilter", grafanaLibraryElementOptions.FolderUID)
+	case grafanaLibraryElementOptions.FolderID != 0:
 		params.Add("folderFilter", strconv.Itoa(grafanaLibraryElementOptions.FolderID))
 	}
 
@@ -504,6 +510,7 @@ func (g Grafana) CustomCopyLibraryElement(grafanaOptions GrafanaOptions, grafana
 	newlibElement.Name = copyLibraryElement.Name
 	newlibElement.Kind = copyLibraryElement.Kind
 	newlibElement.FolderID = copyLibraryElement.FolderID
+	newlibElement.FolderUID = copyLibraryElement.FolderUID
 	newlibElement.Model = copyLibraryElement.Model
 
 	if grafanaLibraryElementOptions.SaveUID {
@@ -513,8 +520,13 @@ func (g Grafana) CustomCopyLibraryElement(grafanaOptions GrafanaOptions, grafana
 	if !utils.IsEmpty(grafanaLibraryElementOptions.Name) {
 		newlibElement.Name = grafanaLibraryElementOptions.Name
 	}
-	if !utils.IsEmpty(grafanaLibraryElementOptions.FolderID) {
+	if !utils.IsEmpty(grafanaLibraryElementOptions.FolderUID) {
+		newlibElement.FolderUID = grafanaLibraryElementOptions.FolderUID
+		newlibElement.FolderID = 0 // Clear FolderID when using FolderUID
+	}
+	if grafanaLibraryElementOptions.FolderID != 0 {
 		newlibElement.FolderID = grafanaLibraryElementOptions.FolderID
+		newlibElement.FolderUID = "" // Clear FolderUID when using FolderID
 	}
 	if !utils.IsEmpty(grafanaLibraryElementOptions.UID) {
 		newlibElement.UID = grafanaLibraryElementOptions.UID
