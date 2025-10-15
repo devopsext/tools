@@ -17,7 +17,7 @@ var grafanaOptions = vendors.GrafanaOptions{
 	OrgID:    envGet("GRAFANA_ORG_ID", "1").(string),
 }
 
-var grafanaDashboardOptions = vendors.GrafanaDahboardOptions{
+var grafanaDashboardOptions = vendors.GrafanaDashboardOptions{
 	Title:     envGet("GRAFANA_DASHBOARD_TITLE", "").(string),
 	UID:       envGet("GRAFANA_DASHBOARD_UID", "").(string),
 	Slug:      envGet("GRAFANA_DASHBOARD_SLUG", "").(string),
@@ -29,7 +29,7 @@ var grafanaDashboardOptions = vendors.GrafanaDahboardOptions{
 	To:        envGet("GRAFANA_DASHBOARD_TO", "now").(string),
 	SaveUID:   envGet("GRAFANA_DASHBOARD_SAVE_UID", true).(bool),
 	Overwrite: envGet("GRAFANA_DASHBOARD_OVERWRITE", false).(bool),
-	Cloned: vendors.GrafanaClonedDahboardOptions{
+	Cloned: vendors.GrafanaClonedDashboardOptions{
 		URL:         envGet("GRAFANA_DASHBOARD_CLONED_URL", "").(string),
 		Timeout:     envGet("GRAFANA_DASHBOARD_CLONED_TIMEOUT", 30).(int),
 		Insecure:    envGet("GRAFANA_DASHBOARD_CLONED_INSECURE", false).(bool),

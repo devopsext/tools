@@ -41,7 +41,7 @@ type GrafanaCreateAnnotationOptions struct {
 	Text    string
 }
 
-type GrafanaClonedDahboardOptions struct {
+type GrafanaClonedDashboardOptions struct {
 	URL         string
 	Timeout     int
 	Insecure    bool
@@ -61,7 +61,7 @@ type GrafanaClonedDahboardOptions struct {
 	Height      int
 }
 
-type GrafanaDahboardOptions struct {
+type GrafanaDashboardOptions struct {
 	Title     string
 	UID       string
 	Slug      string
@@ -73,7 +73,7 @@ type GrafanaDahboardOptions struct {
 	To        string
 	SaveUID   bool
 	Overwrite bool
-	Cloned    GrafanaClonedDahboardOptions
+	Cloned    GrafanaClonedDashboardOptions
 }
 
 type GrafanaLibraryElementOptions struct {
@@ -228,7 +228,7 @@ func (g *Grafana) getAuth(options GrafanaOptions) string {
 	return auth
 }
 
-func (g *Grafana) CustomRenderImage(grafanaOptions GrafanaOptions, grafanaDashboardOptions GrafanaDahboardOptions, renderImageOptions GrafanaRenderImageOptions) ([]byte, error) {
+func (g *Grafana) CustomRenderImage(grafanaOptions GrafanaOptions, grafanaDashboardOptions GrafanaDashboardOptions, renderImageOptions GrafanaRenderImageOptions) ([]byte, error) {
 
 	u, err := url.Parse(grafanaOptions.URL)
 	if err != nil {
@@ -261,7 +261,7 @@ func (g *Grafana) CustomRenderImage(grafanaOptions GrafanaOptions, grafanaDashbo
 	return utils.HttpGetRaw(g.client, u.String(), "", g.getAuth(grafanaOptions))
 }
 
-func (g *Grafana) RenderImage(dashboardOptions GrafanaDahboardOptions, renderOptions GrafanaRenderImageOptions) ([]byte, error) {
+func (g *Grafana) RenderImage(dashboardOptions GrafanaDashboardOptions, renderOptions GrafanaRenderImageOptions) ([]byte, error) {
 	return g.CustomRenderImage(g.options, dashboardOptions, renderOptions)
 }
 
@@ -291,7 +291,7 @@ func (g *Grafana) GetLibraryElement(libraryElementOptions GrafanaLibraryElementO
 	return g.CustomGetLibraryElement(g.options, libraryElementOptions)
 }
 
-func (g *Grafana) CustomGetDashboards(grafanaOptions GrafanaOptions, grafanaDashboardOptions GrafanaDahboardOptions) ([]byte, error) {
+func (g *Grafana) CustomGetDashboards(grafanaOptions GrafanaOptions, grafanaDashboardOptions GrafanaDashboardOptions) ([]byte, error) {
 	u, err := url.Parse(grafanaOptions.URL)
 	if err != nil {
 		return nil, err
@@ -301,7 +301,7 @@ func (g *Grafana) CustomGetDashboards(grafanaOptions GrafanaOptions, grafanaDash
 	return utils.HttpGetRaw(g.client, u.String(), "", g.getAuth(grafanaOptions))
 }
 
-func (g *Grafana) GetDashboards(dashboardOptions GrafanaDahboardOptions) ([]byte, error) {
+func (g *Grafana) GetDashboards(dashboardOptions GrafanaDashboardOptions) ([]byte, error) {
 	return g.CustomGetDashboards(g.options, dashboardOptions)
 }
 
@@ -325,7 +325,7 @@ func (g *Grafana) GetFolder(folderOptions GrafanaFolderOptions) ([]byte, error) 
 	return g.CustomGetFolder(g.options, folderOptions)
 }
 
-func (g *Grafana) CustomDeleteDashboards(grafanaOptions GrafanaOptions, grafanaDashboardOptions GrafanaDahboardOptions) ([]byte, error) {
+func (g *Grafana) CustomDeleteDashboards(grafanaOptions GrafanaOptions, grafanaDashboardOptions GrafanaDashboardOptions) ([]byte, error) {
 	u, err := url.Parse(grafanaOptions.URL)
 	if err != nil {
 		return nil, err
@@ -335,11 +335,11 @@ func (g *Grafana) CustomDeleteDashboards(grafanaOptions GrafanaOptions, grafanaD
 	return utils.HttpDeleteRaw(g.client, u.String(), "application/json", g.getAuth(grafanaOptions), []byte{})
 }
 
-func (g *Grafana) DeleteDashboards(dashboardOptions GrafanaDahboardOptions) ([]byte, error) {
+func (g *Grafana) DeleteDashboards(dashboardOptions GrafanaDashboardOptions) ([]byte, error) {
 	return g.CustomDeleteDashboards(g.options, dashboardOptions)
 }
 
-func (g *Grafana) CustomSearchDashboards(grafanaOptions GrafanaOptions, grafanaDashboardOptions GrafanaDahboardOptions) ([]byte, error) {
+func (g *Grafana) CustomSearchDashboards(grafanaOptions GrafanaOptions, grafanaDashboardOptions GrafanaDashboardOptions) ([]byte, error) {
 	u, err := url.Parse(grafanaOptions.URL)
 	if err != nil {
 		return nil, err
@@ -363,7 +363,7 @@ func (g *Grafana) CustomSearchDashboards(grafanaOptions GrafanaOptions, grafanaD
 	return utils.HttpGetRaw(g.client, u.String(), "", g.getAuth(grafanaOptions))
 }
 
-func (g *Grafana) SearchDashboards(dashboardOptions GrafanaDahboardOptions) ([]byte, error) {
+func (g *Grafana) SearchDashboards(dashboardOptions GrafanaDashboardOptions) ([]byte, error) {
 	return g.CustomSearchDashboards(g.options, dashboardOptions)
 }
 
@@ -405,7 +405,7 @@ func (g *Grafana) SearchLibraryElements(libraryElementOptions GrafanaLibraryElem
 	return g.CustomSearchLibraryElements(g.options, libraryElementOptions)
 }
 
-func (g Grafana) CustomCopyDashboard(grafanaOptions GrafanaOptions, grafanaDashboardOptions GrafanaDahboardOptions) ([]byte, error) {
+func (g Grafana) CustomCopyDashboard(grafanaOptions GrafanaOptions, grafanaDashboardOptions GrafanaDashboardOptions) ([]byte, error) {
 	u, err := url.Parse(grafanaOptions.URL)
 	if err != nil {
 		return nil, err
@@ -469,7 +469,7 @@ func (g Grafana) CustomCopyDashboard(grafanaOptions GrafanaOptions, grafanaDashb
 	return utils.HttpPostRaw(g.client, u.String(), "application/json", g.getAuth(grafanaOptions), b)
 }
 
-func (g *Grafana) CopyDashboard(grafanaCreateOptions GrafanaDahboardOptions) ([]byte, error) {
+func (g *Grafana) CopyDashboard(grafanaCreateOptions GrafanaDashboardOptions) ([]byte, error) {
 	return g.CustomCopyDashboard(g.options, grafanaCreateOptions)
 }
 
@@ -597,7 +597,7 @@ func (g *Grafana) CreateAnnotation(options GrafanaCreateAnnotationOptions) ([]by
 	return g.CustomCreateAnnotation(g.options, options)
 }
 
-func (g *Grafana) CustomGetAnnotations(grafanaOptions GrafanaOptions, grafanaDashboardOptions GrafanaDahboardOptions, getAnnotationsOptions GrafanaGetAnnotationsOptions) ([]byte, error) {
+func (g *Grafana) CustomGetAnnotations(grafanaOptions GrafanaOptions, grafanaDashboardOptions GrafanaDashboardOptions, getAnnotationsOptions GrafanaGetAnnotationsOptions) ([]byte, error) {
 	u, err := url.Parse(grafanaOptions.URL)
 	if err != nil {
 		return nil, err
@@ -644,7 +644,7 @@ func (g *Grafana) CustomGetAnnotations(grafanaOptions GrafanaOptions, grafanaDas
 	return utils.HttpGetRaw(g.client, u.String(), "", g.getAuth(grafanaOptions))
 }
 
-func (g *Grafana) GetAnnotations(dashboardOptions GrafanaDahboardOptions, annotationsOptions GrafanaGetAnnotationsOptions) ([]byte, error) {
+func (g *Grafana) GetAnnotations(dashboardOptions GrafanaDashboardOptions, annotationsOptions GrafanaGetAnnotationsOptions) ([]byte, error) {
 	return g.CustomGetAnnotations(g.options, dashboardOptions, annotationsOptions)
 }
 
@@ -779,7 +779,7 @@ func (g Grafana) findPanelsByTitle(source *[]interface{}, title string, pms *[]m
 	}
 }
 
-func (g Grafana) copyPanels(source, dest *[]interface{}, clonedDashboardOptions GrafanaClonedDahboardOptions) {
+func (g Grafana) copyPanels(source, dest *[]interface{}, clonedDashboardOptions GrafanaClonedDashboardOptions) {
 
 	if len(*source) <= 0 {
 		return
@@ -852,7 +852,7 @@ func (g Grafana) copyPanels(source, dest *[]interface{}, clonedDashboardOptions 
 	}
 }
 
-func (g Grafana) arrangePanels(panels *[]interface{}, clonedDashboardOptions GrafanaClonedDahboardOptions) {
+func (g Grafana) arrangePanels(panels *[]interface{}, clonedDashboardOptions GrafanaClonedDashboardOptions) {
 
 	if len(*panels) <= 0 {
 		return
@@ -899,7 +899,7 @@ func (g Grafana) arrangePanels(panels *[]interface{}, clonedDashboardOptions Gra
 	}
 }
 
-func (g Grafana) CustomCreateDashboard(grafanaOptions GrafanaOptions, createDashboardOptions GrafanaDahboardOptions) ([]byte, error) {
+func (g Grafana) CustomCreateDashboard(grafanaOptions GrafanaOptions, createDashboardOptions GrafanaDashboardOptions) ([]byte, error) {
 
 	u, err := url.Parse(grafanaOptions.URL)
 	if err != nil {
@@ -959,7 +959,7 @@ func (g Grafana) CustomCreateDashboard(grafanaOptions GrafanaOptions, createDash
 	return utils.HttpPostRaw(g.client, u.String(), "application/json", g.getAuth(grafanaOptions), b)
 }
 
-func (g *Grafana) CreateDashboard(options GrafanaDahboardOptions) ([]byte, error) {
+func (g *Grafana) CreateDashboard(options GrafanaDashboardOptions) ([]byte, error) {
 	return g.CustomCreateDashboard(g.options, options)
 }
 

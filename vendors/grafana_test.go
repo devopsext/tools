@@ -319,7 +319,7 @@ func TestGrafana_CustomGetDashboards(t *testing.T) {
 		OrgID:  mockOrgID,
 	})
 
-	dashboardOptions := GrafanaDahboardOptions{
+	dashboardOptions := GrafanaDashboardOptions{
 		UID: mockDashboardUID,
 	}
 
@@ -344,7 +344,7 @@ func TestGrafana_GetDashboards(t *testing.T) {
 		OrgID:  mockOrgID,
 	})
 
-	dashboardOptions := GrafanaDahboardOptions{
+	dashboardOptions := GrafanaDashboardOptions{
 		UID: mockDashboardUID,
 	}
 
@@ -368,7 +368,7 @@ func TestGrafana_CustomSearchDashboards(t *testing.T) {
 		OrgID:  mockOrgID,
 	})
 
-	dashboardOptions := GrafanaDahboardOptions{
+	dashboardOptions := GrafanaDashboardOptions{
 		FolderUID: mockFolderUID,
 	}
 
@@ -393,7 +393,7 @@ func TestGrafana_SearchDashboards(t *testing.T) {
 		OrgID:  mockOrgID,
 	})
 
-	dashboardOptions := GrafanaDahboardOptions{
+	dashboardOptions := GrafanaDashboardOptions{
 		FolderUID: mockFolderUID,
 	}
 
@@ -412,7 +412,7 @@ func TestGrafana_CustomDeleteDashboards(t *testing.T) {
 		OrgID:  mockOrgID,
 	})
 
-	dashboardOptions := GrafanaDahboardOptions{
+	dashboardOptions := GrafanaDashboardOptions{
 		UID: mockDashboardUID,
 	}
 
@@ -436,7 +436,7 @@ func TestGrafana_DeleteDashboards(t *testing.T) {
 		OrgID:  mockOrgID,
 	})
 
-	dashboardOptions := GrafanaDahboardOptions{
+	dashboardOptions := GrafanaDashboardOptions{
 		UID: mockDashboardUID,
 	}
 
@@ -455,10 +455,10 @@ func TestGrafana_CustomCopyDashboard(t *testing.T) {
 		OrgID:  mockOrgID,
 	})
 
-	dashboardOptions := GrafanaDahboardOptions{
+	dashboardOptions := GrafanaDashboardOptions{
 		Title:     "Copied Dashboard",
 		FolderUID: mockFolderUID,
-		Cloned: GrafanaClonedDahboardOptions{
+		Cloned: GrafanaClonedDashboardOptions{
 			URL:    server.URL,
 			APIKey: mockAPIKey,
 			UID:    mockDashboardUID,
@@ -485,10 +485,10 @@ func TestGrafana_CopyDashboard(t *testing.T) {
 		OrgID:  mockOrgID,
 	})
 
-	dashboardOptions := GrafanaDahboardOptions{
+	dashboardOptions := GrafanaDashboardOptions{
 		Title:     "Copied Dashboard",
 		FolderUID: mockFolderUID,
-		Cloned: GrafanaClonedDahboardOptions{
+		Cloned: GrafanaClonedDashboardOptions{
 			URL:    server.URL,
 			APIKey: mockAPIKey,
 			UID:    mockDashboardUID,
@@ -510,14 +510,14 @@ func TestGrafana_CustomCreateDashboard(t *testing.T) {
 		OrgID:  mockOrgID,
 	})
 
-	dashboardOptions := GrafanaDahboardOptions{
+	dashboardOptions := GrafanaDashboardOptions{
 		Title:     "New Dashboard",
 		FolderUID: mockFolderUID,
 		Tags:      []string{"test", "new"},
 		Timezone:  "UTC",
 		From:      "now-1h",
 		To:        "now",
-		Cloned: GrafanaClonedDahboardOptions{
+		Cloned: GrafanaClonedDashboardOptions{
 			URL:    server.URL,
 			APIKey: mockAPIKey,
 			UID:    mockDashboardUID,
@@ -544,11 +544,11 @@ func TestGrafana_CreateDashboard(t *testing.T) {
 		OrgID:  mockOrgID,
 	})
 
-	dashboardOptions := GrafanaDahboardOptions{
+	dashboardOptions := GrafanaDashboardOptions{
 		Title:     "New Dashboard",
 		FolderUID: mockFolderUID,
 		Tags:      []string{"test", "new"},
-		Cloned: GrafanaClonedDahboardOptions{
+		Cloned: GrafanaClonedDashboardOptions{
 			URL:    server.URL,
 			APIKey: mockAPIKey,
 			UID:    mockDashboardUID,
@@ -789,7 +789,7 @@ func TestGrafana_CustomGetAnnotations(t *testing.T) {
 		OrgID:  mockOrgID,
 	})
 
-	dashboardOptions := GrafanaDahboardOptions{
+	dashboardOptions := GrafanaDashboardOptions{
 		Timezone: "UTC",
 	}
 
@@ -821,7 +821,7 @@ func TestGrafana_GetAnnotations(t *testing.T) {
 		OrgID:  mockOrgID,
 	})
 
-	dashboardOptions := GrafanaDahboardOptions{
+	dashboardOptions := GrafanaDashboardOptions{
 		Timezone: "UTC",
 	}
 
@@ -898,7 +898,7 @@ func TestGrafana_CustomRenderImage(t *testing.T) {
 		OrgID:  mockOrgID,
 	})
 
-	dashboardOptions := GrafanaDahboardOptions{
+	dashboardOptions := GrafanaDashboardOptions{
 		UID:      mockDashboardUID,
 		Slug:     "test-dashboard",
 		Timezone: "UTC",
@@ -933,7 +933,7 @@ func TestGrafana_RenderImage(t *testing.T) {
 		OrgID:  mockOrgID,
 	})
 
-	dashboardOptions := GrafanaDahboardOptions{
+	dashboardOptions := GrafanaDashboardOptions{
 		UID:      mockDashboardUID,
 		Slug:     "test-dashboard",
 		Timezone: "UTC",
@@ -962,7 +962,7 @@ func TestGrafana_AuthenticationRequired(t *testing.T) {
 		OrgID: mockOrgID,
 	})
 
-	dashboardOptions := GrafanaDahboardOptions{
+	dashboardOptions := GrafanaDashboardOptions{
 		UID: mockDashboardUID,
 	}
 
@@ -984,7 +984,7 @@ func TestGrafana_FolderUIDPriority(t *testing.T) {
 	})
 
 	t.Run("Dashboard search prioritizes FolderUID over FolderID", func(t *testing.T) {
-		dashboardOptions := GrafanaDahboardOptions{
+		dashboardOptions := GrafanaDashboardOptions{
 			FolderUID: mockFolderUID,
 			FolderID:  999, // This should be ignored
 		}
@@ -1019,7 +1019,7 @@ func TestGrafana_ErrorHandling(t *testing.T) {
 		OrgID:  mockOrgID,
 	})
 
-	dashboardOptions := GrafanaDahboardOptions{
+	dashboardOptions := GrafanaDashboardOptions{
 		UID: mockDashboardUID,
 	}
 

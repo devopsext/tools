@@ -1963,7 +1963,7 @@ func (tpl *Template) GrafanaCreateDashboard(params map[string]interface{}) ([]by
 		OrgID:    orgID,
 	}
 
-	grafanaCreateDashboardOptions := vendors.GrafanaDahboardOptions{
+	grafanaCreateDashboardOptions := vendors.GrafanaDashboardOptions{
 		Title:     title,
 		UID:       dUID,
 		Slug:      dSlug,
@@ -1972,7 +1972,7 @@ func (tpl *Template) GrafanaCreateDashboard(params map[string]interface{}) ([]by
 		Tags:      tags,
 		From:      from,
 		To:        to,
-		Cloned: vendors.GrafanaClonedDahboardOptions{
+		Cloned: vendors.GrafanaClonedDashboardOptions{
 			UID:         clonedUID,
 			PanelIDs:    cpanelIDs,
 			PanelTitles: ptitles,
@@ -2025,7 +2025,7 @@ func (tpl *Template) GrafanaCopyDashboard(params map[string]interface{}) ([]byte
 		OrgID:    orgID,
 	}
 
-	grafanaCopyDashboardOptions := vendors.GrafanaDahboardOptions{
+	grafanaCopyDashboardOptions := vendors.GrafanaDashboardOptions{
 		Title:     title,
 		UID:       dUID,
 		Slug:      dSlug,
@@ -2034,7 +2034,7 @@ func (tpl *Template) GrafanaCopyDashboard(params map[string]interface{}) ([]byte
 		Tags:      tags,
 		From:      from,
 		To:        to,
-		Cloned: vendors.GrafanaClonedDahboardOptions{
+		Cloned: vendors.GrafanaClonedDashboardOptions{
 			UID: clonedUID,
 		},
 	}
