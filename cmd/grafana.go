@@ -17,7 +17,7 @@ var grafanaOptions = vendors.GrafanaOptions{
 	OrgID:    envGet("GRAFANA_ORG_ID", "1").(string),
 }
 
-var grafanaDashboardOptions = vendors.GrafanaDahboardOptions{
+var grafanaDashboardOptions = vendors.GrafanaDashboardOptions{
 	Title:     envGet("GRAFANA_DASHBOARD_TITLE", "").(string),
 	UID:       envGet("GRAFANA_DASHBOARD_UID", "").(string),
 	Slug:      envGet("GRAFANA_DASHBOARD_SLUG", "").(string),
@@ -29,7 +29,7 @@ var grafanaDashboardOptions = vendors.GrafanaDahboardOptions{
 	To:        envGet("GRAFANA_DASHBOARD_TO", "now").(string),
 	SaveUID:   envGet("GRAFANA_DASHBOARD_SAVE_UID", true).(bool),
 	Overwrite: envGet("GRAFANA_DASHBOARD_OVERWRITE", false).(bool),
-	Cloned: vendors.GrafanaClonedDahboardOptions{
+	Cloned: vendors.GrafanaClonedDashboardOptions{
 		URL:         envGet("GRAFANA_DASHBOARD_CLONED_URL", "").(string),
 		Timeout:     envGet("GRAFANA_DASHBOARD_CLONED_TIMEOUT", 30).(int),
 		Insecure:    envGet("GRAFANA_DASHBOARD_CLONED_INSECURE", false).(bool),
@@ -51,21 +51,23 @@ var grafanaDashboardOptions = vendors.GrafanaDahboardOptions{
 }
 
 var grafanaLibraryElementOptions = vendors.GrafanaLibraryElementOptions{
-	Name:     envGet("GRAFANA_LIBRARY_ELEMENT_TITLE", "").(string),
-	UID:      envGet("GRAFANA_LIBRARY_ELEMENT_UID", "").(string),
-	FolderID: envGet("GRAFANA_LIBRARY_ELEMENT_FOLDER_ID", 0).(int),
-	Kind:     envGet("GRAFANA_LIBRARY_ELEMENT_KIND", "1").(string),
-	SaveUID:  envGet("GRAFANA_LIBRARY_ELEMENT_SAVE_UID", true).(bool),
+	Name:      envGet("GRAFANA_LIBRARY_ELEMENT_TITLE", "").(string),
+	UID:       envGet("GRAFANA_LIBRARY_ELEMENT_UID", "").(string),
+	FolderUID: envGet("GRAFANA_LIBRARY_ELEMENT_FOLDER_UID", "").(string),
+	FolderID:  envGet("GRAFANA_LIBRARY_ELEMENT_FOLDER_ID", 0).(int),
+	Kind:      envGet("GRAFANA_LIBRARY_ELEMENT_KIND", "1").(string),
+	SaveUID:   envGet("GRAFANA_LIBRARY_ELEMENT_SAVE_UID", true).(bool),
 	Cloned: vendors.GrafanaClonedLibraryElementOptions{
-		URL:      envGet("GRAFANA_LIBRARY_ELEMENT_CLONED_URL", "").(string),
-		Timeout:  envGet("GRAFANA_LIBRARY_ELEMENT_CLONED_TIMEOUT", 30).(int),
-		Insecure: envGet("GRAFANA_LIBRARY_ELEMENT_CLONED_INSECURE", false).(bool),
-		APIKey:   envGet("GRAFANA_LIBRARY_ELEMENT_CLONED_API_KEY", "").(string),
-		OrgID:    envGet("GRAFANA_LIBRARY_ELEMENT_CLONED_ORG_ID", "1").(string),
-		Name:     envGet("GRAFANA_LIBRARY_ELEMENT_CLONED_TITLE", "").(string),
-		UID:      envGet("GRAFANA_LIBRARY_ELEMENT_CLONED_UID", "").(string),
-		FolderID: envGet("GRAFANA_LIBRARY_ELEMENT_CLONED_FOLDER_ID", 0).(int),
-		Kind:     envGet("GRAFANA_LIBRARY_ELEMENT_CLONED_KIND", "1").(string),
+		URL:       envGet("GRAFANA_LIBRARY_ELEMENT_CLONED_URL", "").(string),
+		Timeout:   envGet("GRAFANA_LIBRARY_ELEMENT_CLONED_TIMEOUT", 30).(int),
+		Insecure:  envGet("GRAFANA_LIBRARY_ELEMENT_CLONED_INSECURE", false).(bool),
+		APIKey:    envGet("GRAFANA_LIBRARY_ELEMENT_CLONED_API_KEY", "").(string),
+		OrgID:     envGet("GRAFANA_LIBRARY_ELEMENT_CLONED_ORG_ID", "1").(string),
+		Name:      envGet("GRAFANA_LIBRARY_ELEMENT_CLONED_TITLE", "").(string),
+		UID:       envGet("GRAFANA_LIBRARY_ELEMENT_CLONED_UID", "").(string),
+		FolderUID: envGet("GRAFANA_LIBRARY_ELEMENT_CLONED_FOLDER_UID", "").(string),
+		FolderID:  envGet("GRAFANA_LIBRARY_ELEMENT_CLONED_FOLDER_ID", 0).(int),
+		Kind:      envGet("GRAFANA_LIBRARY_ELEMENT_CLONED_KIND", "1").(string),
 	},
 }
 
@@ -222,6 +224,7 @@ func NewGrafanaCommand() *cobra.Command {
 		},
 	}
 	flags = searchLibraryElementsCmd.PersistentFlags()
+	flags.StringVar(&grafanaLibraryElementOptions.FolderUID, "grafana-library-element-folder-uid", grafanaLibraryElementOptions.FolderUID, "Grafana library element folder uid")
 	flags.IntVar(&grafanaLibraryElementOptions.FolderID, "grafana-library-element-folder-id", grafanaLibraryElementOptions.FolderID, "Grafana library element folder id")
 
 	grafanaCmd.AddCommand(&searchLibraryElementsCmd)
@@ -274,6 +277,7 @@ func NewGrafanaCommand() *cobra.Command {
 	flags = copyLibraryElementCmd.PersistentFlags()
 	flags.StringVar(&grafanaLibraryElementOptions.UID, "grafana-library-element-uid", grafanaLibraryElementOptions.UID, "Grafana library element uid")
 	flags.StringVar(&grafanaLibraryElementOptions.Name, "grafana-library-element-name", grafanaLibraryElementOptions.UID, "Grafana library element name")
+	flags.StringVar(&grafanaLibraryElementOptions.FolderUID, "grafana-library-element-folder-uid", grafanaLibraryElementOptions.FolderUID, "Grafana library element folder uid")
 	flags.IntVar(&grafanaLibraryElementOptions.FolderID, "grafana-library-element-folder-id", grafanaLibraryElementOptions.FolderID, "Grafana library element folder id")
 	flags.BoolVar(&grafanaLibraryElementOptions.SaveUID, "grafana-library-element-save-uid", grafanaLibraryElementOptions.SaveUID, "Save UID for copied Grafana library element")
 	flags.StringVar(&grafanaLibraryElementOptions.Cloned.URL, "grafana-library-element-cloned-url", grafanaLibraryElementOptions.Cloned.URL, "Grafana Dashboard cloned URL exist")
@@ -281,6 +285,7 @@ func NewGrafanaCommand() *cobra.Command {
 	flags.BoolVar(&grafanaLibraryElementOptions.Cloned.Insecure, "grafana-library-element-cloned-insecure", grafanaLibraryElementOptions.Cloned.Insecure, "Grafana Dashboard cloned insecure")
 	flags.StringVar(&grafanaLibraryElementOptions.Cloned.APIKey, "grafana-library-element-cloned-api-key", grafanaLibraryElementOptions.Cloned.APIKey, "Grafana Dashboard cloned api-key")
 	flags.StringVar(&grafanaLibraryElementOptions.Cloned.UID, "grafana-library-element-cloned-uid", grafanaLibraryElementOptions.Cloned.UID, "Grafana Dashboard cloned UID")
+	flags.StringVar(&grafanaLibraryElementOptions.Cloned.FolderUID, "grafana-library-element-cloned-folder-uid", grafanaLibraryElementOptions.Cloned.FolderUID, "Grafana library element cloned folder uid")
 	flags.IntVar(&grafanaLibraryElementOptions.Cloned.FolderID, "grafana-library-element-cloned-folder-id", grafanaLibraryElementOptions.Cloned.FolderID, "Grafana library element folder id")
 
 	grafanaCmd.AddCommand(&copyLibraryElementCmd)

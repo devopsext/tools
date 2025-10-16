@@ -2062,7 +2062,7 @@ func (tpl *Template) GrafanaCreateDashboard(params map[string]interface{}) ([]by
 		OrgID:    orgID,
 	}
 
-	grafanaCreateDashboardOptions := vendors.GrafanaDahboardOptions{
+	grafanaCreateDashboardOptions := vendors.GrafanaDashboardOptions{
 		Title:     title,
 		UID:       dUID,
 		Slug:      dSlug,
@@ -2071,7 +2071,7 @@ func (tpl *Template) GrafanaCreateDashboard(params map[string]interface{}) ([]by
 		Tags:      tags,
 		From:      from,
 		To:        to,
-		Cloned: vendors.GrafanaClonedDahboardOptions{
+		Cloned: vendors.GrafanaClonedDashboardOptions{
 			UID:         clonedUID,
 			PanelIDs:    cpanelIDs,
 			PanelTitles: ptitles,
@@ -2124,7 +2124,7 @@ func (tpl *Template) GrafanaCopyDashboard(params map[string]interface{}) ([]byte
 		OrgID:    orgID,
 	}
 
-	grafanaCopyDashboardOptions := vendors.GrafanaDahboardOptions{
+	grafanaCopyDashboardOptions := vendors.GrafanaDashboardOptions{
 		Title:     title,
 		UID:       dUID,
 		Slug:      dSlug,
@@ -2133,7 +2133,7 @@ func (tpl *Template) GrafanaCopyDashboard(params map[string]interface{}) ([]byte
 		Tags:      tags,
 		From:      from,
 		To:        to,
-		Cloned: vendors.GrafanaClonedDahboardOptions{
+		Cloned: vendors.GrafanaClonedDashboardOptions{
 			UID: clonedUID,
 		},
 	}
@@ -3080,18 +3080,9 @@ func (tpl *Template) K8sResourceScale(params map[string]interface{}) ([]byte, er
 	namespace, _ := params["namespace"].(string)
 	name, _ := params["name"].(string)
 
-	replicas, ok := params["replicas"].(int)
-	if !ok {
-		replicasStr, ok := params["replicas"].(string)
-		if ok {
-			replicas, _ = strconv.Atoi(replicasStr)
-		} else {
-			replicas = 0
-		}
-	}
-	if replicas <= 0 {
-		replicas = 0
-	}
+	replicas := tpl.paramAsInt(params["replicas"], 0)
+	waitTimeout := tpl.paramAsInt(params["waitTimeout"], 0)
+	pollTimeout := tpl.paramAsInt(params["pollTimeout"], 1)
 
 	scaleOptions := vendors.K8sResourceScaleOptions{
 		K8sResourceOptions: vendors.K8sResourceOptions{
@@ -3099,10 +3090,63 @@ func (tpl *Template) K8sResourceScale(params map[string]interface{}) ([]byte, er
 			Namespace: namespace,
 			Name:      name,
 		},
-		Replicas: replicas,
+		Replicas:    replicas,
+		WaitTimeout: waitTimeout,
+		PollTimeout: pollTimeout,
 	}
 
 	return k8s.CustomResourceScale(options, scaleOptions)
+}
+
+func (tpl *Template) paramAsInt(param interface{}, def int) int {
+
+	if utils.IsEmpty(param) {
+		return def
+	}
+	value, ok := param.(int)
+	if !ok {
+		valueStr := fmt.Sprintf("%v", param)
+		value, _ = strconv.Atoi(valueStr)
+	}
+	if utils.IsEmpty(param) {
+		return def
+	}
+	return value
+}
+
+func (tpl *Template) K8sResourceRestart(params map[string]interface{}) ([]byte, error) {
+
+	config, _ := params["config"].(string)
+	timeout, _ := params["timeout"].(int)
+	if timeout <= 0 {
+		timeout = 30
+	}
+
+	options := vendors.K8sOptions{
+		Config:  config,
+		Timeout: timeout,
+	}
+
+	k8s := vendors.NewK8s(options, tpl.logger)
+
+	kind, _ := params["kind"].(string)
+	namespace, _ := params["namespace"].(string)
+	name, _ := params["name"].(string)
+
+	waitTimeout := tpl.paramAsInt(params["waitTimeout"], 5)
+	pollTimeout := tpl.paramAsInt(params["pollTimeout"], 1)
+
+	restartOptions := vendors.K8sResourceRestartOptions{
+		K8sResourceOptions: vendors.K8sResourceOptions{
+			Kind:      kind,
+			Namespace: namespace,
+			Name:      name,
+		},
+		WaitTimeout: waitTimeout,
+		PollTimeout: pollTimeout,
+	}
+
+	return k8s.CustomResourceRestart(options, restartOptions)
 }
 
 func (tpl *Template) DirCreate(path string, mode int) error {
@@ -3305,6 +3349,7 @@ func (tpl *Template) setTemplateFuncs(funcs map[string]any) {
 	funcs["k8sResourceDescribe"] = tpl.K8sResourceDescribe
 	funcs["k8sResourceDelete"] = tpl.K8sResourceDelete
 	funcs["k8sResourceScale"] = tpl.K8sResourceScale
+	funcs["k8sResourceRestart"] = tpl.K8sResourceRestart
 
 	funcs["dirCreate"] = tpl.DirCreate
 	funcs["dirRemove"] = tpl.DirRemove

@@ -17,7 +17,14 @@ var k8sResourceDescribeOptions = vendors.K8sResourceDescribeOptions{}
 var k8sResourceDeleteOptions = vendors.K8sResourceDeleteOptions{}
 
 var k8sResourceScaleOptions = vendors.K8sResourceScaleOptions{
-	Replicas: envGet("K8S_RESOURCE_REPLICAS", -1).(int),
+	Replicas:    envGet("K8S_RESOURCE_SCALE_REPLICAS", -1).(int),
+	WaitTimeout: envGet("K8S_RESOURCE_SCALE_WAIT_TIMEOUT", 30).(int),
+	PollTimeout: envGet("K8S_RESOURCE_SCALE_POLL_TIMEOUT", 1).(int),
+}
+
+var k8sResourceRestartOptions = vendors.K8sResourceRestartOptions{
+	WaitTimeout: envGet("K8S_RESOURCE_RESTART_WAIT_TIMEOUT", 30).(int),
+	PollTimeout: envGet("K8S_RESOURCE_RESTART_POLL_TIMEOUT", 1).(int),
 }
 
 var k8sOptions = vendors.K8sOptions{
@@ -117,8 +124,33 @@ func NewK8sCommand() *cobra.Command {
 		},
 	}
 	flags = resourceScaleCmd.PersistentFlags()
-	flags.IntVar(&k8sResourceScaleOptions.Replicas, "k8s-resource-replicas", k8sResourceScaleOptions.Replicas, "K8s Resource replicas")
+	flags.IntVar(&k8sResourceScaleOptions.Replicas, "k8s-resource-scale-replicas", k8sResourceScaleOptions.Replicas, "K8s Resource scale replicas")
+	flags.IntVar(&k8sResourceScaleOptions.WaitTimeout, "k8s-resource-scale-wait-timeout", k8sResourceScaleOptions.WaitTimeout, "K8s Resource scale wait timeout")
+	flags.IntVar(&k8sResourceScaleOptions.PollTimeout, "k8s-resource-scale-poll-timeout", k8sResourceScaleOptions.PollTimeout, "K8s Resource scale poll timeout")
 	resourceCmd.AddCommand(resourceScaleCmd)
+
+	resourceRestartCmd := &cobra.Command{
+		Use:   "restart",
+		Short: "K8s Resource restart",
+		Run: func(cmd *cobra.Command, args []string) {
+
+			stdout.Debug("K8s resource restarting...")
+
+			k8sResourceRestartOptions.K8sResourceOptions = k8sResourceOptions
+			common.Debug("K8s", k8sResourceRestartOptions, stdout)
+
+			bytes, err := k8sNew(stdout).ResourceRestart(k8sResourceRestartOptions)
+			if err != nil {
+				stdout.Error(err)
+				return
+			}
+			common.OutputJson(k8sOutput, "K8s", []interface{}{k8sOptions, k8sResourceRestartOptions}, bytes, stdout)
+		},
+	}
+	flags = resourceRestartCmd.PersistentFlags()
+	flags.IntVar(&k8sResourceRestartOptions.WaitTimeout, "k8s-resource-restart-wait-timeout", k8sResourceRestartOptions.WaitTimeout, "K8s Resource restart wait timeout")
+	flags.IntVar(&k8sResourceRestartOptions.PollTimeout, "k8s-resource-restart-poll-timeout", k8sResourceRestartOptions.PollTimeout, "K8s Resource restart poll timeout")
+	resourceCmd.AddCommand(resourceRestartCmd)
 
 	return k8sCmd
 }

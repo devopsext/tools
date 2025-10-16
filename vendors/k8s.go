@@ -9,6 +9,7 @@ import (
 	"github.com/devopsext/utils"
 	appsv1 "k8s.io/api/apps/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
@@ -31,7 +32,15 @@ type K8sResourceDeleteOptions struct {
 
 type K8sResourceScaleOptions struct {
 	K8sResourceOptions
-	Replicas int
+	Replicas    int
+	WaitTimeout int
+	PollTimeout int
+}
+
+type K8sResourceRestartOptions struct {
+	K8sResourceOptions
+	WaitTimeout int
+	PollTimeout int
 }
 
 type K8sOptions struct {
@@ -173,7 +182,85 @@ func (k *K8s) ResourceDelete(options K8sResourceDeleteOptions) ([]byte, error) {
 	return k.CustomResourceDelete(k.options, options)
 }
 
-func (k *K8s) CustomResourceScale(options K8sOptions, scaleOptions K8sResourceScaleOptions) ([]byte, error) {
+func (k *K8s) getResourceReplicas(clientset *kubernetes.Clientset, ctx context.Context, describeOptions K8sResourceDescribeOptions) (int32, interface{}, error) {
+
+	rGet := k.resourceDescribe(clientset, ctx, describeOptions)
+	err := rGet.Error()
+	if err != nil {
+		return 0, nil, err
+	}
+
+	var obj interface{}
+	var currentReplicas int32
+
+	switch describeOptions.Kind {
+	case K8sResourceDeployments:
+
+		var d appsv1.Deployment
+		err = rGet.Into(&d)
+		if err != nil {
+			return 0, nil, err
+		}
+		currentReplicas = *d.Spec.Replicas
+		obj = &d
+
+	case K8sResourceReplicaSets:
+
+		var rs appsv1.ReplicaSet
+		err = rGet.Into(&rs)
+		if err != nil {
+			return 0, nil, err
+		}
+		currentReplicas = *rs.Spec.Replicas
+		obj = &rs
+
+	case K8sResourceStatefulSets:
+
+		var ss appsv1.StatefulSet
+		err = rGet.Into(&ss)
+		if err != nil {
+			return 0, nil, err
+		}
+		currentReplicas = *ss.Spec.Replicas
+		obj = &ss
+
+	default:
+		return 0, nil, fmt.Errorf("unsupported kind for replicas: %s", describeOptions.Kind)
+	}
+
+	return currentReplicas, obj, nil
+}
+
+func (k *K8s) replicasAreReady(obj interface{}, kind string, replicas int32) bool {
+
+	switch kind {
+	case K8sResourceDeployments:
+
+		d := obj.(*appsv1.Deployment)
+
+		return d.Status.ObservedGeneration >= d.Generation &&
+			d.Status.ReadyReplicas == replicas &&
+			d.Status.AvailableReplicas == replicas
+
+	case K8sResourceReplicaSets:
+
+		rs := obj.(*appsv1.ReplicaSet)
+		return rs.Status.ObservedGeneration >= rs.Generation &&
+			rs.Status.ReadyReplicas == replicas &&
+			rs.Status.AvailableReplicas == replicas
+
+	case K8sResourceStatefulSets:
+
+		ss := obj.(*appsv1.StatefulSet)
+		return ss.Status.ObservedGeneration >= ss.Generation &&
+			ss.Status.ReadyReplicas == replicas &&
+			ss.Status.AvailableReplicas == replicas
+
+	}
+	return false
+}
+
+func (k *K8s) resourceScale(options K8sOptions, scaleOptions K8sResourceScaleOptions) (*rest.Result, error) {
 
 	clientset, ctx, cancel, err := k.getClientCtx(options)
 	if err != nil {
@@ -185,58 +272,31 @@ func (k *K8s) CustomResourceScale(options K8sOptions, scaleOptions K8sResourceSc
 		K8sResourceOptions: scaleOptions.K8sResourceOptions,
 	}
 
-	rGet := k.resourceDescribe(clientset, ctx, describeOpts)
-	err = rGet.Error()
-	if err != nil {
-		return rGet.Raw()
-	}
-
-	var currentReplicas int32
 	desiredReplicasInt32 := int32(scaleOptions.Replicas)
-
-	var obj interface{}
+	currentReplicas, obj, err := k.getResourceReplicas(clientset, ctx, describeOpts)
+	if err != nil {
+		return nil, err
+	}
+	if currentReplicas == desiredReplicasInt32 {
+		return nil, fmt.Errorf("current replicas are equal to desired replicas")
+	}
 
 	switch scaleOptions.Kind {
 	case K8sResourceDeployments:
-
-		var d appsv1.Deployment
-		err = rGet.Into(&d)
-		if err != nil {
-			return nil, err
-		}
-		currentReplicas = *d.Spec.Replicas
+		d := obj.(*appsv1.Deployment)
 		d.Spec.Replicas = &desiredReplicasInt32
-		obj = &d
 
 	case K8sResourceReplicaSets:
-
-		var rs appsv1.ReplicaSet
-		err = rGet.Into(&rs)
-		if err != nil {
-			return nil, err
-		}
-		currentReplicas = *rs.Spec.Replicas
+		rs := obj.(*appsv1.ReplicaSet)
 		rs.Spec.Replicas = &desiredReplicasInt32
-		obj = &rs
 
 	case K8sResourceStatefulSets:
 
-		var ss appsv1.StatefulSet
-		err = rGet.Into(&ss)
-		if err != nil {
-			return nil, err
-		}
-
-		currentReplicas = *ss.Spec.Replicas
+		ss := obj.(*appsv1.StatefulSet)
 		ss.Spec.Replicas = &desiredReplicasInt32
-		obj = &ss
 
 	default:
 		return nil, fmt.Errorf("unsupported kind for scaling: %s", scaleOptions.Kind)
-	}
-
-	if currentReplicas == desiredReplicasInt32 {
-		return nil, fmt.Errorf("current replicas are equal to desired replicas")
 	}
 
 	updateOpts := metav1.UpdateOptions{}
@@ -251,11 +311,99 @@ func (k *K8s) CustomResourceScale(options K8sOptions, scaleOptions K8sResourceSc
 		Body(obj).
 		Do(ctx)
 
+	err = rPut.Error()
+	if err != nil {
+		return nil, err
+	}
+
+	if scaleOptions.WaitTimeout <= 0 {
+		return &rPut, nil
+	}
+
+	// wait until scaled
+	waitTimeout := time.Duration(scaleOptions.WaitTimeout) * time.Second
+	pollTimeout := time.Duration(scaleOptions.PollTimeout) * time.Second
+
+	err = wait.PollUntilContextTimeout(ctx, pollTimeout, waitTimeout, true, func(context.Context) (done bool, err error) {
+
+		reps, obj, err := k.getResourceReplicas(clientset, ctx, describeOpts)
+		if err != nil {
+			return false, err
+		}
+		if k.replicasAreReady(obj, scaleOptions.K8sResourceOptions.Kind, desiredReplicasInt32) && reps == desiredReplicasInt32 {
+			return true, nil // Polling is done, scaled to 0
+		}
+		return false, nil // Continue polling
+	})
+	if err != nil {
+		return nil, fmt.Errorf("timeout waiting for resource to scale to %d: %v", desiredReplicasInt32, err)
+	}
+
+	if err != nil {
+		return &rPut, err
+	}
+
+	return &rPut, nil
+}
+
+func (k *K8s) CustomResourceScale(options K8sOptions, scaleOptions K8sResourceScaleOptions) ([]byte, error) {
+
+	rPut, err := k.resourceScale(options, scaleOptions)
+	if err != nil {
+		return nil, err
+	}
 	return rPut.Raw()
 }
 
 func (k *K8s) ResourceScale(options K8sResourceScaleOptions) ([]byte, error) {
 	return k.CustomResourceScale(k.options, options)
+}
+
+func (k *K8s) CustomResourceRestart(options K8sOptions, restartOptions K8sResourceRestartOptions) ([]byte, error) {
+
+	clientset, ctx, cancel, err := k.getClientCtx(options)
+	if err != nil {
+		return nil, err
+	}
+	defer cancel()
+
+	// get current replicas
+	describeOpts := K8sResourceDescribeOptions{
+		K8sResourceOptions: restartOptions.K8sResourceOptions,
+	}
+
+	oldReplicas, _, err := k.getResourceReplicas(clientset, ctx, describeOpts)
+	if err != nil {
+		return nil, err
+	}
+	if oldReplicas == 0 {
+		return nil, fmt.Errorf("current replicas are equal to 0")
+	}
+
+	// Scale to 0
+	scaleOptions := K8sResourceScaleOptions{
+		K8sResourceOptions: restartOptions.K8sResourceOptions,
+		Replicas:           0,
+		WaitTimeout:        restartOptions.WaitTimeout,
+		PollTimeout:        restartOptions.PollTimeout,
+	}
+
+	_, err = k.resourceScale(options, scaleOptions)
+	if err != nil {
+		return nil, err
+	}
+
+	// scale back to old replicas
+	scaleOptions.Replicas = int(oldReplicas)
+	rPut, err := k.resourceScale(options, scaleOptions)
+	if err != nil {
+		return nil, err
+	}
+	return rPut.Raw()
+}
+
+func (k *K8s) ResourceRestart(options K8sResourceRestartOptions) ([]byte, error) {
+	return k.CustomResourceRestart(k.options, options)
 }
 
 func NewK8s(options K8sOptions, logger common.Logger) *K8s {
