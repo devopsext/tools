@@ -42,7 +42,7 @@ func catchpointNew(stdout *common.Stdout) *vendors.Catchpoint {
 
 	catchpoint := vendors.NewCatchpoint(catchpointOptions, stdout)
 	if catchpoint == nil {
-		stdout.Panic("No site24x7")
+		stdout.Panic("No catchpoint")
 	}
 
 	return catchpoint

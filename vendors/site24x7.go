@@ -449,8 +449,12 @@ func (s *Site24x7) DeleteLocationProfile(options Site24x7LocationProfileOptions)
 func (s *Site24x7) FindLocationByCountry(locations []*Site24x7LocationTemplateDataLocation, country string) *Site24x7LocationTemplateDataLocation {
 
 	for _, l := range locations {
-
-		short := common.CountryShort(l.CountryName)
+		var short string
+		if l.CountryName == "Viet Nam" {
+			short = "VN"
+		} else {
+			short = common.CountryShort(l.CountryName)
+		}
 		if short == country {
 			return l
 		}
