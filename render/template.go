@@ -1418,6 +1418,29 @@ func (tpl *Template) HttpPatch(params map[string]interface{}) ([]byte, error) {
 	return utils.HttpPatchRaw(&client, u, contentType, authorization, body)
 }
 
+type ReadFileResult struct {
+	Content []byte
+	Error   string
+}
+
+func (tpl *Template) ReadFile(params map[string]any) ReadFileResult {
+	if len(params) == 0 {
+		return ReadFileResult{Error: "no params allowed"}
+	}
+
+	filePath, _ := params["filePath"].(string)
+	if filePath == "" {
+		return ReadFileResult{Error: "filePath is required"}
+	}
+
+	content, err := os.ReadFile(filePath)
+	if err != nil {
+		return ReadFileResult{Error: err.Error()}
+	}
+
+	return ReadFileResult{Content: content}
+}
+
 func (tpl *Template) HttpForm(params map[string]interface{}) ([]byte, error) {
 
 	if len(params) == 0 {
@@ -3306,6 +3329,8 @@ func (tpl *Template) setTemplateFuncs(funcs map[string]any) {
 	funcs["httpPut"] = tpl.HttpPut
 	funcs["httpPatch"] = tpl.HttpPatch
 	funcs["httpForm"] = tpl.HttpForm
+
+	funcs["readFile"] = tpl.ReadFile
 
 	funcs["jiraSearchAssets"] = tpl.JiraSearchAssets
 	funcs["jiraCreateIssue"] = tpl.JiraCreateIssue
