@@ -2258,48 +2258,6 @@ func (tpl *Template) PagerDutySendNoteToIncident(params map[string]interface{}) 
 	return pagerDuty.CreateIncidentNote(noteOptions, createOptions)
 }
 
-func (tpl *Template) AIResponse(params map[string]interface{}) ([]byte, error) {
-	apiKey, _ := params["apiKey"].(string)
-	model, _ := params["model"].(string)
-	timeout, _ := params["timeout"].(int)
-	if timeout == 0 {
-		timeout = 30
-	}
-
-	var messages []map[string]string
-	if rawMessages, ok := params["messages"].([]interface{}); ok {
-		for _, rawMsg := range rawMessages {
-			if msg, ok := rawMsg.(map[string]interface{}); ok {
-				role, roleOk := msg["role"].(string)
-				content, contentOk := msg["content"].(string)
-				if roleOk && contentOk {
-					messages = append(messages, map[string]string{
-						"role":    role,
-						"content": content,
-					})
-				}
-			}
-		}
-	}
-
-	if len(messages) == 0 {
-		messages = append(messages, map[string]string{
-			"role":    "user",
-			"content": "Hello",
-		})
-	}
-
-	options := vendors.OpenAIOptions{
-		APIKey:   apiKey,
-		Model:    model,
-		Timeout:  timeout,
-		Messages: messages,
-	}
-
-	openAI := vendors.NewOpenAI(options)
-	return openAI.CreateChatCompletion(options)
-}
-
 func (tpl *Template) PrometheusGet(params map[string]interface{}) ([]byte, error) {
 
 	if len(params) == 0 {
@@ -3365,7 +3323,6 @@ func (tpl *Template) setTemplateFuncs(funcs map[string]any) {
 	funcs["vmStart"] = tpl.VMStart
 	funcs["vmStop"] = tpl.VMStop
 	funcs["vmStatus"] = tpl.VMStatus
-	funcs["aiResponse"] = tpl.AIResponse
 
 	funcs["ldapGetGroupMember"] = tpl.LdapGetGroupMembers
 
