@@ -908,6 +908,20 @@ func (tpl *Template) DurationBetween(start, end time.Time) map[string]int {
 	}
 }
 
+// Duration calculates the duration from start time to now and returns a formatted string
+// Example: "1.234s", "500ms", "2.5s"
+func (tpl *Template) Duration(start time.Time) string {
+	duration := time.Since(start)
+	return duration.String()
+}
+
+// DurationString converts two time.Time values to a duration string
+// Example: "1.234s", "500ms", "2.5s"
+func (tpl *Template) DurationString(start, end time.Time) string {
+	duration := end.Sub(start)
+	return duration.String()
+}
+
 func (tpl *Template) NowFmt(f string) string {
 
 	t := time.Now()
@@ -3264,6 +3278,8 @@ func (tpl *Template) setTemplateFuncs(funcs map[string]any) {
 	funcs["tagValue"] = tpl.TagValue
 	funcs["dateParse"] = tpl.DateParse
 	funcs["durationBetween"] = tpl.DurationBetween
+	funcs["duration"] = tpl.Duration
+	funcs["durationString"] = tpl.DurationString
 	funcs["nowFmt"] = tpl.NowFmt
 	funcs["sleep"] = tpl.Sleep
 	funcs["error"] = tpl.Error
