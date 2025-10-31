@@ -1182,7 +1182,7 @@ func (tpl *Template) HttpGetExt(params map[string]interface{}) HTTPResult {
 	var rootCAs *x509.CertPool
 	clientCA, _ := params["clientCA"].(string)
 	if !utils.IsEmpty(clientCA) {
-		rootCAs := x509.NewCertPool()
+		rootCAs = x509.NewCertPool()
 		rootCAs.AppendCertsFromPEM([]byte(clientCA))
 	}
 
@@ -1218,6 +1218,15 @@ func (tpl *Template) HttpGetExt(params map[string]interface{}) HTTPResult {
 		// Try to get status code from error if possible
 		if respErr, ok := err.(interface{ StatusCode() int }); ok {
 			result.StatusCode = respErr.StatusCode()
+		} else {
+			e := err.Error()
+			if strings.Contains(e, "404") {
+				result.StatusCode = http.StatusNotFound
+			} else if strings.Contains(e, "403") {
+				result.StatusCode = http.StatusForbidden
+			} else if strings.Contains(e, "500") {
+				result.StatusCode = http.StatusInternalServerError
+			}
 		}
 		return result
 	}
