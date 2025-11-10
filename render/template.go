@@ -2716,6 +2716,128 @@ func (tpl *Template) VMStatus(params map[string]interface{}) ([]byte, error) {
 
 }
 
+func (tpl *Template) VMReboot(params map[string]interface{}) ([]byte, error) {
+
+	user, _ := params["user"].(string)
+	url, _ := params["url"].(string)
+	password, _ := params["password"].(string)
+	vms := strings.Split(params["vms"].(string), ",")
+	timeout, _ := params["timeout"].(int)
+	if timeout == 0 {
+		timeout = 20
+	}
+	insecure, _ := params["insecure"].(bool)
+
+	vcenterOptions := vendors.VCenterOptions{
+		URL:      url,
+		User:     user,
+		Password: password,
+		Timeout:  timeout,
+		Insecure: insecure,
+	}
+
+	vmNames := vendors.VCenterVMNameOptions{
+		Names: vms,
+	}
+
+	vcenterOptions, err := vendors.InitializeVCenterSession(vcenterOptions)
+	if err != nil {
+		return nil, err
+	}
+
+	vcenter := vendors.NewVCenter(vcenterOptions)
+
+	var vi vendors.VMsResponse
+
+	vmInfo, err := vcenter.GetVMsByName(vmNames)
+	if err != nil {
+		return nil, err
+	}
+
+	err = json.Unmarshal(vmInfo, &vi)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(vi.Value) == 0 {
+		return nil, fmt.Errorf("no VMs found")
+	}
+
+	var response []byte
+
+	if len(vi.Value) > 0 {
+		for _, vm := range vi.Value {
+			response, err = vcenter.RebootVM(vm.VM)
+			if err != nil {
+				return nil, err
+			}
+		}
+	}
+
+	return response, nil
+}
+
+func (tpl *Template) VMShutdown(params map[string]interface{}) ([]byte, error) {
+
+	user, _ := params["user"].(string)
+	url, _ := params["url"].(string)
+	password, _ := params["password"].(string)
+	vms := strings.Split(params["vms"].(string), ",")
+	timeout, _ := params["timeout"].(int)
+	if timeout == 0 {
+		timeout = 20
+	}
+	insecure, _ := params["insecure"].(bool)
+
+	vcenterOptions := vendors.VCenterOptions{
+		URL:      url,
+		User:     user,
+		Password: password,
+		Timeout:  timeout,
+		Insecure: insecure,
+	}
+
+	vmNames := vendors.VCenterVMNameOptions{
+		Names: vms,
+	}
+
+	vcenterOptions, err := vendors.InitializeVCenterSession(vcenterOptions)
+	if err != nil {
+		return nil, err
+	}
+
+	vcenter := vendors.NewVCenter(vcenterOptions)
+
+	var vi vendors.VMsResponse
+
+	vmInfo, err := vcenter.GetVMsByName(vmNames)
+	if err != nil {
+		return nil, err
+	}
+
+	err = json.Unmarshal(vmInfo, &vi)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(vi.Value) == 0 {
+		return nil, fmt.Errorf("no VMs found")
+	}
+
+	var response []byte
+
+	if len(vi.Value) > 0 {
+		for _, vm := range vi.Value {
+			response, err = vcenter.ShutdownVM(vm.VM)
+			if err != nil {
+				return nil, err
+			}
+		}
+	}
+
+	return response, nil
+}
+
 func (tpl *Template) CatchpointInstantTest(params map[string]interface{}) ([]byte, error) {
 
 	url, _ := params["url"].(string)
@@ -3010,6 +3132,8 @@ func (tpl *Template) setTemplateFuncs(funcs map[string]any) {
 	funcs["vmStart"] = tpl.VMStart
 	funcs["vmStop"] = tpl.VMStop
 	funcs["vmStatus"] = tpl.VMStatus
+	funcs["vmReboot"] = tpl.VMReboot
+	funcs["vmShutdown"] = tpl.VMShutdown
 
 	funcs["ldapGetGroupMember"] = tpl.LdapGetGroupMembers
 
