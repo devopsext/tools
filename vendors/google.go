@@ -514,7 +514,7 @@ func (g *Google) CustomCalendarGetEvents(googleOptions GoogleOptions, calendarOp
 	if err != nil {
 		return nil, err
 	}
-	g.logger.Debug("Access token => %s", r.AccessToken)
+	// g.logger.Debug("Access token => %s", r.AccessToken)
 
 	return g.calendarGetEvents(r.AccessToken, calendarOptions, calendarGetEventsOptions)
 }
@@ -531,7 +531,7 @@ func (g *Google) CustomCalendarInsertEvent(googleOptions GoogleOptions, calendar
 	if err != nil {
 		return nil, err
 	}
-	g.logger.Debug("Access token => %s", r.AccessToken)
+	// g.logger.Debug("Access token => %s", r.AccessToken)
 
 	params := make(url.Values)
 	params.Add("access_token", r.AccessToken)
@@ -646,7 +646,7 @@ func (g *Google) CustomCalendarDeleteEvent(googleOptions GoogleOptions, calendar
 	if err != nil {
 		return nil, err
 	}
-	g.logger.Debug("Access token => %s", r.AccessToken)
+	// g.logger.Debug("Access token => %s", r.AccessToken)
 
 	return g.calendarDeleteEvent(r.AccessToken, calendarOptions, calendarDeleteEventOptions)
 }
@@ -661,7 +661,7 @@ func (g *Google) CustomCalendarDeleteEvents(googleOptions GoogleOptions, calenda
 	if err != nil {
 		return nil, err
 	}
-	g.logger.Debug("Access token => %s", r.AccessToken)
+	// g.logger.Debug("Access token => %s", r.AccessToken)
 
 	data, err := g.calendarGetEvents(r.AccessToken, calendarOptions, calendarGetEventsOptions)
 	if err != nil {
@@ -750,7 +750,7 @@ func (g *Google) DocsCopyDocument(docOptions GoogleDocsOptions) ([]byte, error) 
 	if err != nil {
 		return nil, err
 	}
-	g.logger.Debug("Access token => %s", r.AccessToken)
+	// g.logger.Debug("Access token => %s", r.AccessToken)
 
 	params := make(url.Values)
 	params.Add("access_token", r.AccessToken)
