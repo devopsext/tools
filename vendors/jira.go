@@ -48,6 +48,7 @@ type JiraIssueOptions struct {
 	Labels             []string
 	UpdateAddLabels    []string
 	UpdateRemoveLabels []string
+	UpdateAddComment   string
 }
 
 type JiraAddIssueCommentOptions struct {
@@ -101,8 +102,9 @@ type JiraIssueCreate struct {
 }
 
 type JiraIssueUpdate struct {
-	Fields *JiraIssueFields        `json:"fields"`
-	Update *JiraIssueUpdatePayload `json:"update"`
+	Fields     *JiraIssueFields        `json:"fields,omitempty"`
+	Update     *JiraIssueUpdatePayload `json:"update,omitempty"`
+	Transition *JiraTransition         `json:"transition,omitempty"`
 }
 type JiraIssueFields struct {
 	Project     *JiraIssueProject      `json:"project,omitempty"`
@@ -117,7 +119,8 @@ type JiraIssueFields struct {
 }
 
 type JiraIssueUpdatePayload struct {
-	Labels []JiraIssueUpdateLabelOperation `json:"labels,omitempty"`
+	Comments []JiraIssueAddComment           `json:"comment,omitempty"`
+	Labels   []JiraIssueUpdateLabelOperation `json:"labels,omitempty"`
 }
 
 type JiraIssueUpdateLabelOperation struct {
@@ -125,8 +128,11 @@ type JiraIssueUpdateLabelOperation struct {
 	Remove string `json:"remove,omitempty"`
 }
 
-type JiraIssueAddComment struct {
+type JiraIssueAddCommentInner struct {
 	Body string `json:"body"`
+}
+type JiraIssueAddComment struct {
+	AddInner JiraIssueAddCommentInner `json:"add"`
 }
 
 type JiraIssueType struct {
@@ -154,7 +160,7 @@ type JiraIssueReporter struct {
 
 type JiraTransition struct {
 	ID   string `json:"id"`
-	Name string `json:"name"`
+	Name string `json:"name,omitempty"`
 }
 
 type JiraTransitions struct {
@@ -392,7 +398,7 @@ func (j *Jira) CreateIssue(issueCreateOptions JiraIssueOptions) ([]byte, error) 
 
 func (j *Jira) CustomAddIssueComment(jiraOptions JiraOptions, issueOptions JiraIssueOptions, addCommentOptions JiraAddIssueCommentOptions) ([]byte, error) {
 
-	comment := &JiraIssueAddComment{
+	comment := &JiraIssueAddCommentInner{
 		Body: addCommentOptions.Body,
 	}
 
@@ -559,11 +565,27 @@ func (j *Jira) GetIssueTransitions(jiraOptions JiraOptions, issueOptions JiraIss
 
 func (j *Jira) CustomChangeIssueTransitions(jiraOptions JiraOptions, issueOptions JiraIssueOptions) ([]byte, error) {
 
-	transition := &JiraIssueTransition{
-		Transition: &JiraTransition{ID: issueOptions.TransitionID},
+	transition := &JiraTransition{ID: issueOptions.TransitionID}
+
+	updatePayload := &JiraIssueUpdatePayload{
+		Comments: []JiraIssueAddComment{
+			JiraIssueAddComment{
+				AddInner: JiraIssueAddCommentInner{
+					Body: issueOptions.UpdateAddComment,
+				},
+			},
+		},
 	}
 
-	req, err := json.Marshal(transition)
+	update := &JiraIssueUpdate{
+		Update:     updatePayload,
+		Transition: transition,
+	}
+	if issueOptions.UpdateAddComment == "" {
+		update.Update = nil
+	}
+
+	req, err := json.Marshal(update)
 	if err != nil {
 		return nil, err
 	}
