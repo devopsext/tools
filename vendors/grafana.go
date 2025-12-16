@@ -538,7 +538,6 @@ func (g Grafana) CustomCopyLibraryElement(grafanaOptions GrafanaOptions, grafana
 	}
 
 	result, err := utils.HttpPostRaw(g.client, u.String(), "application/json", g.getAuth(grafanaOptions), l)
-	fmt.Println(string(result))
 	return result, err
 }
 
