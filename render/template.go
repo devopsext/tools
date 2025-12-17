@@ -1859,6 +1859,8 @@ func (tpl *Template) JiraIssueTransition(params map[string]interface{}) ([]byte,
 	transitionId, _ := params["id"].(string)
 	key, _ := params["key"].(string)
 
+	comment, _ := params["comment"].(string)
+
 	jiraOptions := vendors.JiraOptions{
 		URL:         url,
 		Timeout:     timeout,
@@ -1869,8 +1871,9 @@ func (tpl *Template) JiraIssueTransition(params map[string]interface{}) ([]byte,
 	}
 
 	jiraIssueOptions := vendors.JiraIssueOptions{
-		TransitionID: transitionId,
-		IdOrKey:      key,
+		TransitionID:     transitionId,
+		IdOrKey:          key,
+		UpdateAddComment: comment,
 	}
 
 	jira := vendors.NewJira(jiraOptions)
