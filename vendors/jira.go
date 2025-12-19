@@ -101,10 +101,14 @@ type JiraIssueCreate struct {
 	Fields *JiraIssueFields `json:"fields"`
 }
 
+type JiraIssueUpdateTransition struct {
+	Fields     *JiraIssueFields                  `json:"fields,omitempty"`
+	Update     *JiraIssueUpdatePayloadTransition `json:"update,omitempty"`
+	Transition *JiraTransition                   `json:"transition,omitempty"`
+}
 type JiraIssueUpdate struct {
-	Fields     *JiraIssueFields        `json:"fields,omitempty"`
-	Update     *JiraIssueUpdatePayload `json:"update,omitempty"`
-	Transition *JiraTransition         `json:"transition,omitempty"`
+	Fields *JiraIssueFields        `json:"fields,omitempty"`
+	Update *JiraIssueUpdatePayload `json:"update,omitempty"`
 }
 type JiraIssueFields struct {
 	Project     *JiraIssueProject      `json:"project,omitempty"`
@@ -118,9 +122,12 @@ type JiraIssueFields struct {
 	Reporter    *JiraIssueReporter     `json:"reporter,omitempty"`
 }
 
-type JiraIssueUpdatePayload struct {
-	Comments []JiraIssueAddComment           `json:"comment,omitempty"`
+type JiraIssueUpdatePayloadTransition struct {
+	Comments []JiraIssueAddCommentTransition `json:"comment,omitempty"`
 	Labels   []JiraIssueUpdateLabelOperation `json:"labels,omitempty"`
+}
+type JiraIssueUpdatePayload struct {
+	Labels []JiraIssueUpdateLabelOperation `json:"labels,omitempty"`
 }
 
 type JiraIssueUpdateLabelOperation struct {
@@ -131,8 +138,11 @@ type JiraIssueUpdateLabelOperation struct {
 type JiraIssueAddCommentInner struct {
 	Body string `json:"body"`
 }
-type JiraIssueAddComment struct {
+type JiraIssueAddCommentTransition struct {
 	AddInner JiraIssueAddCommentInner `json:"add"`
+}
+type JiraIssueAddComment struct {
+	Body string `json:"body"`
 }
 
 type JiraIssueType struct {
@@ -567,9 +577,9 @@ func (j *Jira) CustomChangeIssueTransitions(jiraOptions JiraOptions, issueOption
 
 	transition := &JiraTransition{ID: issueOptions.TransitionID}
 
-	updatePayload := &JiraIssueUpdatePayload{
-		Comments: []JiraIssueAddComment{
-			JiraIssueAddComment{
+	updatePayload := &JiraIssueUpdatePayloadTransition{
+		Comments: []JiraIssueAddCommentTransition{
+			JiraIssueAddCommentTransition{
 				AddInner: JiraIssueAddCommentInner{
 					Body: issueOptions.UpdateAddComment,
 				},
@@ -577,7 +587,7 @@ func (j *Jira) CustomChangeIssueTransitions(jiraOptions JiraOptions, issueOption
 		},
 	}
 
-	update := &JiraIssueUpdate{
+	update := &JiraIssueUpdateTransition{
 		Update:     updatePayload,
 		Transition: transition,
 	}

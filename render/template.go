@@ -1590,9 +1590,6 @@ func (tpl *Template) JiraCreateAsset(params map[string]interface{}) ([]byte, err
 	decommissionedId, _ := params["decommissionedId"].(int)
 	decommissionedKey, _ := params["decommissionedKey"].(string)
 
-	fmt.Println("third party key", thirdPartyKey)
-	fmt.Println("decommissioned key", decommissionedKey)
-
 	businessProcessesKeys := make([]string, len(businessProcessesKeysRaw))
 	for i, key := range businessProcessesKeysRaw {
 		businessProcessesKeys[i] = fmt.Sprint(key)
