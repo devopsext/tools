@@ -481,13 +481,18 @@ func (j *Jira) CustomUpdateIssue(jiraOptions JiraOptions, issueOptions JiraIssue
 	}
 
 	issue := &JiraIssueUpdate{
-		Fields: &JiraIssueFields{
-			Summary:     issueOptions.Summary,
-			Description: issueOptions.Description,
-		},
+		Fields: &JiraIssueFields{},
 		Update: &JiraIssueUpdatePayload{
 			Labels: labelOperations,
 		},
+	}
+
+	if !utils.IsEmpty(issueOptions.Summary) {
+		issue.Fields.Summary = issueOptions.Summary
+	}
+
+	if !utils.IsEmpty(issueOptions.Description) {
+		issue.Fields.Description = issueOptions.Description
 	}
 
 	if len(issueOptions.Labels) > 0 {
