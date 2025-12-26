@@ -1590,9 +1590,6 @@ func (tpl *Template) JiraCreateAsset(params map[string]interface{}) ([]byte, err
 	decommissionedId, _ := params["decommissionedId"].(int)
 	decommissionedKey, _ := params["decommissionedKey"].(string)
 
-	fmt.Println("third party key", thirdPartyKey)
-	fmt.Println("decommissioned key", decommissionedKey)
-
 	businessProcessesKeys := make([]string, len(businessProcessesKeysRaw))
 	for i, key := range businessProcessesKeysRaw {
 		businessProcessesKeys[i] = fmt.Sprint(key)
@@ -1859,6 +1856,8 @@ func (tpl *Template) JiraIssueTransition(params map[string]interface{}) ([]byte,
 	transitionId, _ := params["id"].(string)
 	key, _ := params["key"].(string)
 
+	comment, _ := params["comment"].(string)
+
 	jiraOptions := vendors.JiraOptions{
 		URL:         url,
 		Timeout:     timeout,
@@ -1869,8 +1868,9 @@ func (tpl *Template) JiraIssueTransition(params map[string]interface{}) ([]byte,
 	}
 
 	jiraIssueOptions := vendors.JiraIssueOptions{
-		TransitionID: transitionId,
-		IdOrKey:      key,
+		TransitionID:     transitionId,
+		IdOrKey:          key,
+		UpdateAddComment: comment,
 	}
 
 	jira := vendors.NewJira(jiraOptions)
