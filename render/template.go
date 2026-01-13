@@ -529,6 +529,54 @@ func (tpl *Template) Env(key string) (string, error) {
 	return utils.EnvGet(key, "").(string), nil
 }
 
+func (tpl *Template) ParseUnix(s string, format string) (string, error) {
+
+	s = strings.TrimSpace(s)
+	s = strings.ReplaceAll(s, ".", "")
+
+	unixTime, err := strconv.ParseInt(s, 10, 64)
+	if err != nil {
+
+		return s, err
+	}
+
+	t := time.Unix(unixTime, 0)
+
+	return t.Format(format), nil
+}
+
+func (tpl *Template) ParseUnixMilli(s string, format string) (string, error) {
+
+	s = strings.TrimSpace(s)
+	s = strings.ReplaceAll(s, ".", "")
+
+	unixTime, err := strconv.ParseInt(s, 10, 64)
+	if err != nil {
+
+		return s, err
+	}
+
+	t := time.UnixMilli(unixTime)
+
+	return t.Format(format), nil
+}
+
+func (tpl *Template) ParseUnixMicro(s string, format string) (string, error) {
+
+	s = strings.TrimSpace(s)
+	s = strings.ReplaceAll(s, ".", "")
+
+	unixTime, err := strconv.ParseInt(s, 10, 64)
+	if err != nil {
+
+		return s, err
+	}
+
+	t := time.UnixMicro(unixTime)
+
+	return t.Format(format), nil
+}
+
 func (tpl *Template) TimeFormat(s string, format string) (string, error) {
 
 	t, err := time.Parse(tpl.options.TimeFormat, s)
@@ -3263,6 +3311,9 @@ func (tpl *Template) setTemplateFuncs(funcs map[string]any) {
 	funcs["isNotEmpty"] = tpl.IsNotEmpty
 	funcs["env"] = tpl.Env
 	funcs["getEnv"] = tpl.Env // deprecated
+	funcs["parseUnix"] = tpl.ParseUnix
+	funcs["parseUnixMilli"] = tpl.ParseUnixMilli
+	funcs["parseUnixMicro"] = tpl.ParseUnixMicro
 	funcs["timeFormat"] = tpl.TimeFormat
 	funcs["timeNano"] = tpl.TimeNano
 	funcs["jsonEscape"] = tpl.JsonEscape
