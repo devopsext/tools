@@ -962,6 +962,39 @@ func (g *Grafana) CreateDashboard(options GrafanaDashboardOptions) ([]byte, erro
 	return g.CustomCreateDashboard(g.options, options)
 }
 
+func (g *Grafana) CustomGet(grafanaOptions GrafanaOptions, apiPath string) ([]byte, error) {
+	u, err := url.Parse(grafanaOptions.URL)
+	if err != nil {
+		return nil, err
+	}
+
+	u.Path = path.Join(u.Path, apiPath)
+
+	return utils.HttpGetRaw(g.client, u.String(), "", g.getAuth(grafanaOptions))
+}
+
+func (g *Grafana) CustomPost(grafanaOptions GrafanaOptions, apiPath string, headers map[string]string, body []byte) ([]byte, error) {
+	u, err := url.Parse(grafanaOptions.URL)
+	if err != nil {
+		return nil, err
+	}
+
+	u.Path = path.Join(u.Path, apiPath)
+
+	return utils.HttpPostRawWithHeaders(g.client, u.String(), headers, body)
+}
+
+func (g *Grafana) CustomPut(grafanaOptions GrafanaOptions, apiPath string, headers map[string]string, body []byte) ([]byte, error) {
+	u, err := url.Parse(grafanaOptions.URL)
+	if err != nil {
+		return nil, err
+	}
+
+	u.Path = path.Join(u.Path, apiPath)
+
+	return utils.HttpPutRawWithHeaders(g.client, u.String(), headers, body)
+}
+
 func NewGrafana(options GrafanaOptions) *Grafana {
 
 	grafana := &Grafana{
