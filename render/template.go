@@ -2024,6 +2024,7 @@ func (tpl *Template) JiraCreateIssue(params map[string]interface{}) ([]byte, err
 
 	response, err := jira.CreateIssue(jiraIssueOptions)
 	if err != nil {
+		tpl.logger.Error("Failed to create Jira issue: %v", response)
 		return nil, err
 	}
 
