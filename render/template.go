@@ -1030,6 +1030,13 @@ func (tpl *Template) HttpGet(params map[string]interface{}) ([]byte, error) {
 
 	url, _ := params["url"].(string)
 	timeout, _ := params["timeout"].(int)
+
+	// In case of a request coming from tools http server
+	// json.unmarshal outputs numeric values as float64 by default
+	if timeout == 0 {
+		timeout = int(params["timeout"].(float64))
+	}
+
 	if timeout == 0 {
 		timeout = 5
 	}
@@ -1253,7 +1260,6 @@ func (tpl *Template) HttpPost(params map[string]interface{}) ([]byte, error) {
 		timeout = int(params["timeout"].(float64))
 	}
 
-	//default
 	if timeout == 0 {
 		timeout = 5
 	}
@@ -1331,6 +1337,13 @@ func (tpl *Template) HttpPut(params map[string]interface{}) ([]byte, error) {
 
 	u, _ := params["url"].(string)
 	timeout, _ := params["timeout"].(int)
+
+	// In case of a request coming from tools http server
+	// json.unmarshal outputs numeric values as float64 by default
+	if timeout == 0 {
+		timeout = int(params["timeout"].(float64))
+	}
+
 	if timeout == 0 {
 		timeout = 5
 	}
