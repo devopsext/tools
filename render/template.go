@@ -2031,6 +2031,38 @@ func (tpl *Template) JiraCreateIssue(params map[string]interface{}) ([]byte, err
 	return response, nil
 }
 
+func (tpl *Template) JiraGetUserByEmail(params map[string]interface{}) ([]byte, error) {
+
+	url, _ := params["url"].(string)
+	timeout, _ := params["timeout"].(int)
+	if timeout == 0 {
+		timeout = 10
+	}
+	insecure, _ := params["insecure"].(bool)
+	user, _ := params["user"].(string)
+	password, _ := params["password"].(string)
+	token, _ := params["token"].(string)
+	email, _ := params["email"].(string)
+
+	jiraOptions := vendors.JiraOptions{
+		URL:         url,
+		Timeout:     timeout,
+		Insecure:    insecure,
+		User:        user,
+		Password:    password,
+		AccessToken: token,
+	}
+
+	jira := vendors.NewJira(jiraOptions)
+
+	jiraUser, err := jira.GetUserByEmail(jiraOptions, email)
+	if err != nil {
+		return nil, err
+	}
+
+	return json.Marshal(jiraUser)
+}
+
 func (tpl *Template) LdapGetGroupMembers(params map[string]interface{}) ([]byte, error) {
 
 	ldapOptions := vendors.LdapOptions{
@@ -3448,6 +3480,7 @@ func (tpl *Template) setTemplateFuncs(funcs map[string]any) {
 	funcs["jiraIssueTransition"] = tpl.JiraIssueTransition
 	funcs["jiraGetIssueTransition"] = tpl.JiraGetIssueTransition
 	funcs["jiraUpdateAsset"] = tpl.JiraUpdateAsset
+	funcs["jiraGetUserByEmail"] = tpl.JiraGetUserByEmail
 
 	funcs["grafanaCreateDashboard"] = tpl.GrafanaCreateDashboard
 	funcs["grafanaCopyDashboard"] = tpl.GrafanaCopyDashboard
