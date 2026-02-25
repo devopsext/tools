@@ -1251,7 +1251,6 @@ func (tpl *Template) HttpPost(params map[string]interface{}) ([]byte, error) {
 	}
 
 	url, _ := params["url"].(string)
-
 	timeout, _ := params["timeout"].(int)
 
 	// In case of a request coming from tools http server
