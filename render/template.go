@@ -1245,8 +1245,15 @@ func (tpl *Template) HttpPost(params map[string]interface{}) ([]byte, error) {
 
 	url, _ := params["url"].(string)
 
-	timeout := int(params["timeout"].(float64)) // json.unmarshal outputs numeric values as float64 by default
+	timeout, _ := params["timeout"].(int)
 
+	// In case of a request coming from tools http server
+	// json.unmarshal outputs numeric values as float64 by default
+	if timeout == 0 {
+		timeout = int(params["timeout"].(float64))
+	}
+
+	//default
 	if timeout == 0 {
 		timeout = 5
 	}
