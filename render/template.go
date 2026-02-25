@@ -1257,9 +1257,7 @@ func (tpl *Template) HttpPost(params map[string]interface{}) ([]byte, error) {
 		timeout = tp
 	case float64:
 		timeout = int(tp)
-	}
-
-	if timeout == 0 {
+	default:
 		timeout = 5
 	}
 
@@ -1341,9 +1339,7 @@ func (tpl *Template) HttpPut(params map[string]interface{}) ([]byte, error) {
 		timeout = tp
 	case float64:
 		timeout = int(tp)
-	}
-
-	if timeout == 0 {
+	default:
 		timeout = 5
 	}
 
