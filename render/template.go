@@ -1029,12 +1029,12 @@ func (tpl *Template) HttpGet(params map[string]interface{}) ([]byte, error) {
 	}
 
 	url, _ := params["url"].(string)
-	timeout, _ := params["timeout"].(int)
-
-	// In case of a request coming from tools http server
-	// json.unmarshal outputs numeric values as float64 by default
-	if timeout == 0 {
-		timeout = int(params["timeout"].(float64))
+	var timeout int
+	switch tp := params["timeout"].(type) {
+	case int:
+		timeout = tp
+	case float64:
+		timeout = int(tp)
 	}
 
 	if timeout == 0 {
@@ -1251,12 +1251,12 @@ func (tpl *Template) HttpPost(params map[string]interface{}) ([]byte, error) {
 	}
 
 	url, _ := params["url"].(string)
-	timeout, _ := params["timeout"].(int)
-
-	// In case of a request coming from tools http server
-	// json.unmarshal outputs numeric values as float64 by default
-	if timeout == 0 {
-		timeout = int(params["timeout"].(float64))
+	var timeout int
+	switch tp := params["timeout"].(type) {
+	case int:
+		timeout = tp
+	case float64:
+		timeout = int(tp)
 	}
 
 	if timeout == 0 {
@@ -1335,12 +1335,12 @@ func (tpl *Template) HttpPut(params map[string]interface{}) ([]byte, error) {
 	}
 
 	u, _ := params["url"].(string)
-	timeout, _ := params["timeout"].(int)
-
-	// In case of a request coming from tools http server
-	// json.unmarshal outputs numeric values as float64 by default
-	if timeout == 0 {
-		timeout = int(params["timeout"].(float64))
+	var timeout int
+	switch tp := params["timeout"].(type) {
+	case int:
+		timeout = tp
+	case float64:
+		timeout = int(tp)
 	}
 
 	if timeout == 0 {
