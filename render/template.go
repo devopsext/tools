@@ -1029,8 +1029,13 @@ func (tpl *Template) HttpGet(params map[string]interface{}) ([]byte, error) {
 	}
 
 	url, _ := params["url"].(string)
-	timeout, _ := params["timeout"].(int)
-	if timeout == 0 {
+	var timeout int
+	switch tp := params["timeout"].(type) {
+	case int:
+		timeout = tp
+	case float64:
+		timeout = int(tp)
+	default:
 		timeout = 5
 	}
 
@@ -1244,8 +1249,13 @@ func (tpl *Template) HttpPost(params map[string]interface{}) ([]byte, error) {
 	}
 
 	url, _ := params["url"].(string)
-	timeout, _ := params["timeout"].(int)
-	if timeout == 0 {
+	var timeout int
+	switch tp := params["timeout"].(type) {
+	case int:
+		timeout = tp
+	case float64:
+		timeout = int(tp)
+	default:
 		timeout = 5
 	}
 
@@ -1321,8 +1331,13 @@ func (tpl *Template) HttpPut(params map[string]interface{}) ([]byte, error) {
 	}
 
 	u, _ := params["url"].(string)
-	timeout, _ := params["timeout"].(int)
-	if timeout == 0 {
+	var timeout int
+	switch tp := params["timeout"].(type) {
+	case int:
+		timeout = tp
+	case float64:
+		timeout = int(tp)
+	default:
 		timeout = 5
 	}
 
