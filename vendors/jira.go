@@ -168,6 +168,13 @@ type JiraIssueReporter struct {
 	Name string `json:"name"`
 }
 
+type JiraUser struct {
+	Name         string `json:"name"`
+	EmailAddress string `json:"emailAddress"`
+	DisplayName  string `json:"displayName"`
+	Active       bool   `json:"active"`
+}
+
 type JiraTransition struct {
 	ID   string `json:"id"`
 	Name string `json:"name,omitempty"`
@@ -868,6 +875,36 @@ func (j *Jira) CustomUpdateAsset(jiraOptions JiraOptions, updateOptions JiraUpda
 
 func (j *Jira) UpdateAsset(updateOptions JiraUpdateAssetOptions) ([]byte, error) {
 	return j.CustomUpdateAsset(j.options, updateOptions)
+}
+
+func (j *Jira) GetUserByEmail(jiraOptions JiraOptions, email string) (*JiraUser, error) {
+
+	u, err := url.Parse(jiraOptions.URL)
+	if err != nil {
+		return nil, err
+	}
+	u.Path = path.Join(u.Path, "/rest/api/2/user/search")
+	q := u.Query()
+	q.Set("username", email)
+	q.Set("maxResults", "50")
+	u.RawQuery = q.Encode()
+
+	resp, err := utils.HttpGetRaw(j.client, u.String(), "application/json", j.getAuth(jiraOptions))
+	if err != nil {
+		return nil, err
+	}
+
+	var users []JiraUser
+	if err := json.Unmarshal(resp, &users); err != nil {
+		return nil, err
+	}
+
+	for _, ju := range users {
+		if strings.EqualFold(ju.EmailAddress, email) {
+			return &ju, nil
+		}
+	}
+	return nil, fmt.Errorf("no Jira user found with email %s", email)
 }
 
 func NewJira(options JiraOptions) *Jira {
