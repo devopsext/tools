@@ -1035,9 +1035,7 @@ func (tpl *Template) HttpGet(params map[string]interface{}) ([]byte, error) {
 		timeout = tp
 	case float64:
 		timeout = int(tp)
-	}
-
-	if timeout == 0 {
+	default:
 		timeout = 5
 	}
 
