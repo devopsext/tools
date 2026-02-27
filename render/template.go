@@ -1023,60 +1023,11 @@ func (tpl *Template) HttpGetHeader(params map[string]interface{}) ([]byte, error
 }
 
 func (tpl *Template) HttpGet(params map[string]interface{}) ([]byte, error) {
-
-	if len(params) == 0 {
-		return nil, fmt.Errorf("HttpGet err => %s", "no params allowed")
+	result := tpl.HttpGetExt(params)
+	if result.Error != "" {
+		return nil, fmt.Errorf("%s", result.Error)
 	}
-
-	url, _ := params["url"].(string)
-	var timeout int
-	switch tp := params["timeout"].(type) {
-	case int:
-		timeout = tp
-	case float64:
-		timeout = int(tp)
-	default:
-		timeout = 5
-	}
-
-	insecure, _ := params["insecure"].(bool)
-	contentType, _ := params["contentType"].(string)
-	authorization, _ := params["authorization"].(string)
-
-	clientCrt, _ := params["clientCrt"].(string)
-	clientKey, _ := params["clientKey"].(string)
-
-	var certs []tls.Certificate
-	if !utils.IsEmpty(clientCrt) && !utils.IsEmpty(clientKey) {
-		pair, err := tls.X509KeyPair([]byte(clientCrt), []byte(clientKey))
-		if err != nil {
-			return nil, err
-		}
-		certs = append(certs, pair)
-	}
-
-	var rootCAs *x509.CertPool
-	clientCA, _ := params["clientCA"].(string)
-	if !utils.IsEmpty(clientCA) {
-		rootCAs := x509.NewCertPool()
-		rootCAs.AppendCertsFromPEM([]byte(clientCA))
-	}
-
-	var transport = &http.Transport{
-		Dial:                (&net.Dialer{Timeout: time.Duration(timeout) * time.Second}).Dial,
-		TLSHandshakeTimeout: time.Duration(timeout) * time.Second,
-		TLSClientConfig: &tls.Config{
-			RootCAs:            rootCAs,
-			Certificates:       certs,
-			InsecureSkipVerify: insecure,
-		},
-	}
-
-	client := http.Client{
-		Timeout:   time.Duration(timeout) * time.Second,
-		Transport: transport,
-	}
-	return utils.HttpGetRaw(&client, url, contentType, authorization)
+	return result.Body, nil
 }
 
 func (tpl *Template) HttpGetSilent(params map[string]interface{}) ([]byte, error) {
@@ -1161,8 +1112,13 @@ func (tpl *Template) HttpGetExt(params map[string]interface{}) HTTPResult {
 		return result
 	}
 
-	timeout, _ := params["timeout"].(int)
-	if timeout == 0 {
+	var timeout int
+	switch tp := params["timeout"].(type) {
+	case int:
+		timeout = tp
+	case float64:
+		timeout = int(tp)
+	default:
 		timeout = 5
 	}
 
@@ -1243,12 +1199,39 @@ func (tpl *Template) HttpGetExt(params map[string]interface{}) HTTPResult {
 }
 
 func (tpl *Template) HttpPost(params map[string]interface{}) ([]byte, error) {
+	result := tpl.HttpPostExt(params)
+	if result.Error != "" {
+		return nil, fmt.Errorf("%s", result.Error)
+	}
+	return result.Body, nil
+}
+
+func (tpl *Template) TryHttpPost(params map[string]interface{}) []byte {
+
+	r, err := tpl.HttpPost(params)
+	if err != nil {
+		return nil
+	}
+	return r
+}
+
+func (tpl *Template) HttpPostExt(params map[string]interface{}) HTTPResult {
+
+	result := HTTPResult{}
 
 	if len(params) == 0 {
-		return nil, fmt.Errorf("HttpPost err => %s", "no params allowed")
+		result.Error = "no params allowed"
+		result.StatusCode = ErrorCodeParam
+		return result
 	}
 
 	url, _ := params["url"].(string)
+	if url == "" {
+		result.Error = "URL parameter is required"
+		result.StatusCode = ErrorCodeParam
+		return result
+	}
+
 	var timeout int
 	switch tp := params["timeout"].(type) {
 	case int:
@@ -1265,18 +1248,14 @@ func (tpl *Template) HttpPost(params map[string]interface{}) ([]byte, error) {
 
 	var body []byte
 	b := params["body"]
-
 	if !utils.IsEmpty(b) {
-
-		switch b.(type) {
+		switch v := b.(type) {
 		case string:
-			bs, _ := b.(string)
-			body = []byte(bs)
+			body = []byte(v)
 		case []byte:
-			body, _ = b.([]byte)
+			body = v
 		default:
-			bs := fmt.Sprintf("%s", b)
-			body = []byte(bs)
+			body = []byte(fmt.Sprintf("%s", v))
 		}
 	}
 
@@ -1287,7 +1266,9 @@ func (tpl *Template) HttpPost(params map[string]interface{}) ([]byte, error) {
 	if !utils.IsEmpty(clientCrt) && !utils.IsEmpty(clientKey) {
 		pair, err := tls.X509KeyPair([]byte(clientCrt), []byte(clientKey))
 		if err != nil {
-			return nil, err
+			result.Error = fmt.Errorf("failed to load client key pair: %w", err).Error()
+			result.StatusCode = ErrorCodeTLS
+			return result
 		}
 		certs = append(certs, pair)
 	}
@@ -1295,7 +1276,7 @@ func (tpl *Template) HttpPost(params map[string]interface{}) ([]byte, error) {
 	var rootCAs *x509.CertPool
 	clientCA, _ := params["clientCA"].(string)
 	if !utils.IsEmpty(clientCA) {
-		rootCAs := x509.NewCertPool()
+		rootCAs = x509.NewCertPool()
 		rootCAs.AppendCertsFromPEM([]byte(clientCA))
 	}
 
@@ -1313,16 +1294,37 @@ func (tpl *Template) HttpPost(params map[string]interface{}) ([]byte, error) {
 		Timeout:   time.Duration(timeout) * time.Second,
 		Transport: transport,
 	}
-	return utils.HttpPostRaw(&client, url, contentType, authorization, body)
-}
 
-func (tpl *Template) TryHttpPost(params map[string]interface{}) []byte {
+	start := time.Now()
+	defer func() {
+		tpl.logger.Debug("HTTP POST request completed",
+			"url", url,
+			"duration", time.Since(start),
+			"status", result.StatusCode)
+	}()
 
-	r, err := tpl.HttpPost(params)
+	respBody, err := utils.HttpPostRaw(&client, url, contentType, authorization, body)
 	if err != nil {
-		return nil
+		result.Error = fmt.Errorf("HTTP request failed: %w", err).Error()
+		result.StatusCode = ErrorCodeHTTP
+		if respErr, ok := err.(interface{ StatusCode() int }); ok {
+			result.StatusCode = respErr.StatusCode()
+		} else {
+			e := err.Error()
+			if strings.Contains(e, "404") {
+				result.StatusCode = http.StatusNotFound
+			} else if strings.Contains(e, "403") {
+				result.StatusCode = http.StatusForbidden
+			} else if strings.Contains(e, "500") {
+				result.StatusCode = http.StatusInternalServerError
+			}
+		}
+		return result
 	}
-	return r
+
+	result.Body = respBody
+	result.StatusCode = http.StatusOK
+	return result
 }
 
 func (tpl *Template) HttpPut(params map[string]interface{}) ([]byte, error) {
@@ -3478,6 +3480,7 @@ func (tpl *Template) setTemplateFuncs(funcs map[string]any) {
 	funcs["httpGetExt"] = tpl.HttpGetExt
 	funcs["httpGetSilent"] = tpl.HttpGetSilent
 	funcs["httpPost"] = tpl.HttpPost
+	funcs["httpPostExt"] = tpl.HttpPostExt
 	funcs["tryHttpPost"] = tpl.TryHttpPost
 	funcs["httpPut"] = tpl.HttpPut
 	funcs["httpPatch"] = tpl.HttpPatch
