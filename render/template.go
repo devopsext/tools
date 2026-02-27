@@ -1189,6 +1189,7 @@ func (tpl *Template) HttpGetExt(params map[string]interface{}) HTTPResult {
 				result.StatusCode = http.StatusInternalServerError
 			}
 		}
+		result.Body = body
 		return result
 	}
 
@@ -1319,6 +1320,7 @@ func (tpl *Template) HttpPostExt(params map[string]interface{}) HTTPResult {
 				result.StatusCode = http.StatusInternalServerError
 			}
 		}
+		result.Body = respBody
 		return result
 	}
 
