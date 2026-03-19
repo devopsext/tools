@@ -34,12 +34,19 @@ type Prometheus struct {
 }
 
 func (p *Prometheus) toPrometheusTimestamp(ts string) string {
-	res := ts
+
 	t, err := time.Parse(time.RFC3339Nano, ts)
 	if err == nil {
-		res = strconv.Itoa(int(t.UTC().Unix()))
+		return strconv.Itoa(int(t.UTC().Unix()))
+	} else {
+
+		d, err := time.ParseDuration(ts)
+		if err == nil {
+			td := time.Now().Add(d)
+			return strconv.Itoa(int(td.UTC().Unix()))
+		}
 	}
-	return res
+	return ts
 }
 
 func (p *Prometheus) CustomGet(options PrometheusOptions) ([]byte, error) {
