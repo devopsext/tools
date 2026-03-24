@@ -8,14 +8,17 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var EC2Options = vendors.AWSOptions{
-	Accounts:    envGet("AWS_ACCOUNTS", "").(string),
-	Role:        envGet("AWS_ROLE", "").(string),
-	RoleTimeout: envGet("AWS_ROLE_TIMEOUT", "300").(string),
+var awsOptions = vendors.AWSOptions{
 	AWSKeys: vendors.AWSKeys{
-		AccessKey: envGet("AWS_ACCESSKEY", "").(string),
-		SecretKey: envGet("AWS_SECRETKEY", "").(string),
+		AccessKey: envGet("AWS_ACCESS_KEY", "").(string),
+		SecretKey: envGet("AWS_SECRET_KEY", "").(string),
 	},
+	Accounts:        envGet("AWS_ACCOUNTS", "").(string),
+	Role:            envGet("AWS_ROLE", "").(string),
+	RoleTimeout:     envGet("AWS_ROLE_TIMEOUT", 3600).(int),
+	RoleSessionName: envGet("AWS_ROLE_SESSION_NAME", "tools_session").(string),
+	Timeout:         envGet("AWS_TIMEOUT", 30).(int),
+	Insecure:        envGet("AWS_INSECURE", false).(bool),
 }
 
 var EC2Output = common.OutputOptions{
@@ -23,62 +26,56 @@ var EC2Output = common.OutputOptions{
 	Query:  envGet("AWS_EC2_OUTPUT_QUERY", "").(string),
 }
 
-func EC2New(stdout *common.Stdout) *vendors.AWSEC2 {
-	common.Debug("EC2", EC2Options, stdout)
-	common.Debug("EC2", EC2Output, stdout)
-
-	ec2, err := vendors.NewAWSEC2(EC2Options)
-	if ec2 == nil || err != nil {
-		stdout.Panic("unable to generate EC2 object", err)
-	}
-	return ec2
-}
-
 func NewAWSCommand() *cobra.Command {
 	awsCmd := &cobra.Command{
 		Use:   "aws",
 		Short: "AWS tools",
 	}
-
 	awsCmd.AddCommand(NewEC2Subcommand())
-
 	return awsCmd
 }
 
 func NewEC2Subcommand() *cobra.Command {
-	EC2Cmd := &cobra.Command{
+	ec2Cmd := &cobra.Command{
 		Use:   "ec2",
 		Short: "EC2 tools",
 	}
-	flags := EC2Cmd.PersistentFlags()
-	flags.StringVar(&EC2Options.AccessKey, "aws-accesskey", EC2Options.AccessKey, "Access key for AWS")
-	flags.StringVar(&EC2Options.SecretKey, "aws-secretkey", EC2Options.SecretKey, "Secret key for AWS")
-	flags.StringVar(&EC2Options.Role, "aws-role", EC2Options.Role, "Role to assume for AWS")
-	flags.StringVar(&EC2Options.RoleTimeout, "aws-role-timeout", EC2Options.RoleTimeout, "AWS Role timeout")
-	flags.StringVar(&EC2Options.Accounts, "aws-accounts", EC2Options.Accounts, "AWS account numbers, comma-separated")
-	flags.StringVar(&EC2Output.Output, "ec2-output", EC2Output.Output, "EC2 output")
-	flags.StringVar(&EC2Output.Query, "ec2-output-query", EC2Output.Query, "EC2 output query")
+	flags := ec2Cmd.PersistentFlags()
+	flags.StringVar(&awsOptions.AccessKey, "aws-accesskey", awsOptions.AccessKey, "AWS access key")
+	flags.StringVar(&awsOptions.SecretKey, "aws-secretkey", awsOptions.SecretKey, "AWS secret key")
+	flags.StringVar(&awsOptions.Accounts, "aws-accounts", awsOptions.Accounts, "AWS account numbers, comma-separated")
+	flags.StringVar(&awsOptions.Role, "aws-role", awsOptions.Role, "IAM role to assume")
+	flags.IntVar(&awsOptions.RoleTimeout, "aws-role-timeout", awsOptions.RoleTimeout, "Assumed role duration in seconds")
+	flags.StringVar(&awsOptions.RoleSessionName, "aws-role-session-name", awsOptions.RoleSessionName, "STS session name")
+	flags.IntVar(&awsOptions.Timeout, "aws-timeout", awsOptions.Timeout, "HTTP timeout in seconds")
+	flags.BoolVar(&awsOptions.Insecure, "aws-insecure", awsOptions.Insecure, "Skip TLS verification")
+	flags.StringVar(&EC2Output.Output, "ec2-output", EC2Output.Output, "EC2 output file")
+	flags.StringVar(&EC2Output.Query, "ec2-output-query", EC2Output.Query, "EC2 output JSONata query")
 
-	ec2GetInstancesCmd := &cobra.Command{
+	getInstancesCmd := &cobra.Command{
 		Use:   "get-instances",
-		Short: "Get EC2 instance by querying AWS",
+		Short: "Get all EC2 instances across accounts and regions",
 		Run: func(cmd *cobra.Command, args []string) {
 			stdout.Debug("Getting EC2 instances...")
+			common.Debug("EC2", awsOptions, stdout)
 
-			instances, err := EC2New(stdout).GetAllAWSEC2Instances()
+			ec2, err := vendors.NewAWSEC2(awsOptions)
+			if err != nil {
+				stdout.Panic("unable to create EC2 client", err)
+			}
+			instances, err := ec2.GetAllAWSEC2Instances()
 			if err != nil {
 				stdout.Error(err)
 				return
 			}
-			bytes, err := json.Marshal(instances)
+			b, err := json.Marshal(instances)
 			if err != nil {
 				stdout.Error(err)
 				return
 			}
-			common.OutputJson(EC2Output, "EC2", []interface{}{EC2Options}, bytes, stdout)
+			common.OutputJson(EC2Output, "EC2", []interface{}{awsOptions}, b, stdout)
 		},
 	}
-	EC2Cmd.AddCommand(ec2GetInstancesCmd)
-
-	return EC2Cmd
+	ec2Cmd.AddCommand(getInstancesCmd)
+	return ec2Cmd
 }
