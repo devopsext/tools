@@ -2082,6 +2082,95 @@ func (tpl *Template) JiraGetUserByEmail(params map[string]interface{}) ([]byte, 
 	return json.Marshal(jiraUser)
 }
 
+func (tpl *Template) awsOptionsFromParams(params map[string]interface{}) vendors.AWSOptions {
+	accessKey, _ := params["accessKey"].(string)
+	secretKey, _ := params["secretKey"].(string)
+	account, _ := params["account"].(string)
+	role, _ := params["role"].(string)
+	roleTimeout, _ := params["roleTimeout"].(int)
+	roleSessionName, _ := params["roleSessionName"].(string)
+	timeout, _ := params["timeout"].(int)
+	if timeout == 0 {
+		timeout = 30
+	}
+	insecure, _ := params["insecure"].(bool)
+	return vendors.AWSOptions{
+		AWSKeys:         vendors.AWSKeys{AccessKey: accessKey, SecretKey: secretKey},
+		Accounts:        account,
+		Role:            role,
+		RoleTimeout:     roleTimeout,
+		RoleSessionName: roleSessionName,
+		Timeout:         timeout,
+		Insecure:        insecure,
+	}
+}
+
+func (tpl *Template) AWSS3ListObjects(params map[string]interface{}) ([]byte, error) {
+	if len(params) == 0 {
+		return nil, fmt.Errorf("AWSS3ListObjects err => no params provided")
+	}
+	region, _ := params["region"].(string)
+	bucket, _ := params["bucket"].(string)
+	prefix, _ := params["prefix"].(string)
+
+	s3, err := vendors.NewAWSS3(tpl.awsOptionsFromParams(params))
+	if err != nil {
+		return nil, fmt.Errorf("AWSS3ListObjects err => %w", err)
+	}
+	return s3.ListObjects(region, bucket, prefix)
+}
+
+func (tpl *Template) AWSS3GetObject(params map[string]interface{}) ([]byte, error) {
+	if len(params) == 0 {
+		return nil, fmt.Errorf("AWSS3GetObject err => no params provided")
+	}
+	region, _ := params["region"].(string)
+	bucket, _ := params["bucket"].(string)
+	key, _ := params["key"].(string)
+	noerror, _ := params["noerror"].(bool)
+
+	s3, err := vendors.NewAWSS3(tpl.awsOptionsFromParams(params))
+	if err != nil {
+		if noerror {
+			return nil, nil
+		}
+		return nil, fmt.Errorf("AWSS3GetObject err => %w", err)
+	}
+	data, err := s3.GetObject(region, bucket, key)
+	if err != nil && noerror {
+		fmt.Printf("AWSS3GetObject warning => %v\n", err)
+		return nil, nil
+
+	}
+	return data, err
+}
+
+func (tpl *Template) AWSS3PutObject(params map[string]interface{}) ([]byte, error) {
+	if len(params) == 0 {
+		return nil, fmt.Errorf("AWSS3PutObject err => no params provided")
+	}
+	region, _ := params["region"].(string)
+	bucket, _ := params["bucket"].(string)
+	key, _ := params["key"].(string)
+	contentType, _ := params["contentType"].(string)
+	if contentType == "" {
+		contentType = "application/json"
+	}
+	var body []byte
+	switch v := params["body"].(type) {
+	case string:
+		body = []byte(v)
+	case []byte:
+		body = v
+	}
+
+	s3, err := vendors.NewAWSS3(tpl.awsOptionsFromParams(params))
+	if err != nil {
+		return nil, fmt.Errorf("AWSS3PutObject err => %w", err)
+	}
+	return s3.PutObject(region, bucket, key, contentType, body)
+}
+
 func (tpl *Template) LdapGetGroupMembers(params map[string]interface{}) ([]byte, error) {
 
 	ldapOptions := vendors.LdapOptions{
@@ -3526,6 +3615,10 @@ func (tpl *Template) setTemplateFuncs(funcs map[string]any) {
 	funcs["vmStatus"] = tpl.VMStatus
 	funcs["vmReboot"] = tpl.VMReboot
 	funcs["vmShutdown"] = tpl.VMShutdown
+
+	funcs["awsS3ListObjects"] = tpl.AWSS3ListObjects
+	funcs["awsS3GetObject"] = tpl.AWSS3GetObject
+	funcs["awsS3PutObject"] = tpl.AWSS3PutObject
 
 	funcs["ldapGetGroupMember"] = tpl.LdapGetGroupMembers
 
