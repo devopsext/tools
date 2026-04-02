@@ -1,6 +1,7 @@
 package vendors
 
 import (
+	"fmt"
 	"net/http"
 	"net/url"
 	"path"
@@ -46,7 +47,13 @@ func (p *Prometheus) toPrometheusTimestamp(ts string) string {
 			return strconv.Itoa(int(td.UTC().Unix()))
 		}
 	}
-	return ts
+
+	i, err := strconv.Atoi(ts)
+	if err != nil {
+		return ts
+	}
+
+	return fmt.Sprintf("%d", i)
 }
 
 func (p *Prometheus) CustomGet(options PrometheusOptions) ([]byte, error) {
