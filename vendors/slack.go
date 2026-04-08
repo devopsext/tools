@@ -28,9 +28,10 @@ const (
 )
 
 type SlackOptions struct {
-	Timeout  int
-	Insecure bool
-	Token    string
+	Timeout    int
+	Insecure   bool
+	Token      string
+	HTTPClient *http.Client
 }
 
 type SlackMessageOptions struct {
@@ -605,8 +606,13 @@ func (s *Slack) CustomGetConversationHistory(slackOptions SlackOptions, getConve
 
 func NewSlack(options SlackOptions) *Slack {
 
+	client := options.HTTPClient
+	if client == nil {
+		client = utils.NewHttpClient(options.Timeout, options.Insecure)
+	}
+
 	slack := &Slack{
-		client:  utils.NewHttpClient(options.Timeout, options.Insecure),
+		client:  client,
 		options: options,
 	}
 	return slack

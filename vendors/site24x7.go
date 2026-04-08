@@ -191,6 +191,7 @@ type Site24x7Options struct {
 	ClientSecret string
 	RefreshToken string
 	AccessToken  string
+	HTTPClient   *http.Client
 }
 
 type Site24x7 struct {
@@ -785,8 +786,13 @@ func (s *Site24x7) GetLogReport(options Site24x7LogReportOptions) ([]byte, error
 
 func NewSite24x7(options Site24x7Options, logger common.Logger) *Site24x7 {
 
+	client := options.HTTPClient
+	if client == nil {
+		client = utils.NewHttpClient(options.Timeout, options.Insecure)
+	}
+
 	return &Site24x7{
-		client:  utils.NewHttpClient(options.Timeout, options.Insecure),
+		client:  client,
 		options: options,
 		logger:  logger,
 	}
