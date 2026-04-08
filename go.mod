@@ -6,7 +6,7 @@ require (
 	github.com/Masterminds/sprig/v3 v3.2.2
 	github.com/araddon/dateparse v0.0.0-20210429162001-6b43995a97de
 	github.com/blues/jsonata-go v1.5.4
-	github.com/devopsext/utils v0.4.8
+	github.com/devopsext/utils v0.4.9
 	github.com/go-ldap/ldap/v3 v3.4.10
 	github.com/go-playground/form/v4 v4.2.1
 	github.com/google/uuid v1.6.0
