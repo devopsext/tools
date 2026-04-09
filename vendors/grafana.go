@@ -104,6 +104,145 @@ type GrafanaClonedLibraryElementOptions struct {
 	Kind      string
 }
 
+type GrafanaGetAlertsOptions struct {
+	Suppressed bool
+	GroupBy    string
+	Filter     string
+}
+
+// filterCondition represents a single filter condition for label filtering
+type filterCondition struct {
+	Label  string
+	Value  string
+	Exists bool // true = label must exist, false = label must not exist
+	Negate bool // true = negate value check (!value)
+}
+
+// parseGrafanaAlertFilter parses a filter string into a slice of filter conditions
+// Format: "label_a:value_a|label_b:!value_b|label_c|!label_d"
+// - label:value - label must exist and have value
+// - label:!value - label must exist and NOT have value
+// - label - label must exist (any value)
+// - !label - label must NOT exist
+func parseGrafanaAlertFilter(filter string) []filterCondition {
+	if strings.TrimSpace(filter) == "" {
+		return nil
+	}
+
+	var conditions []filterCondition
+	parts := strings.Split(filter, "|")
+
+	for _, part := range parts {
+		part = strings.TrimSpace(part)
+		if part == "" {
+			continue
+		}
+
+		// Check for negation of label existence: !label
+		if strings.HasPrefix(part, "!") && !strings.Contains(part, ":") {
+			label := strings.TrimSpace(strings.TrimPrefix(part, "!"))
+			if label == "" {
+				continue
+			}
+
+			conditions = append(conditions, filterCondition{
+				Label:  label,
+				Exists: false,
+			})
+			continue
+		}
+
+		// Check for label:value or label:!value
+		if strings.Contains(part, ":") {
+			kv := strings.SplitN(part, ":", 2)
+			label := strings.TrimSpace(kv[0])
+			value := strings.TrimSpace(kv[1])
+
+			if label == "" {
+				continue
+			}
+
+			negate := false
+			if strings.HasPrefix(value, "!") {
+				negate = true
+				value = strings.TrimPrefix(value, "!")
+			}
+
+			conditions = append(conditions, filterCondition{
+				Label:  label,
+				Value:  value,
+				Exists: true,
+				Negate: negate,
+			})
+			continue
+		}
+
+		// Simple label existence check
+		conditions = append(conditions, filterCondition{
+			Label:  part,
+			Exists: true,
+		})
+	}
+
+	return conditions
+}
+
+// matchGrafanaAlertFilter checks if an alert matches all filter conditions
+func matchGrafanaAlertFilter(alert GrafanaAlert, conditions []filterCondition) bool {
+	for _, cond := range conditions {
+		labelValue, labelExists := alert.Labels[cond.Label]
+
+		// Check label existence
+		if !cond.Exists {
+			// Label should NOT exist
+			if labelExists {
+				return false
+			}
+			continue
+		}
+
+		// Label should exist
+		if !labelExists {
+			return false
+		}
+
+		// Check value if specified
+		if cond.Value != "" {
+			if cond.Negate {
+				// Label should NOT have this value
+				if strings.EqualFold(labelValue, cond.Value) {
+					return false
+				}
+			} else {
+				// Label should have this value
+				if !strings.EqualFold(labelValue, cond.Value) {
+					return false
+				}
+			}
+		}
+	}
+
+	return true
+}
+
+type GrafanaAlert struct {
+	Labels       map[string]string `json:"labels"`
+	Annotations  map[string]string `json:"annotations"`
+	StartsAt     string            `json:"startsAt"`
+	EndsAt       string            `json:"endsAt"`
+	UpdatedAt    string            `json:"updatedAt"`
+	GeneratorURL string            `json:"generatorURL"`
+	Fingerprint  string            `json:"fingerprint"`
+	Status       struct {
+		State       string   `json:"state"`
+		SilencedBy  []string `json:"silencedBy"`
+		InhibitedBy []string `json:"inhibitedBy"`
+	} `json:"status"`
+	Receivers []struct {
+		Name string `json:"name"`
+	} `json:"receivers"`
+}
+
 type GrafanaOptions struct {
 	URL      string
 	Timeout  int
@@ -993,6 +1132,125 @@ func (g *Grafana) CustomPut(grafanaOptions GrafanaOptions, apiPath string, heade
 	u.Path = path.Join(u.Path, apiPath)
 
 	return utils.HttpPutRawWithHeaders(g.client, u.String(), headers, body)
+}
+
+func (g *Grafana) CustomGetAlerts(grafanaOptions GrafanaOptions, getAlertsOptions GrafanaGetAlertsOptions) ([]byte, error) {
+	u, err := url.Parse(grafanaOptions.URL)
+	if err != nil {
+		return nil, err
+	}
+
+	// Endpoint: /api/alertmanager/grafana/api/v2/alerts
+	u.Path = path.Join(u.Path, "/api/alertmanager/grafana/api/v2/alerts")
+
+	var params = make(url.Values)
+	if !utils.IsEmpty(grafanaOptions.OrgID) {
+		params.Add("orgId", grafanaOptions.OrgID)
+	}
+	u.RawQuery = params.Encode()
+
+	// Build headers manually (httpContentTypeAndAuthorizationHeaders is not exported)
+	headers := make(map[string]string)
+	headers["Content-Type"] = "application/json"
+	auth := g.getAuth(grafanaOptions)
+	if !utils.IsEmpty(auth) {
+		headers["Authorization"] = auth
+	}
+
+	body, statusCode, err := utils.HttpRequestRawWithHeadersOutCode(g.client, "GET", u.String(), headers, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	// Parse alerts
+	var alerts []GrafanaAlert
+	err = json.Unmarshal(body, &alerts)
+	if err != nil {
+		return nil, err
+	}
+
+	// Save original count before filtering
+	originalCount := len(alerts)
+
+	// Filter suppressed alerts if needed
+	var filteredAlerts []GrafanaAlert
+	for _, alert := range alerts {
+		if !getAlertsOptions.Suppressed && alert.Status.State == "suppressed" {
+			continue
+		}
+		filteredAlerts = append(filteredAlerts, alert)
+	}
+
+	// Parse and apply label filter if specified
+	filter := ""
+	if !utils.IsEmpty(getAlertsOptions.Filter) {
+		filter = getAlertsOptions.Filter
+		conditions := parseGrafanaAlertFilter(getAlertsOptions.Filter)
+		if len(conditions) > 0 {
+			var labelFilteredAlerts []GrafanaAlert
+			for _, alert := range filteredAlerts {
+				if matchGrafanaAlertFilter(alert, conditions) {
+					labelFilteredAlerts = append(labelFilteredAlerts, alert)
+				}
+			}
+			filteredAlerts = labelFilteredAlerts
+		}
+	}
+
+	// Calculate number of filtered alerts
+	filteredCount := originalCount - len(filteredAlerts)
+
+	// Determine groupBy key
+	groupBy := getAlertsOptions.GroupBy
+	if groupBy == "" {
+		groupBy = "alertname"
+	}
+
+	// Group alerts
+	groupedAlerts := make(map[string]map[string]map[string]interface{})
+	for _, alert := range filteredAlerts {
+		groupKey := "__undefined__"
+		if _, ok := alert.Labels[groupBy]; ok {
+			groupKey = alert.Labels[groupBy]
+		}
+
+		if groupedAlerts[groupKey] == nil {
+			groupedAlerts[groupKey] = make(map[string]map[string]interface{})
+		}
+
+		// Format startsAt as "2026-12-12 12:12:12"
+		startsAt := alert.StartsAt
+		if t, err := time.Parse(time.RFC3339Nano, startsAt); err == nil {
+			startsAt = t.Format("2006-01-02 15:04:05")
+		}
+
+		fingerprint := alert.Fingerprint
+
+		alertData := make(map[string]interface{})
+		for k, v := range alert.Labels {
+			alertData[k] = v
+		}
+		alertData["state"] = alert.Status.State
+		alertData["startsAt"] = startsAt
+
+		groupedAlerts[groupKey][fingerprint] = alertData
+	}
+
+	// Build response
+	response := map[string]interface{}{
+		"status":    statusCode,
+		"count":     len(filteredAlerts),
+		"filtered":  filteredCount,
+		"groupedby": groupBy,
+		"alerts":    groupedAlerts,
+		"filter":    filter,
+	}
+
+	return json.Marshal(response)
+}
+
+func (g *Grafana) GetAlerts(options GrafanaGetAlertsOptions) ([]byte, error) {
+	return g.CustomGetAlerts(g.options, options)
 }
 
 func NewGrafana(options GrafanaOptions) *Grafana {

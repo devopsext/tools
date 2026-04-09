@@ -2204,6 +2204,45 @@ func (tpl *Template) LdapGetGroupMembers(params map[string]interface{}) ([]byte,
 	return membersJson, nil
 }
 
+func (tpl *Template) grafanaGetAlerts(params map[string]interface{}) ([]byte, error) {
+	url, _ := params["url"].(string)
+	timeout, _ := params["timeout"].(int)
+	if timeout == 0 {
+		timeout = 15
+	}
+	insecure, _ := params["insecure"].(bool)
+	token, _ := params["token"].(string)
+	orgID, _ := params["orgid"].(string)
+	suppressed, _ := params["suppressed"].(bool)
+	groupBy, _ := params["groupby"].(string)
+	if groupBy == "" {
+		groupBy = "alertname" // default
+	}
+	filter, _ := params["filter"].(string)
+
+	grafanaOptions := vendors.GrafanaOptions{
+		URL:      url,
+		Timeout:  timeout,
+		Insecure: insecure,
+		APIKey:   token,
+		OrgID:    orgID,
+	}
+
+	grafanaGetAlertsOptions := vendors.GrafanaGetAlertsOptions{
+		Suppressed: suppressed,
+		GroupBy:    groupBy,
+		Filter:     filter,
+	}
+
+	grafana := vendors.NewGrafana(grafanaOptions)
+
+	response, err := grafana.GetAlerts(grafanaGetAlertsOptions)
+	if err != nil {
+		return nil, err
+	}
+	return response, nil
+}
+
 func (tpl *Template) GrafanaCreateDashboard(params map[string]interface{}) ([]byte, error) {
 
 	url, _ := params["url"].(string)
@@ -3591,6 +3630,7 @@ func (tpl *Template) setTemplateFuncs(funcs map[string]any) {
 	funcs["jiraUpdateAsset"] = tpl.JiraUpdateAsset
 	funcs["jiraGetUserByEmail"] = tpl.JiraGetUserByEmail
 
+	funcs["grafanaGetAlerts"] = tpl.grafanaGetAlerts
 	funcs["grafanaCreateDashboard"] = tpl.GrafanaCreateDashboard
 	funcs["grafanaCopyDashboard"] = tpl.GrafanaCopyDashboard
 
