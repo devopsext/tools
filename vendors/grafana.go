@@ -1231,7 +1231,7 @@ func (g *Grafana) CustomGetAlerts(grafanaOptions GrafanaOptions, getAlertsOption
 			alertData[k] = v
 		}
 		alertData["state"] = alert.Status.State
-		alertData["StartsAt"] = startsAt
+		alertData["startsAt"] = startsAt
 
 		groupedAlerts[groupKey][fingerprint] = alertData
 	}
