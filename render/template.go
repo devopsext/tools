@@ -2216,9 +2216,6 @@ func (tpl *Template) grafanaGetAlerts(params map[string]interface{}) ([]byte, er
 	}
 	token, _ := params["token"].(string)
 	orgID, _ := params["orgid"].(string)
-	if orgID == "" {
-		orgID = "1" // default 1
-	}
 	suppressed, _ := params["suppressed"].(bool)
 	groupBy, _ := params["groupby"].(string)
 	if groupBy == "" {
