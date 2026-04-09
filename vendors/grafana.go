@@ -140,8 +140,13 @@ func parseGrafanaAlertFilter(filter string) []filterCondition {
 
 		// Check for negation of label existence: !label
 		if strings.HasPrefix(part, "!") && !strings.Contains(part, ":") {
+			label := strings.TrimSpace(strings.TrimPrefix(part, "!"))
+			if label == "" {
+				continue
+			}
+
 			conditions = append(conditions, filterCondition{
-				Label:  strings.TrimPrefix(part, "!"),
+				Label:  label,
 				Exists: false,
 			})
 			continue
