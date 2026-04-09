@@ -2211,9 +2211,6 @@ func (tpl *Template) grafanaGetAlerts(params map[string]interface{}) ([]byte, er
 		timeout = 15
 	}
 	insecure, _ := params["insecure"].(bool)
-	if _, ok := params["insecure"]; !ok {
-		insecure = true // default true
-	}
 	token, _ := params["token"].(string)
 	orgID, _ := params["orgid"].(string)
 	suppressed, _ := params["suppressed"].(bool)
