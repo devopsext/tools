@@ -107,7 +107,6 @@ type GrafanaClonedLibraryElementOptions struct {
 type GrafanaGetAlertsOptions struct {
 	Suppressed bool
 	GroupBy    string
-	SortBy     string
 	Filter     string
 }
 
