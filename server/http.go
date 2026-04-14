@@ -53,7 +53,7 @@ type HttpServerCallRequest struct {
 	Timeout int           `form:"timeout,omitempty"`
 }
 
-type HttpServerCallRespone struct {
+type HttpServerCallResponse struct {
 	Request *HttpServerCallRequest `json:"request"`
 	Result  []interface{}          `json:"result,omitempty"`
 	Error   string                 `json:"error,omitempty"`
@@ -236,7 +236,7 @@ func (h *HttpServerCallProcessor) HandleRequest(w http.ResponseWriter, r *http.R
 		}
 	}
 
-	res := &HttpServerCallRespone{
+	res := &HttpServerCallResponse{
 		Request: &request,
 		Result:  rarr,
 		Error:   rerr,

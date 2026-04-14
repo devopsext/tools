@@ -159,13 +159,42 @@ type Site24x7DeleteResponse struct {
 	Data *Site24x7DeleteData `json:"data,omitempty"`
 }
 
+// Site24x7FlexibleStr decodes JSON string or number (API may return either for the same field).
+type Site24x7FlexibleStr string
+
+func (s *Site24x7FlexibleStr) UnmarshalJSON(data []byte) error {
+	if len(data) == 0 {
+		*s = ""
+		return nil
+	}
+	switch data[0] {
+	case '"':
+		var v string
+		if err := json.Unmarshal(data, &v); err != nil {
+			return err
+		}
+		*s = Site24x7FlexibleStr(v)
+		return nil
+	case 'n': // null
+		*s = ""
+		return nil
+	default:
+		var n json.Number
+		if err := json.Unmarshal(data, &n); err != nil {
+			return err
+		}
+		*s = Site24x7FlexibleStr(n.String())
+		return nil
+	}
+}
+
 type Site24x7LogReportDataReport struct {
 	ConnectionTime     string `json:"connection_time"`
 	DnsTime            string `json:"dns_time"`
 	SSLTime            string `json:"ssl_time"`
 	ResponseCode       string `json:"response_code"`
 	CollectionTime     string `json:"collection_time"`
-	Availability       string `json:"availability"`
+	Availability       Site24x7FlexibleStr `json:"availability"`
 	ResponseTime       string `json:"response_time"`
 	LocationID         string `json:"location_id"`
 	Nameserver         string `json:"nameserver"`
@@ -191,6 +220,7 @@ type Site24x7Options struct {
 	ClientSecret string
 	RefreshToken string
 	AccessToken  string
+	HTTPClient   *http.Client
 }
 
 type Site24x7 struct {
@@ -785,8 +815,13 @@ func (s *Site24x7) GetLogReport(options Site24x7LogReportOptions) ([]byte, error
 
 func NewSite24x7(options Site24x7Options, logger common.Logger) *Site24x7 {
 
+	client := options.HTTPClient
+	if client == nil {
+		client = utils.NewHttpClient(options.Timeout, options.Insecure)
+	}
+
 	return &Site24x7{
-		client:  utils.NewHttpClient(options.Timeout, options.Insecure),
+		client:  client,
 		options: options,
 		logger:  logger,
 	}

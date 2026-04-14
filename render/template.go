@@ -908,6 +908,20 @@ func (tpl *Template) DurationBetween(start, end time.Time) map[string]int {
 	}
 }
 
+// Duration calculates the duration from start time to now and returns a formatted string
+// Example: "1.234s", "500ms", "2.5s"
+func (tpl *Template) Duration(start time.Time) string {
+	duration := time.Since(start)
+	return duration.String()
+}
+
+// DurationString converts two time.Time values to a duration string
+// Example: "1.234s", "500ms", "2.5s"
+func (tpl *Template) DurationString(start, end time.Time) string {
+	duration := end.Sub(start)
+	return duration.String()
+}
+
 func (tpl *Template) NowFmt(f string) string {
 
 	t := time.Now()
@@ -1009,55 +1023,11 @@ func (tpl *Template) HttpGetHeader(params map[string]interface{}) ([]byte, error
 }
 
 func (tpl *Template) HttpGet(params map[string]interface{}) ([]byte, error) {
-
-	if len(params) == 0 {
-		return nil, fmt.Errorf("HttpGet err => %s", "no params allowed")
+	result := tpl.HttpGetExt(params)
+	if result.Error != "" {
+		return nil, fmt.Errorf("%s", result.Error)
 	}
-
-	url, _ := params["url"].(string)
-	timeout, _ := params["timeout"].(int)
-	if timeout == 0 {
-		timeout = 5
-	}
-
-	insecure, _ := params["insecure"].(bool)
-	contentType, _ := params["contentType"].(string)
-	authorization, _ := params["authorization"].(string)
-
-	clientCrt, _ := params["clientCrt"].(string)
-	clientKey, _ := params["clientKey"].(string)
-
-	var certs []tls.Certificate
-	if !utils.IsEmpty(clientCrt) && !utils.IsEmpty(clientKey) {
-		pair, err := tls.X509KeyPair([]byte(clientCrt), []byte(clientKey))
-		if err != nil {
-			return nil, err
-		}
-		certs = append(certs, pair)
-	}
-
-	var rootCAs *x509.CertPool
-	clientCA, _ := params["clientCA"].(string)
-	if !utils.IsEmpty(clientCA) {
-		rootCAs := x509.NewCertPool()
-		rootCAs.AppendCertsFromPEM([]byte(clientCA))
-	}
-
-	var transport = &http.Transport{
-		Dial:                (&net.Dialer{Timeout: time.Duration(timeout) * time.Second}).Dial,
-		TLSHandshakeTimeout: time.Duration(timeout) * time.Second,
-		TLSClientConfig: &tls.Config{
-			RootCAs:            rootCAs,
-			Certificates:       certs,
-			InsecureSkipVerify: insecure,
-		},
-	}
-
-	client := http.Client{
-		Timeout:   time.Duration(timeout) * time.Second,
-		Transport: transport,
-	}
-	return utils.HttpGetRaw(&client, url, contentType, authorization)
+	return result.Body, nil
 }
 
 func (tpl *Template) HttpGetSilent(params map[string]interface{}) ([]byte, error) {
@@ -1142,8 +1112,13 @@ func (tpl *Template) HttpGetExt(params map[string]interface{}) HTTPResult {
 		return result
 	}
 
-	timeout, _ := params["timeout"].(int)
-	if timeout == 0 {
+	var timeout int
+	switch tp := params["timeout"].(type) {
+	case int:
+		timeout = tp
+	case float64:
+		timeout = int(tp)
+	default:
 		timeout = 5
 	}
 
@@ -1168,7 +1143,7 @@ func (tpl *Template) HttpGetExt(params map[string]interface{}) HTTPResult {
 	var rootCAs *x509.CertPool
 	clientCA, _ := params["clientCA"].(string)
 	if !utils.IsEmpty(clientCA) {
-		rootCAs := x509.NewCertPool()
+		rootCAs = x509.NewCertPool()
 		rootCAs.AppendCertsFromPEM([]byte(clientCA))
 	}
 
@@ -1204,7 +1179,17 @@ func (tpl *Template) HttpGetExt(params map[string]interface{}) HTTPResult {
 		// Try to get status code from error if possible
 		if respErr, ok := err.(interface{ StatusCode() int }); ok {
 			result.StatusCode = respErr.StatusCode()
+		} else {
+			e := err.Error()
+			if strings.Contains(e, "404") {
+				result.StatusCode = http.StatusNotFound
+			} else if strings.Contains(e, "403") {
+				result.StatusCode = http.StatusForbidden
+			} else if strings.Contains(e, "500") {
+				result.StatusCode = http.StatusInternalServerError
+			}
 		}
+		result.Body = body
 		return result
 	}
 
@@ -1215,14 +1200,46 @@ func (tpl *Template) HttpGetExt(params map[string]interface{}) HTTPResult {
 }
 
 func (tpl *Template) HttpPost(params map[string]interface{}) ([]byte, error) {
+	result := tpl.HttpPostExt(params)
+	if result.Error != "" {
+		return nil, fmt.Errorf("%s", result.Error)
+	}
+	return result.Body, nil
+}
+
+func (tpl *Template) TryHttpPost(params map[string]interface{}) []byte {
+
+	r, err := tpl.HttpPost(params)
+	if err != nil {
+		return nil
+	}
+	return r
+}
+
+func (tpl *Template) HttpPostExt(params map[string]interface{}) HTTPResult {
+
+	result := HTTPResult{}
 
 	if len(params) == 0 {
-		return nil, fmt.Errorf("HttpPost err => %s", "no params allowed")
+		result.Error = "no params allowed"
+		result.StatusCode = ErrorCodeParam
+		return result
 	}
 
 	url, _ := params["url"].(string)
-	timeout, _ := params["timeout"].(int)
-	if timeout == 0 {
+	if url == "" {
+		result.Error = "URL parameter is required"
+		result.StatusCode = ErrorCodeParam
+		return result
+	}
+
+	var timeout int
+	switch tp := params["timeout"].(type) {
+	case int:
+		timeout = tp
+	case float64:
+		timeout = int(tp)
+	default:
 		timeout = 5
 	}
 
@@ -1232,18 +1249,14 @@ func (tpl *Template) HttpPost(params map[string]interface{}) ([]byte, error) {
 
 	var body []byte
 	b := params["body"]
-
 	if !utils.IsEmpty(b) {
-
-		switch b.(type) {
+		switch v := b.(type) {
 		case string:
-			bs, _ := b.(string)
-			body = []byte(bs)
+			body = []byte(v)
 		case []byte:
-			body, _ = b.([]byte)
+			body = v
 		default:
-			bs := fmt.Sprintf("%s", b)
-			body = []byte(bs)
+			body = []byte(fmt.Sprintf("%s", v))
 		}
 	}
 
@@ -1254,7 +1267,9 @@ func (tpl *Template) HttpPost(params map[string]interface{}) ([]byte, error) {
 	if !utils.IsEmpty(clientCrt) && !utils.IsEmpty(clientKey) {
 		pair, err := tls.X509KeyPair([]byte(clientCrt), []byte(clientKey))
 		if err != nil {
-			return nil, err
+			result.Error = fmt.Errorf("failed to load client key pair: %w", err).Error()
+			result.StatusCode = ErrorCodeTLS
+			return result
 		}
 		certs = append(certs, pair)
 	}
@@ -1262,7 +1277,7 @@ func (tpl *Template) HttpPost(params map[string]interface{}) ([]byte, error) {
 	var rootCAs *x509.CertPool
 	clientCA, _ := params["clientCA"].(string)
 	if !utils.IsEmpty(clientCA) {
-		rootCAs := x509.NewCertPool()
+		rootCAs = x509.NewCertPool()
 		rootCAs.AppendCertsFromPEM([]byte(clientCA))
 	}
 
@@ -1280,16 +1295,38 @@ func (tpl *Template) HttpPost(params map[string]interface{}) ([]byte, error) {
 		Timeout:   time.Duration(timeout) * time.Second,
 		Transport: transport,
 	}
-	return utils.HttpPostRaw(&client, url, contentType, authorization, body)
-}
 
-func (tpl *Template) TryHttpPost(params map[string]interface{}) []byte {
+	start := time.Now()
+	defer func() {
+		tpl.logger.Debug("HTTP POST request completed",
+			"url", url,
+			"duration", time.Since(start),
+			"status", result.StatusCode)
+	}()
 
-	r, err := tpl.HttpPost(params)
+	respBody, err := utils.HttpPostRaw(&client, url, contentType, authorization, body)
 	if err != nil {
-		return nil
+		result.Error = fmt.Errorf("HTTP request failed: %w", err).Error()
+		result.StatusCode = ErrorCodeHTTP
+		if respErr, ok := err.(interface{ StatusCode() int }); ok {
+			result.StatusCode = respErr.StatusCode()
+		} else {
+			e := err.Error()
+			if strings.Contains(e, "404") {
+				result.StatusCode = http.StatusNotFound
+			} else if strings.Contains(e, "403") {
+				result.StatusCode = http.StatusForbidden
+			} else if strings.Contains(e, "500") {
+				result.StatusCode = http.StatusInternalServerError
+			}
+		}
+		result.Body = respBody
+		return result
 	}
-	return r
+
+	result.Body = respBody
+	result.StatusCode = http.StatusOK
+	return result
 }
 
 func (tpl *Template) HttpPut(params map[string]interface{}) ([]byte, error) {
@@ -1298,8 +1335,13 @@ func (tpl *Template) HttpPut(params map[string]interface{}) ([]byte, error) {
 	}
 
 	u, _ := params["url"].(string)
-	timeout, _ := params["timeout"].(int)
-	if timeout == 0 {
+	var timeout int
+	switch tp := params["timeout"].(type) {
+	case int:
+		timeout = tp
+	case float64:
+		timeout = int(tp)
+	default:
 		timeout = 5
 	}
 
@@ -1567,9 +1609,6 @@ func (tpl *Template) JiraCreateAsset(params map[string]interface{}) ([]byte, err
 	decommissionedId, _ := params["decommissionedId"].(int)
 	decommissionedKey, _ := params["decommissionedKey"].(string)
 
-	fmt.Println("third party key", thirdPartyKey)
-	fmt.Println("decommissioned key", decommissionedKey)
-
 	businessProcessesKeys := make([]string, len(businessProcessesKeysRaw))
 	for i, key := range businessProcessesKeysRaw {
 		businessProcessesKeys[i] = fmt.Sprint(key)
@@ -1836,6 +1875,8 @@ func (tpl *Template) JiraIssueTransition(params map[string]interface{}) ([]byte,
 	transitionId, _ := params["id"].(string)
 	key, _ := params["key"].(string)
 
+	comment, _ := params["comment"].(string)
+
 	jiraOptions := vendors.JiraOptions{
 		URL:         url,
 		Timeout:     timeout,
@@ -1846,8 +1887,9 @@ func (tpl *Template) JiraIssueTransition(params map[string]interface{}) ([]byte,
 	}
 
 	jiraIssueOptions := vendors.JiraIssueOptions{
-		TransitionID: transitionId,
-		IdOrKey:      key,
+		TransitionID:     transitionId,
+		IdOrKey:          key,
+		UpdateAddComment: comment,
 	}
 
 	jira := vendors.NewJira(jiraOptions)
@@ -2001,10 +2043,132 @@ func (tpl *Template) JiraCreateIssue(params map[string]interface{}) ([]byte, err
 
 	response, err := jira.CreateIssue(jiraIssueOptions)
 	if err != nil {
+		tpl.logger.Error("Failed to create Jira issue: %v", response)
 		return nil, err
 	}
 
 	return response, nil
+}
+
+func (tpl *Template) JiraGetUserByEmail(params map[string]interface{}) ([]byte, error) {
+
+	url, _ := params["url"].(string)
+	timeout, _ := params["timeout"].(int)
+	if timeout == 0 {
+		timeout = 10
+	}
+	insecure, _ := params["insecure"].(bool)
+	user, _ := params["user"].(string)
+	password, _ := params["password"].(string)
+	token, _ := params["token"].(string)
+	email, _ := params["email"].(string)
+
+	jiraOptions := vendors.JiraOptions{
+		URL:         url,
+		Timeout:     timeout,
+		Insecure:    insecure,
+		User:        user,
+		Password:    password,
+		AccessToken: token,
+	}
+
+	jira := vendors.NewJira(jiraOptions)
+
+	jiraUser, err := jira.GetUserByEmail(jiraOptions, email)
+	if err != nil {
+		return nil, err
+	}
+
+	return json.Marshal(jiraUser)
+}
+
+func (tpl *Template) awsOptionsFromParams(params map[string]interface{}) vendors.AWSOptions {
+	accessKey, _ := params["accessKey"].(string)
+	secretKey, _ := params["secretKey"].(string)
+	account, _ := params["account"].(string)
+	role, _ := params["role"].(string)
+	roleTimeout, _ := params["roleTimeout"].(int)
+	roleSessionName, _ := params["roleSessionName"].(string)
+	timeout, _ := params["timeout"].(int)
+	if timeout == 0 {
+		timeout = 30
+	}
+	insecure, _ := params["insecure"].(bool)
+	return vendors.AWSOptions{
+		AWSKeys:         vendors.AWSKeys{AccessKey: accessKey, SecretKey: secretKey},
+		Accounts:        account,
+		Role:            role,
+		RoleTimeout:     roleTimeout,
+		RoleSessionName: roleSessionName,
+		Timeout:         timeout,
+		Insecure:        insecure,
+	}
+}
+
+func (tpl *Template) AWSS3ListObjects(params map[string]interface{}) ([]byte, error) {
+	if len(params) == 0 {
+		return nil, fmt.Errorf("AWSS3ListObjects err => no params provided")
+	}
+	region, _ := params["region"].(string)
+	bucket, _ := params["bucket"].(string)
+	prefix, _ := params["prefix"].(string)
+
+	s3, err := vendors.NewAWSS3(tpl.awsOptionsFromParams(params))
+	if err != nil {
+		return nil, fmt.Errorf("AWSS3ListObjects err => %w", err)
+	}
+	return s3.ListObjects(region, bucket, prefix)
+}
+
+func (tpl *Template) AWSS3GetObject(params map[string]interface{}) ([]byte, error) {
+	if len(params) == 0 {
+		return nil, fmt.Errorf("AWSS3GetObject err => no params provided")
+	}
+	region, _ := params["region"].(string)
+	bucket, _ := params["bucket"].(string)
+	key, _ := params["key"].(string)
+	noerror, _ := params["noerror"].(bool)
+
+	s3, err := vendors.NewAWSS3(tpl.awsOptionsFromParams(params))
+	if err != nil {
+		if noerror {
+			return nil, nil
+		}
+		return nil, fmt.Errorf("AWSS3GetObject err => %w", err)
+	}
+	data, err := s3.GetObject(region, bucket, key)
+	if err != nil && noerror {
+		fmt.Printf("AWSS3GetObject warning => %v\n", err)
+		return nil, nil
+
+	}
+	return data, err
+}
+
+func (tpl *Template) AWSS3PutObject(params map[string]interface{}) ([]byte, error) {
+	if len(params) == 0 {
+		return nil, fmt.Errorf("AWSS3PutObject err => no params provided")
+	}
+	region, _ := params["region"].(string)
+	bucket, _ := params["bucket"].(string)
+	key, _ := params["key"].(string)
+	contentType, _ := params["contentType"].(string)
+	if contentType == "" {
+		contentType = "application/json"
+	}
+	var body []byte
+	switch v := params["body"].(type) {
+	case string:
+		body = []byte(v)
+	case []byte:
+		body = v
+	}
+
+	s3, err := vendors.NewAWSS3(tpl.awsOptionsFromParams(params))
+	if err != nil {
+		return nil, fmt.Errorf("AWSS3PutObject err => %w", err)
+	}
+	return s3.PutObject(region, bucket, key, contentType, body)
 }
 
 func (tpl *Template) LdapGetGroupMembers(params map[string]interface{}) ([]byte, error) {
@@ -2038,6 +2202,45 @@ func (tpl *Template) LdapGetGroupMembers(params map[string]interface{}) ([]byte,
 		return nil, err
 	}
 	return membersJson, nil
+}
+
+func (tpl *Template) grafanaGetAlerts(params map[string]interface{}) ([]byte, error) {
+	url, _ := params["url"].(string)
+	timeout, _ := params["timeout"].(int)
+	if timeout == 0 {
+		timeout = 15
+	}
+	insecure, _ := params["insecure"].(bool)
+	token, _ := params["token"].(string)
+	orgID, _ := params["orgid"].(string)
+	suppressed, _ := params["suppressed"].(bool)
+	groupBy, _ := params["groupby"].(string)
+	if groupBy == "" {
+		groupBy = "alertname" // default
+	}
+	filter, _ := params["filter"].(string)
+
+	grafanaOptions := vendors.GrafanaOptions{
+		URL:      url,
+		Timeout:  timeout,
+		Insecure: insecure,
+		APIKey:   token,
+		OrgID:    orgID,
+	}
+
+	grafanaGetAlertsOptions := vendors.GrafanaGetAlertsOptions{
+		Suppressed: suppressed,
+		GroupBy:    groupBy,
+		Filter:     filter,
+	}
+
+	grafana := vendors.NewGrafana(grafanaOptions)
+
+	response, err := grafana.GetAlerts(grafanaGetAlertsOptions)
+	if err != nil {
+		return nil, err
+	}
+	return response, nil
 }
 
 func (tpl *Template) GrafanaCreateDashboard(params map[string]interface{}) ([]byte, error) {
@@ -2869,6 +3072,128 @@ func (tpl *Template) VMStatus(params map[string]interface{}) ([]byte, error) {
 
 }
 
+func (tpl *Template) VMReboot(params map[string]interface{}) ([]byte, error) {
+
+	user, _ := params["user"].(string)
+	url, _ := params["url"].(string)
+	password, _ := params["password"].(string)
+	vms := strings.Split(params["vms"].(string), ",")
+	timeout, _ := params["timeout"].(int)
+	if timeout == 0 {
+		timeout = 20
+	}
+	insecure, _ := params["insecure"].(bool)
+
+	vcenterOptions := vendors.VCenterOptions{
+		URL:      url,
+		User:     user,
+		Password: password,
+		Timeout:  timeout,
+		Insecure: insecure,
+	}
+
+	vmNames := vendors.VCenterVMNameOptions{
+		Names: vms,
+	}
+
+	vcenterOptions, err := vendors.InitializeVCenterSession(vcenterOptions)
+	if err != nil {
+		return nil, err
+	}
+
+	vcenter := vendors.NewVCenter(vcenterOptions)
+
+	var vi vendors.VMsResponse
+
+	vmInfo, err := vcenter.GetVMsByName(vmNames)
+	if err != nil {
+		return nil, err
+	}
+
+	err = json.Unmarshal(vmInfo, &vi)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(vi.Value) == 0 {
+		return nil, fmt.Errorf("no VMs found")
+	}
+
+	var response []byte
+
+	if len(vi.Value) > 0 {
+		for _, vm := range vi.Value {
+			response, err = vcenter.RebootVM(vm.VM)
+			if err != nil {
+				return nil, err
+			}
+		}
+	}
+
+	return response, nil
+}
+
+func (tpl *Template) VMShutdown(params map[string]interface{}) ([]byte, error) {
+
+	user, _ := params["user"].(string)
+	url, _ := params["url"].(string)
+	password, _ := params["password"].(string)
+	vms := strings.Split(params["vms"].(string), ",")
+	timeout, _ := params["timeout"].(int)
+	if timeout == 0 {
+		timeout = 20
+	}
+	insecure, _ := params["insecure"].(bool)
+
+	vcenterOptions := vendors.VCenterOptions{
+		URL:      url,
+		User:     user,
+		Password: password,
+		Timeout:  timeout,
+		Insecure: insecure,
+	}
+
+	vmNames := vendors.VCenterVMNameOptions{
+		Names: vms,
+	}
+
+	vcenterOptions, err := vendors.InitializeVCenterSession(vcenterOptions)
+	if err != nil {
+		return nil, err
+	}
+
+	vcenter := vendors.NewVCenter(vcenterOptions)
+
+	var vi vendors.VMsResponse
+
+	vmInfo, err := vcenter.GetVMsByName(vmNames)
+	if err != nil {
+		return nil, err
+	}
+
+	err = json.Unmarshal(vmInfo, &vi)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(vi.Value) == 0 {
+		return nil, fmt.Errorf("no VMs found")
+	}
+
+	var response []byte
+
+	if len(vi.Value) > 0 {
+		for _, vm := range vi.Value {
+			response, err = vcenter.ShutdownVM(vm.VM)
+			if err != nil {
+				return nil, err
+			}
+		}
+	}
+
+	return response, nil
+}
+
 func (tpl *Template) CatchpointInstantTest(params map[string]interface{}) ([]byte, error) {
 
 	url, _ := params["url"].(string)
@@ -3264,6 +3589,8 @@ func (tpl *Template) setTemplateFuncs(funcs map[string]any) {
 	funcs["tagValue"] = tpl.TagValue
 	funcs["dateParse"] = tpl.DateParse
 	funcs["durationBetween"] = tpl.DurationBetween
+	funcs["duration"] = tpl.Duration
+	funcs["durationString"] = tpl.DurationString
 	funcs["nowFmt"] = tpl.NowFmt
 	funcs["sleep"] = tpl.Sleep
 	funcs["error"] = tpl.Error
@@ -3283,6 +3610,7 @@ func (tpl *Template) setTemplateFuncs(funcs map[string]any) {
 	funcs["httpGetExt"] = tpl.HttpGetExt
 	funcs["httpGetSilent"] = tpl.HttpGetSilent
 	funcs["httpPost"] = tpl.HttpPost
+	funcs["httpPostExt"] = tpl.HttpPostExt
 	funcs["tryHttpPost"] = tpl.TryHttpPost
 	funcs["httpPut"] = tpl.HttpPut
 	funcs["httpPatch"] = tpl.HttpPatch
@@ -3300,7 +3628,9 @@ func (tpl *Template) setTemplateFuncs(funcs map[string]any) {
 	funcs["jiraIssueTransition"] = tpl.JiraIssueTransition
 	funcs["jiraGetIssueTransition"] = tpl.JiraGetIssueTransition
 	funcs["jiraUpdateAsset"] = tpl.JiraUpdateAsset
+	funcs["jiraGetUserByEmail"] = tpl.JiraGetUserByEmail
 
+	funcs["grafanaGetAlerts"] = tpl.grafanaGetAlerts
 	funcs["grafanaCreateDashboard"] = tpl.GrafanaCreateDashboard
 	funcs["grafanaCopyDashboard"] = tpl.GrafanaCopyDashboard
 
@@ -3323,6 +3653,12 @@ func (tpl *Template) setTemplateFuncs(funcs map[string]any) {
 	funcs["vmStart"] = tpl.VMStart
 	funcs["vmStop"] = tpl.VMStop
 	funcs["vmStatus"] = tpl.VMStatus
+	funcs["vmReboot"] = tpl.VMReboot
+	funcs["vmShutdown"] = tpl.VMShutdown
+
+	funcs["awsS3ListObjects"] = tpl.AWSS3ListObjects
+	funcs["awsS3GetObject"] = tpl.AWSS3GetObject
+	funcs["awsS3PutObject"] = tpl.AWSS3PutObject
 
 	funcs["ldapGetGroupMember"] = tpl.LdapGetGroupMembers
 

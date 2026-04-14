@@ -64,6 +64,7 @@ const (
 	VCenterRestVMPath                 = "/rest/vcenter/vm"
 	VCenterRestVMGuestIdentityPathFmt = "/rest/vcenter/vm/%s/guest/identity"
 	VCenterRestVMPowerPathFmt         = "/rest/vcenter/vm/%s/power"
+	VCenterRestVMGuestPowerPathFmt    = "/api/vcenter/vm/%s/guest/power"
 )
 
 func (vc *VCenter) getAuth(opts VCenterOptions) string {
@@ -253,6 +254,27 @@ func (vc *VCenter) CustomControlVMPower(options VCenterOptions, vmID string, act
 	return utils.HttpPostRawWithHeaders(vc.client, u.String(), vc.getHeaders(session), nil)
 }
 
+func (vc *VCenter) CustomControlVMGuestPower(options VCenterOptions, vmID string, action string) ([]byte, error) {
+	session, err := vc.CustomGetSession(options)
+	if err != nil {
+		return nil, err
+	}
+
+	u, err := url.Parse(options.URL)
+	if err != nil {
+		return nil, err
+	}
+
+	p := fmt.Sprintf(VCenterRestVMGuestPowerPathFmt, vmID)
+	u.Path = path.Join(u.Path, p)
+
+	q := u.Query()
+	q.Set("action", action)
+	u.RawQuery = q.Encode()
+
+	return utils.HttpPostRawWithHeaders(vc.client, u.String(), vc.getHeaders(session), nil)
+}
+
 func (vc *VCenter) CustomGetVM(options VCenterOptions, vmID string) ([]byte, error) {
 	session, err := vc.CustomGetSession(options)
 	if err != nil {
@@ -283,6 +305,14 @@ func (vc *VCenter) ResetVM(vmID string) ([]byte, error) {
 
 func (vc *VCenter) GetVM(vmID string) ([]byte, error) {
 	return vc.CustomGetVM(vc.options, vmID)
+}
+
+func (vc *VCenter) RebootVM(vmID string) ([]byte, error) {
+	return vc.CustomControlVMGuestPower(vc.options, vmID, "reboot")
+}
+
+func (vc *VCenter) ShutdownVM(vmID string) ([]byte, error) {
+	return vc.CustomControlVMGuestPower(vc.options, vmID, "shutdown")
 }
 
 func NewVCenter(options VCenterOptions) *VCenter {

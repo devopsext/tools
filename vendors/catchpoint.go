@@ -33,10 +33,11 @@ type Catchpoint struct {
 }
 
 type CatchpointOptions struct {
-	APIToken string
-	Timeout  int
-	Insecure bool
-	Retries  int
+	APIToken   string
+	Timeout    int
+	Insecure   bool
+	Retries    int
+	HTTPClient *http.Client
 }
 
 type CatchpointSearchNodesWithOptions struct {
@@ -679,8 +680,13 @@ func (c *Catchpoint) CustomInstantTest(catchpointOptions CatchpointOptions, catc
 
 func NewCatchpoint(options CatchpointOptions, logger common.Logger) *Catchpoint {
 
+	client := options.HTTPClient
+	if client == nil {
+		client = utils.NewHttpClient(options.Timeout, options.Insecure)
+	}
+
 	catchpoint := &Catchpoint{
-		client:  utils.NewHttpClient(options.Timeout, options.Insecure),
+		client:  client,
 		options: options,
 	}
 	return catchpoint

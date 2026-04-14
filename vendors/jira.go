@@ -48,6 +48,7 @@ type JiraIssueOptions struct {
 	Labels             []string
 	UpdateAddLabels    []string
 	UpdateRemoveLabels []string
+	UpdateAddComment   string
 }
 
 type JiraAddIssueCommentOptions struct {
@@ -100,9 +101,14 @@ type JiraIssueCreate struct {
 	Fields *JiraIssueFields `json:"fields"`
 }
 
+type JiraIssueUpdateTransition struct {
+	Fields     *JiraIssueFields                  `json:"fields,omitempty"`
+	Update     *JiraIssueUpdatePayloadTransition `json:"update,omitempty"`
+	Transition *JiraTransition                   `json:"transition,omitempty"`
+}
 type JiraIssueUpdate struct {
-	Fields *JiraIssueFields        `json:"fields"`
-	Update *JiraIssueUpdatePayload `json:"update"`
+	Fields *JiraIssueFields        `json:"fields,omitempty"`
+	Update *JiraIssueUpdatePayload `json:"update,omitempty"`
 }
 type JiraIssueFields struct {
 	Project     *JiraIssueProject      `json:"project,omitempty"`
@@ -116,6 +122,10 @@ type JiraIssueFields struct {
 	Reporter    *JiraIssueReporter     `json:"reporter,omitempty"`
 }
 
+type JiraIssueUpdatePayloadTransition struct {
+	Comments []JiraIssueAddCommentTransition `json:"comment,omitempty"`
+	Labels   []JiraIssueUpdateLabelOperation `json:"labels,omitempty"`
+}
 type JiraIssueUpdatePayload struct {
 	Labels []JiraIssueUpdateLabelOperation `json:"labels,omitempty"`
 }
@@ -125,6 +135,12 @@ type JiraIssueUpdateLabelOperation struct {
 	Remove string `json:"remove,omitempty"`
 }
 
+type JiraIssueAddCommentInner struct {
+	Body string `json:"body"`
+}
+type JiraIssueAddCommentTransition struct {
+	AddInner JiraIssueAddCommentInner `json:"add"`
+}
 type JiraIssueAddComment struct {
 	Body string `json:"body"`
 }
@@ -152,9 +168,16 @@ type JiraIssueReporter struct {
 	Name string `json:"name"`
 }
 
+type JiraUser struct {
+	Name         string `json:"name"`
+	EmailAddress string `json:"emailAddress"`
+	DisplayName  string `json:"displayName"`
+	Active       bool   `json:"active"`
+}
+
 type JiraTransition struct {
 	ID   string `json:"id"`
-	Name string `json:"name"`
+	Name string `json:"name,omitempty"`
 }
 
 type JiraTransitions struct {
@@ -392,7 +415,7 @@ func (j *Jira) CreateIssue(issueCreateOptions JiraIssueOptions) ([]byte, error) 
 
 func (j *Jira) CustomAddIssueComment(jiraOptions JiraOptions, issueOptions JiraIssueOptions, addCommentOptions JiraAddIssueCommentOptions) ([]byte, error) {
 
-	comment := &JiraIssueAddComment{
+	comment := &JiraIssueAddCommentInner{
 		Body: addCommentOptions.Body,
 	}
 
@@ -465,13 +488,18 @@ func (j *Jira) CustomUpdateIssue(jiraOptions JiraOptions, issueOptions JiraIssue
 	}
 
 	issue := &JiraIssueUpdate{
-		Fields: &JiraIssueFields{
-			Summary:     issueOptions.Summary,
-			Description: issueOptions.Description,
-		},
+		Fields: &JiraIssueFields{},
 		Update: &JiraIssueUpdatePayload{
 			Labels: labelOperations,
 		},
+	}
+
+	if !utils.IsEmpty(issueOptions.Summary) {
+		issue.Fields.Summary = issueOptions.Summary
+	}
+
+	if !utils.IsEmpty(issueOptions.Description) {
+		issue.Fields.Description = issueOptions.Description
 	}
 
 	if len(issueOptions.Labels) > 0 {
@@ -559,11 +587,27 @@ func (j *Jira) GetIssueTransitions(jiraOptions JiraOptions, issueOptions JiraIss
 
 func (j *Jira) CustomChangeIssueTransitions(jiraOptions JiraOptions, issueOptions JiraIssueOptions) ([]byte, error) {
 
-	transition := &JiraIssueTransition{
-		Transition: &JiraTransition{ID: issueOptions.TransitionID},
+	transition := &JiraTransition{ID: issueOptions.TransitionID}
+
+	updatePayload := &JiraIssueUpdatePayloadTransition{
+		Comments: []JiraIssueAddCommentTransition{
+			JiraIssueAddCommentTransition{
+				AddInner: JiraIssueAddCommentInner{
+					Body: issueOptions.UpdateAddComment,
+				},
+			},
+		},
 	}
 
-	req, err := json.Marshal(transition)
+	update := &JiraIssueUpdateTransition{
+		Update:     updatePayload,
+		Transition: transition,
+	}
+	if issueOptions.UpdateAddComment == "" {
+		update.Update = nil
+	}
+
+	req, err := json.Marshal(update)
 	if err != nil {
 		return nil, err
 	}
@@ -831,6 +875,36 @@ func (j *Jira) CustomUpdateAsset(jiraOptions JiraOptions, updateOptions JiraUpda
 
 func (j *Jira) UpdateAsset(updateOptions JiraUpdateAssetOptions) ([]byte, error) {
 	return j.CustomUpdateAsset(j.options, updateOptions)
+}
+
+func (j *Jira) GetUserByEmail(jiraOptions JiraOptions, email string) (*JiraUser, error) {
+
+	u, err := url.Parse(jiraOptions.URL)
+	if err != nil {
+		return nil, err
+	}
+	u.Path = path.Join(u.Path, "/rest/api/2/user/search")
+	q := u.Query()
+	q.Set("username", email)
+	q.Set("maxResults", "50")
+	u.RawQuery = q.Encode()
+
+	resp, err := utils.HttpGetRaw(j.client, u.String(), "application/json", j.getAuth(jiraOptions))
+	if err != nil {
+		return nil, err
+	}
+
+	var users []JiraUser
+	if err := json.Unmarshal(resp, &users); err != nil {
+		return nil, err
+	}
+
+	for _, ju := range users {
+		if strings.EqualFold(ju.EmailAddress, email) {
+			return &ju, nil
+		}
+	}
+	return nil, fmt.Errorf("no Jira user found with email %s", email)
 }
 
 func NewJira(options JiraOptions) *Jira {
