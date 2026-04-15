@@ -200,8 +200,8 @@ type Site24x7LogReportDataReport struct {
 	Nameserver         string `json:"nameserver"`
 	ResolvedIP         string `json:"resolved_ip"`
 	Reason             string `json:"reason"`
-	ContentLength      string `json:"content_length"`
-	DataCollectionType string `json:"data_collection_type"`
+	ContentLength      string              `json:"content_length"`
+	DataCollectionType Site24x7FlexibleStr `json:"data_collection_type"`
 }
 
 type Site24x7LogReportData struct {
