@@ -90,6 +90,14 @@ type JiraCreateAssetOptions struct {
 	Group             *JiraAssetAttribute
 	IsThirdParty      *JiraAssetAttribute
 	IsDecommissioned  *JiraAssetAttribute
+	ServiceId         int
+	JobNameId         int
+	LaunchParamsId    int
+	TestTagsId        int
+	ServiceKey        *JiraAssetAttribute
+	JobName           string
+	LaunchParams      string
+	TestTags          string
 }
 
 type JiraUpdateAssetOptions struct {
@@ -796,6 +804,39 @@ func (j *Jira) CustomCreateAsset(jiraOptions JiraOptions, createOptions JiraCrea
 			ObjectAttributeValues: []JiraAssetAttributeValue{
 				{
 					Value: createOptions.Repository,
+				},
+			},
+		},
+		{
+			ObjectTypeAttributeId: createOptions.ServiceId,
+			ObjectAttributeValues: func() []JiraAssetAttributeValue {
+				if createOptions.ServiceKey != nil {
+					return createOptions.ServiceKey.ObjectAttributeValues
+				}
+				return nil
+			}(),
+		},
+		{
+			ObjectTypeAttributeId: createOptions.JobNameId,
+			ObjectAttributeValues: []JiraAssetAttributeValue{
+				{
+					Value: createOptions.JobName,
+				},
+			},
+		},
+		{
+			ObjectTypeAttributeId: createOptions.LaunchParamsId,
+			ObjectAttributeValues: []JiraAssetAttributeValue{
+				{
+					Value: createOptions.LaunchParams,
+				},
+			},
+		},
+		{
+			ObjectTypeAttributeId: createOptions.TestTagsId,
+			ObjectAttributeValues: []JiraAssetAttributeValue{
+				{
+					Value: createOptions.TestTags,
 				},
 			},
 		},

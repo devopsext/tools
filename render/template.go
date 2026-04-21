@@ -1609,6 +1609,21 @@ func (tpl *Template) JiraCreateAsset(params map[string]interface{}) ([]byte, err
 	decommissionedId, _ := params["decommissionedId"].(int)
 	decommissionedKey, _ := params["decommissionedKey"].(string)
 
+	serviceId, _ := params["serviceId"].(int)
+	serviceKey, _ := params["serviceKey"].(string)
+	serviceKeyAttr := vendors.JiraAssetAttribute{
+		ObjectTypeAttributeId: serviceId,
+		ObjectAttributeValues: []vendors.JiraAssetAttributeValue{
+			{Value: serviceKey},
+		},
+	}
+	jobNameId, _ := params["jobNameId"].(int)
+	jobName, _ := params["jobName"].(string)
+	launchParamsId, _ := params["launchParamsId"].(int)
+	launchParams, _ := params["launchParams"].(string)
+	testTagsId, _ := params["testTagsId"].(int)
+	testTags, _ := params["testTags"].(string)
+
 	businessProcessesKeys := make([]string, len(businessProcessesKeysRaw))
 	for i, key := range businessProcessesKeysRaw {
 		businessProcessesKeys[i] = fmt.Sprint(key)
@@ -1695,6 +1710,14 @@ func (tpl *Template) JiraCreateAsset(params map[string]interface{}) ([]byte, err
 		Group:             &group,
 		IsThirdParty:      &isThirdParty,
 		IsDecommissioned:  &isDecommissioned,
+		ServiceId:         serviceId,
+		ServiceKey:        &serviceKeyAttr,
+		JobNameId:         jobNameId,
+		JobName:           jobName,
+		LaunchParamsId:    launchParamsId,
+		LaunchParams:      launchParams,
+		TestTagsId:        testTagsId,
+		TestTags:          testTags,
 	}
 
 	jira := vendors.NewJira(jiraOptions)
